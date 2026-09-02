@@ -1,0 +1,6 @@
+{
+  "name": "SmartShop",
+  "description": "Enterprise-grade E-Commerce storefront and administrative management system featuring RBAC, inventory, multi-variant products, orders, coupons, audit logs, and reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

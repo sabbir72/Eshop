@@ -1,0 +1,532 @@
+// This is the comprehensive Prisma schema for the entire Smart E-Commerce Platform
+// Supporting PostgreSQL (e.g. Supabase, AWS RDS, Neon, or Cloud SQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// -------------------------------------------------------------
+// USER & ACCOUNTS
+// -------------------------------------------------------------
+model User {
+  id               String          @id @default(uuid())
+  name             String
+  email            String          @unique
+  phone            String?
+  avatar           String?
+  role             String          @default("Customer") // Super Admin, Admin, Category Manager, Product Manager, Order Manager, Inventory Manager, Customer Support, Customer
+  status           String          @default("active") // active, inactive, locked
+  ordersCount      Int             @default(0)
+  totalPurchase    Float           @default(0)
+  address          String?
+  twoFactorEnabled Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  orders           Order[]
+  supportTickets   SupportTicket[]
+}
+
+// -------------------------------------------------------------
+// CATALOG & PRODUCTS
+// -------------------------------------------------------------
+model Category {
+  id             String     @id @default(uuid())
+  name           String
+  name_bn        String?
+  slug           String     @unique
+  image          String?
+  icon           String?
+  banner         String?
+  bannerImage    String?
+  parentId       String?
+  description    String?
+  description_bn String?
+  status         String     @default("Active") // Active, Inactive
+  displayOrder   Int        @default(0)
+  seoTitle       String?
+  seoKeywords    String?
+  seoDescription String?
+  discountType   String?   // Percentage, Fixed
+  discountValue  Float?
+  discountStartDate DateTime?
+  discountEndDate   DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  parent         Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Category[] @relation("CategoryHierarchy")
+  products       Product[]
+}
+
+model Brand {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  logo         String?
+  description  String?
+  status       String    @default("Active")
+  productCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
+}
+
+model Product {
+  id                 String           @id @default(uuid())
+  name               String
+  name_bn            String?
+  sku                String           @unique
+  barcode            String?
+  categoryId         String?
+  categoryName       String?
+  subCategoryId      String?
+  subCategoryName    String?
+  brandId            String?
+  brandName          String?
+  vendor             String?
+  shortDescription   String?
+  shortDescription_bn String?
+  description        String?
+  description_bn     String?
+  specifications     Json?            // Key-value pairs
+  warranty           String?
+  tags               String[]         @default([])
+
+  // Pricing & Discounts
+  costPrice          Float?
+  purchasePrice      Float?
+  sellingPrice       Float
+  discountPrice      Float?
+  discountType       String?          // Percentage, Fixed
+  discountValue      Float?
+  discountStartDate  DateTime?
+  discountEndDate    DateTime?
+  taxPercent         Float            @default(5.0)
+  vatPercent         Float            @default(7.5)
+
+  // Media
+  mainImage          String?
+  galleryImages      String[]         @default([])
+  videoUrl           String?
+  zoomImage          String?
+
+  // Attributes
+  colors             String[]         @default([])
+  sizes              String[]         @default([])
+  weight             String?
+
+  // Stock & Status
+  totalStock         Int              @default(0)
+  lowStockThreshold  Int              @default(5)
+  isLowStock         Boolean          @default(false)
+  status             String           @default("Active") // Active, Draft, Inactive, Archived
+  rating             Float            @default(5.0)
+  reviewsCount       Int              @default(0)
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  category           Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  brand              Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  variants           ProductVariant[]
+  reviews            Review[]
+  orderItems         OrderItem[]
+}
+
+model ProductVariant {
+  id             String   @id @default(uuid())
+  productId      String
+  color          String?
+  size           String?
+  sku            String
+  barcode        String?
+  price          Float
+  discountPrice  Float?
+  stock          Int      @default(0)
+  warehouseStock Json?    // { "wh-1": 10, "wh-2": 5 }
+  image          String?
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// INVENTORY & WAREHOUSES
+// -------------------------------------------------------------
+model Warehouse {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  location  String
+  capacity  Int      @default(0)
+  manager   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryTransaction {
+  id                String   @id @default(uuid())
+  productId         String
+  productName       String
+  sku               String
+  type              String   // Stock In, Stock Out, Transfer, Adjustment
+  quantity          Int
+  fromWarehouse     String?
+  fromWarehouseId   String?
+  fromWarehouseName String?
+  toWarehouse       String?
+  toWarehouseId     String?
+  toWarehouseName   String?
+  reason            String
+  performedBy       String
+  timestamp         DateTime @default(now())
+  createdAt         DateTime @default(now())
+}
+
+// -------------------------------------------------------------
+// COUPONS & DISCOUNTS
+// -------------------------------------------------------------
+model Coupon {
+  id                     String    @id @default(uuid())
+  code                   String    @unique
+  title                  String?
+  description            String?
+  type                   String    @default("Percentage") // Percentage, Fixed, Fixed Amount
+  codeType               String    @default("COUPON") // COUPON, PROMO, DISCOUNT
+  scopeType              String    @default("GLOBAL") // GLOBAL, CATEGORY, PRODUCT, PRODUCT_GROUP
+  customerEligibility    String    @default("ALL") // ALL, NEW_USERS, VIP_CUSTOMERS
+  productGroupName       String?
+  discountValue          Float
+  startDate              DateTime?
+  endDate                DateTime?
+  expiryDate             DateTime?
+  minSpend               Float?    @default(0)
+  minPurchase            Float?    @default(0)
+  maxDiscount            Float?
+  usageCount             Int       @default(0)
+  usageLimit             Int?
+  perUserLimit           Int?      @default(1)
+  status                 String    @default("Active") // Active, Expired, Disabled
+  applicableCategoryIds String[]  @default([])
+  applicableCategoryNames String[] @default([])
+  applicableProductIds  String[]  @default([])
+  applicableProductNames String[] @default([])
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+// -------------------------------------------------------------
+// ORDERS & CHECKOUT
+// -------------------------------------------------------------
+model Order {
+  id             String          @id @default(uuid())
+  orderNumber    String          @unique
+  customerId     String?
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  shippingAddress Json           // { street, city, postalCode, country }
+  subtotal       Float
+  discount       Float           @default(0)
+  couponCode     String?
+  shippingCharge Float           @default(0)
+  tax            Float           @default(0)
+  isGiftWrapped  Boolean         @default(false)
+  giftWrappingCharge Float       @default(0)
+  giftSmsEnabled Boolean         @default(false)
+  giftRecipientPhone String?
+  giftSenderName String?
+  giftMessage    String?
+  giftSmsStatus  String?         @default("Not Requested") // Not Requested, Pending, Sent, Failed, Simulated
+  total          Float
+  paymentMethod  String          // Cash On Delivery, bKash, Nagad, Rocket, SSLCommerz
+  paymentStatus  String          @default("Unpaid") // Unpaid, Paid, Refunded
+  orderStatus    String          @default("Pending") // Order Placed, Payment Confirmed, Pending, Processing, Packed, Shipped, Out for Delivery, Delivered, Completed, Returned, Refunded, Cancelled
+  trackingNumber String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  user           User?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items          OrderItem[]
+  returnRequests ReturnRequest[]
+}
+
+model OrderItem {
+  id             String   @id @default(uuid())
+  orderId        String
+  productId      String?
+  productName    String
+  variantSummary String?
+  sku            String?
+  price          Float
+  quantity       Int
+  total          Float
+  image          String?
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model ReturnRequest {
+  id            String   @id @default(uuid())
+  requestNumber String   @unique
+  orderId       String
+  orderNumber   String
+  customerName  String
+  customerEmail String
+  customerPhone String
+  productId     String
+  productName   String
+  productImage  String?
+  reason        String   // Defective/Faulty, Wrong Item Received, Item Damaged in Transit, Mind Changed, Size Issue
+  details       String
+  images        String[] @default([])
+  status        String   @default("Requested") // Requested, Approved, Product Received, Refund Processed, Rejected
+  refundAmount  Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// REVIEWS & FEEDBACK
+// -------------------------------------------------------------
+model Review {
+  id             String   @id @default(uuid())
+  productId      String
+  productName    String
+  productImage   String?
+  customerName   String
+  customerAvatar String?
+  rating         Float
+  comment        String
+  status         String   @default("Pending") // Pending, Approved, Rejected
+  verifiedBuyer  Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// CUSTOMER SUPPORT & TICKETS
+// -------------------------------------------------------------
+model SupportTicket {
+  id            String          @id @default(uuid())
+  ticketNumber  String          @unique
+  customerId    String?
+  customerName  String
+  customerEmail String
+  subject       String
+  category      String          // Account, Order, Payment, Coupons, Shipping, Returns, Technical, General
+  priority      String          @default("Medium") // Low, Medium, High, Urgent
+  status        String          @default("Open") // Open, In Progress, Resolved, Closed
+  assignedAgent String?
+  isLiveChat    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user          User?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  messages      TicketMessage[]
+}
+
+model TicketMessage {
+  id          String        @id @default(uuid())
+  ticketId    String
+  sender      String        // Customer, Support Agent, System
+  senderName  String
+  message     String
+  attachments String[]      @default([])
+  createdAt   DateTime      @default(now())
+
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// AUDIT & SYSTEM LOGS
+// -------------------------------------------------------------
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  userName      String?
+  userRole      String?
+  action        String
+  module        String   // Product, Category, Brand, Customer, Order, Inventory, Coupon, Settings, AuditLog, CMS, Support, etc.
+  previousValue String?
+  newValue      String?
+  ipAddress     String?
+  device        String?
+  userAgent     String?
+  timestamp     DateTime @default(now())
+}
+
+// -------------------------------------------------------------
+// CMS, BANNERS, ADVERTISEMENTS & CONTENT
+// -------------------------------------------------------------
+model HomeBanner {
+  id                 String    @id @default(uuid())
+  title              String
+  subtitle           String
+  imageUrl           String
+  videoUrl           String?
+  mediaType          String    @default("image") // image, video
+  link               String
+  buttonText         String
+  buttonLink         String?
+  bgGradient         String?
+  expiryDate         DateTime?
+  isActive           Boolean   @default(true)
+  offerBadge         String?   // NEW, HOT, LIMITED TIME, FLASH SALE, FESTIVAL
+  couponCode         String?
+  countdownEnd       DateTime?
+  priority           Int       @default(0)
+  startDate          DateTime?
+  endDate            DateTime?
+  termsConditions    String?
+  eligibleProductIds String[]  @default([])
+  views              Int       @default(0)
+  clicks             Int       @default(0)
+  conversions        Int       @default(0)
+  createdAt          DateTime  @default(now())
+}
+
+model Advertisement {
+  id                 String    @id @default(uuid())
+  title              String
+  description        String
+  type               String    // slider, popup, campaign, video
+  mediaType          String    @default("image") // image, video
+  mediaUrl           String
+  videoUrl           String?
+  offerBadge         String?   // NEW, HOT, LIMITED TIME, FLASH SALE, FESTIVAL
+  couponCode         String?
+  countdownEnd       DateTime?
+  buttonText         String
+  buttonLink         String
+  priority           Int       @default(0)
+  startDate          DateTime?
+  endDate            DateTime?
+  isActive           Boolean   @default(true)
+  termsConditions    String?
+  eligibleProductIds String[]  @default([])
+  views              Int       @default(0)
+  clicks             Int       @default(0)
+  conversions        Int       @default(0)
+  createdAt          DateTime  @default(now())
+}
+
+model SecurityLabel {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  iconName      String
+  displayOrder  Int      @default(0)
+  isActive      Boolean  @default(true)
+  pagePlacement String[] @default(["footer", "checkout"])
+}
+
+model BlogArticle {
+  id        String   @id @default(uuid())
+  title     String
+  author    String
+  date      String
+  excerpt   String
+  content   String
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FAQItem {
+  id              String   @id @default(uuid())
+  categoryId      String?
+  categoryName    String?
+  question        String
+  answer          String
+  category        String   @default("General")
+  helpfulCount    Int      @default(0)
+  notHelpfulCount Int      @default(0)
+  isPublished     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model ContactInquiry {
+  id        String   @id @default(uuid())
+  fullName  String
+  email     String
+  phone     String
+  subject   String
+  message   String
+  status    String   @default("New") // New, In Progress, Responded, Archived
+  reply     String?
+  createdAt DateTime @default(now())
+}
+
+model JobPosting {
+  id               String   @id @default(uuid())
+  title            String
+  department       String
+  location         String
+  employmentType   String   // Full-time, Part-time, Contract, Remote, Hybrid
+  experience       String
+  salaryRange      String
+  deadline         String
+  description      String
+  responsibilities String[] @default([])
+  requirements     String[] @default([])
+  status           String   @default("Open") // Open, Closed, Draft
+  createdAt        DateTime @default(now())
+
+  applications     JobApplication[]
+}
+
+model JobApplication {
+  id          String     @id @default(uuid())
+  jobId       String
+  jobTitle    String
+  fullName    String
+  email       String
+  phone       String
+  resumeUrl   String
+  coverLetter String
+  status      String     @default("Submitted") // Submitted, Under Review, Shortlisted, Rejected, Hired
+  appliedAt   DateTime   @default(now())
+
+  job         JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// SYSTEM SETTINGS
+// -------------------------------------------------------------
+model Settings {
+  id                   String   @id @default("default")
+  siteName             String   @default("Smart E-Commerce")
+  websiteName          String?  @default("Smart E-Commerce")
+  currency             String   @default("BDT")
+  currencySymbol       String   @default("৳")
+  taxRate              Float    @default(5.0)
+  shippingCharge       Float    @default(60.0)
+  supportEmail         String   @default("support@smartecom.com")
+  supportPhone         String   @default("+880 1700-000000")
+  logoUrl              String?
+  faviconUrl           String?  @default("/favicon.ico")
+  tagline              String?  @default("Your trusted online store")
+  themeColor           String?  @default("#2563eb")
+  enableTwoFactor      Boolean  @default(false)
+  enableStockAlerts    Boolean  @default(true)
+  paymentGateways      Json?    // { bKash: true, Nagad: true, Rocket: true, SSLCommerz: true, Cash On Delivery: true }
+  sslCommerzOnlyOnline Boolean  @default(false)
+  codMinOrderAmount    Float    @default(100.0)
+  codMaxOrderAmount    Float    @default(50000.0)
+  codAllowedDistricts  String[] @default(["Dhaka", "Chittagong", "Sylhet", "Gazipur", "Narayanganj", "Rajshahi", "Khulna", "Barishal", "Rangpur", "Mymensingh", "Cumilla"])
+  smtpHost             String?  @default("smtp-relay.brevo.com")
+  smtpPort             Int?     @default(587)
+  enableGiftWrapping   Boolean  @default(true)
+  giftWrappingCharge   Float    @default(50.0)
+  enableGiftSms        Boolean  @default(true)
+  giftSmsCharge        Float    @default(0.0)
+  defaultGiftGreeting  String?  @default("Best wishes from Smart Shop!")
+  updatedBy            String?
+  updatedAt            DateTime @updatedAt
+}
