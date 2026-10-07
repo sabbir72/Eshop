@@ -3,6 +3,7 @@ import { useStore } from "../../context/StoreContext";
 import { Product, Warehouse } from "../../types";
 import { PrintableDocumentData } from "../../types/print";
 import { buildBarcodeLabelsData, buildReportPrintData } from "../../utils/printDocumentBuilder";
+import { parseSafeNumber, formatNumber } from "../../utils/exportUtils";
 import { EnterprisePrintModal } from "../common/EnterprisePrintModal";
 import {
   Package,
@@ -1510,10 +1511,11 @@ export const InventoryManagement: React.FC = () => {
                 <label className="font-bold text-slate-700 block mb-1">Quantity</label>
                 <input
                   type="number"
+                  step="1"
                   min="1"
                   required
                   value={stockAdjustmentQty}
-                  onChange={(e) => setStockAdjustmentQty(Number(e.target.value))}
+                  onChange={(e) => setStockAdjustmentQty(Math.floor(parseSafeNumber(e.target.value, 1)))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono font-black text-sm text-slate-900"
                 />
               </div>
@@ -1582,10 +1584,10 @@ export const InventoryManagement: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="any"
                   required
                   value={newSellingPrice}
-                  onChange={(e) => setNewSellingPrice(Number(e.target.value))}
+                  onChange={(e) => setNewSellingPrice(parseSafeNumber(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono font-bold"
                 />
               </div>
@@ -1595,9 +1597,9 @@ export const InventoryManagement: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="any"
                   value={newDiscountPrice}
-                  onChange={(e) => setNewDiscountPrice(Number(e.target.value))}
+                  onChange={(e) => setNewDiscountPrice(parseSafeNumber(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono font-bold"
                 />
               </div>
@@ -1797,9 +1799,10 @@ export const InventoryManagement: React.FC = () => {
               <label className="font-bold text-slate-700 block text-xs mb-1">Add Stock Quantity per Product</label>
               <input
                 type="number"
+                step="1"
                 min="1"
                 value={bulkStockQty}
-                onChange={(e) => setBulkStockQty(Number(e.target.value))}
+                onChange={(e) => setBulkStockQty(Math.floor(parseSafeNumber(e.target.value, 1)))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-sm"
               />
             </div>
@@ -1885,10 +1888,11 @@ export const InventoryManagement: React.FC = () => {
                 <label className="font-bold text-slate-700 block mb-1">Transfer Quantity</label>
                 <input
                   type="number"
+                  step="1"
                   min="1"
                   required
                   value={transferQty}
-                  onChange={(e) => setTransferQty(Number(e.target.value))}
+                  onChange={(e) => setTransferQty(Math.floor(parseSafeNumber(e.target.value, 1)))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                 />
               </div>

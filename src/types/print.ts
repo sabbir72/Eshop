@@ -75,11 +75,17 @@ export interface PrintableItem {
   notes?: string;
 }
 
+export type DocumentCopyType = "customer" | "office" | "shipment" | "all";
+
 export interface PrintableDocumentData {
   documentType: PrintableDocumentType;
   documentTitle: string;
   documentNumber: string;
   referenceNumber?: string;
+
+  // Copy Type (Customer, Office/Accounts, Shipment/Challan)
+  copyType?: DocumentCopyType;
+  copyLabel?: string;
 
   // Status & Watermark
   status: string;

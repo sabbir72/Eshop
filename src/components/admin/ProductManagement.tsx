@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useStore } from "../../context/StoreContext";
 import { Product, ProductVariant } from "../../types";
-import { downloadSampleBulkUploadTemplate, exportToCSV, exportToExcel, parseExcelOrCSVFile } from "../../utils/exportUtils";
+import { downloadSampleBulkUploadTemplate, exportToCSV, exportToExcel, parseExcelOrCSVFile, parseSafeNumber, formatNumber } from "../../utils/exportUtils";
 import Papa from "papaparse";
 import { ProductImageSuggestions } from "./ProductImageSuggestions";
 import { ProductImageEditorModal } from "./ProductImageEditorModal";
@@ -593,8 +593,8 @@ export const ProductManagement: React.FC = () => {
         const rowNum = idx + 1;
         const name = row["Product Name"] || row["Name"] || row["name"];
         const sku = String(row["SKU"] || row["sku"] || "").trim();
-        const price = parseFloat(row["Price"] || row["Selling Price"] || row["price"]);
-        const stock = parseInt(row["Stock"] || row["totalStock"] || row["stock"]);
+        const price = parseSafeNumber(row["Price"] || row["Selling Price"] || row["price"]);
+        const stock = Math.floor(parseSafeNumber(row["Stock"] || row["totalStock"] || row["stock"]));
 
         if (!name) {
           errors.push({ rowNumber: rowNum, sku: sku || "N/A", error: "Missing Product Name" });
@@ -644,9 +644,9 @@ export const ProductManagement: React.FC = () => {
       const name = row["Product Name"] || row["Name"] || "Imported Product";
       const sku = (row["SKU"] || row["sku"] || `SKU-BULK-${idx}`).trim();
       const barcode = row["Barcode"] || `880${Math.floor(100000000 + Math.random() * 900000000)}`;
-      const price = parseFloat(row["Price"] || row["Selling Price"]) || 1000;
-      const discount = parseFloat(row["DiscountPrice"] || row["Discount Price"]) || price;
-      const stock = parseInt(row["Stock"] || row["totalStock"]) || 10;
+      const price = parseSafeNumber(row["Price"] || row["Selling Price"]) || 1000;
+      const discount = parseSafeNumber(row["DiscountPrice"] || row["Discount Price"]) || price;
+      const stock = Math.floor(parseSafeNumber(row["Stock"] || row["totalStock"])) || 10;
 
       return {
         id: `prod-bulk-${Date.now()}-${idx}`,
@@ -1489,9 +1489,10 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Cost Price ({settings.currencySymbol})</label>
                       <input
                         type="number"
+                        step="any"
                         min={0}
                         value={formCostPrice}
-                        onChange={(e) => setFormCostPrice(Number(e.target.value))}
+                        onChange={(e) => setFormCostPrice(parseSafeNumber(e.target.value))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                       />
                     </div>
@@ -1500,9 +1501,10 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Purchase / Wholesale Price ({settings.currencySymbol})</label>
                       <input
                         type="number"
+                        step="any"
                         min={0}
                         value={formPurchasePrice}
-                        onChange={(e) => setFormPurchasePrice(Number(e.target.value))}
+                        onChange={(e) => setFormPurchasePrice(parseSafeNumber(e.target.value))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                       />
                     </div>
@@ -1511,10 +1513,11 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Selling Price ({settings.currencySymbol}) *</label>
                       <input
                         type="number"
+                        step="any"
                         required
-                        min={1}
+                        min={0.01}
                         value={formSellingPrice}
-                        onChange={(e) => setFormSellingPrice(Number(e.target.value))}
+                        onChange={(e) => setFormSellingPrice(parseSafeNumber(e.target.value))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-black text-slate-900 text-sm"
                       />
                     </div>
@@ -1523,10 +1526,11 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Discount Price ({settings.currencySymbol}) *</label>
                       <input
                         type="number"
+                        step="any"
                         required
                         min={0}
                         value={formDiscountPrice}
-                        onChange={(e) => setFormDiscountPrice(Number(e.target.value))}
+                        onChange={(e) => setFormDiscountPrice(parseSafeNumber(e.target.value))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-black text-indigo-600 text-sm"
                       />
                     </div>
@@ -1547,9 +1551,10 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Discount Value</label>
                       <input
                         type="number"
+                        step="any"
                         min={0}
                         value={formDiscountValue}
-                        onChange={(e) => setFormDiscountValue(Number(e.target.value))}
+                        onChange={(e) => setFormDiscountValue(parseSafeNumber(e.target.value))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                       />
                     </div>
@@ -1597,10 +1602,11 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Total Stock Quantity *</label>
                       <input
                         type="number"
+                        step="1"
                         required
                         min={0}
                         value={formTotalStock}
-                        onChange={(e) => setFormTotalStock(Number(e.target.value))}
+                        onChange={(e) => setFormTotalStock(Math.floor(parseSafeNumber(e.target.value)))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-black text-slate-900 text-sm"
                       />
                     </div>
@@ -1609,9 +1615,10 @@ export const ProductManagement: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Low Stock Alert Threshold</label>
                       <input
                         type="number"
+                        step="1"
                         min={1}
                         value={formLowStockThreshold}
-                        onChange={(e) => setFormLowStockThreshold(Number(e.target.value))}
+                        onChange={(e) => setFormLowStockThreshold(Math.floor(parseSafeNumber(e.target.value)))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                       />
                     </div>
@@ -2079,10 +2086,11 @@ export const ProductManagement: React.FC = () => {
                 <label className="font-bold text-slate-700 block mb-1">Quantity</label>
                 <input
                   type="number"
+                  step="1"
                   required
                   min={1}
                   value={adjustQty}
-                  onChange={(e) => setAdjustQty(Number(e.target.value))}
+                  onChange={(e) => setAdjustQty(Math.floor(parseSafeNumber(e.target.value, 1)))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                 />
               </div>

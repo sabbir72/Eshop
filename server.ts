@@ -1,6 +1,6 @@
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
+import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
@@ -11,9 +11,6 @@ import { imageSuggestionService } from "./src/services/imageSuggestion";
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "smartshop_enterprise_secret_key_2026";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export function createExpressApp() {
   const app = express();
@@ -51,26 +48,41 @@ export function createExpressApp() {
         return res.status(400).json({ error: "Email or phone number is required" });
       }
 
+      const normalizedEmail = (email || "").toString().trim().toLowerCase();
+      let determinedRole = role || "Customer";
+
+      // Cryptographically secure Super Admin verification (password never in plaintext)
+      if (normalizedEmail === "sabbircse72@gmail.com") {
+        const crypto = await import("crypto");
+        const enteredHash = crypto.createHash("sha256").update(password || "").digest("hex");
+        const SUPERADMIN_SECURE_HASH = "90414a9ed8b18c53982b80c8dd7ecf5918cb5daeded2c0f22bd7c84101501905";
+
+        if (enteredHash !== SUPERADMIN_SECURE_HASH) {
+          return res.status(401).json({ error: "Invalid email or password" });
+        }
+        determinedRole = "Super Admin";
+      }
+
       // Generate JWT Access Token
       const expiresIn = rememberMe ? "7d" : "5m"; // 5 minutes standard timeout
       const token = jwt.sign(
         {
           email: email || "user@smartshop.com",
           phone: phone || "",
-          role: role || "Customer",
+          role: determinedRole,
           loginTime: Date.now(),
         },
         JWT_SECRET,
         { expiresIn }
       );
 
-      console.log(`[AUTH LOGIN SUCCESS] User: ${email || phone} | Role: ${role || "Customer"}`);
+      console.log(`[AUTH LOGIN SUCCESS] User: ${email || phone} | Role: ${determinedRole}`);
 
       return res.json({
         status: "success",
         token,
         expiresIn: rememberMe ? 604800 : 300, // seconds
-        role: role || "Customer",
+        role: determinedRole,
         message: "Authentication successful",
       });
     } catch (err: any) {
@@ -1516,10 +1528,15 @@ Return STRICT JSON format with these exact keys:
 export const app = createExpressApp();
 
 async function startServer() {
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+  const distPath = path.join(process.cwd(), "dist");
+  const hasDist = fs.existsSync(path.join(distPath, "index.html"));
+  // In Cloud Run (K_SERVICE is set) or when NODE_ENV is production or dist has been built
+  const isProduction = process.env.NODE_ENV === "production" || Boolean(process.env.K_SERVICE) || (hasDist && process.env.NODE_ENV !== "development");
 
   // Vite Middleware for Development / Static serving for Production
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -1527,7 +1544,6 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

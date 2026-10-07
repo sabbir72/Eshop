@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useStore } from "../../context/StoreContext";
 import { Settings, Save, Globe, CreditCard, ShieldCheck, Truck, AlertCircle, ArrowRight, Image as ImageIcon, Gift, MessageSquare, Sparkles } from "lucide-react";
+import { parseSafeNumber } from "../../utils/numberUtils";
 
 export const SettingsCMS: React.FC = () => {
   const { settings, updateSettings, addToast, recordAuditLog, setAdminView, activeRole } = useStore();
@@ -195,10 +196,11 @@ export const SettingsCMS: React.FC = () => {
               <label className="font-bold text-slate-700 block mb-1">Default Tax / VAT Rate (%)</label>
               <input
                 type="number"
+                step="any"
                 required
                 min={0}
                 value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
+                onChange={(e) => setTaxRate(parseSafeNumber(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
@@ -207,10 +209,11 @@ export const SettingsCMS: React.FC = () => {
               <label className="font-bold text-slate-700 block mb-1">Flat Shipping Charge ({currencySymbol})</label>
               <input
                 type="number"
+                step="any"
                 required
                 min={0}
                 value={shippingCharge}
-                onChange={(e) => setShippingCharge(Number(e.target.value))}
+                onChange={(e) => setShippingCharge(parseSafeNumber(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
@@ -348,10 +351,10 @@ export const SettingsCMS: React.FC = () => {
                 <input
                   type="number"
                   min={0}
-                  step="1"
+                  step="any"
                   disabled={!enableGiftWrapping}
                   value={giftWrappingCharge}
-                  onChange={(e) => setGiftWrappingCharge(Math.max(0, Number(e.target.value)))}
+                  onChange={(e) => setGiftWrappingCharge(Math.max(0, parseSafeNumber(e.target.value)))}
                   className="w-full bg-white border border-slate-200 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-pink-500/20 focus:outline-none disabled:opacity-50"
                   placeholder="50"
                 />
@@ -415,9 +418,10 @@ export const SettingsCMS: React.FC = () => {
               </label>
               <input
                 type="number"
+                step="any"
                 min={0}
                 value={codMinOrderAmount}
-                onChange={(e) => setCodMinOrderAmount(Number(e.target.value))}
+                onChange={(e) => setCodMinOrderAmount(parseSafeNumber(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
               <p className="text-[10px] text-slate-500 mt-1">Orders below this amount must pay online.</p>
@@ -429,9 +433,10 @@ export const SettingsCMS: React.FC = () => {
               </label>
               <input
                 type="number"
+                step="any"
                 min={0}
                 value={codMaxOrderAmount}
-                onChange={(e) => setCodMaxOrderAmount(Number(e.target.value))}
+                onChange={(e) => setCodMaxOrderAmount(parseSafeNumber(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
               <p className="text-[10px] text-slate-500 mt-1">Orders above this limit require online payment.</p>

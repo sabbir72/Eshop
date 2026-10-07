@@ -1,7 +1,16 @@
 import React, { useState } from "react";
-import { PrintableDocumentData, PrintSettings, PaperSize, PageOrientation, PrintMargin, DocumentWatermark } from "../../types/print";
+import {
+  PrintableDocumentData,
+  PrintSettings,
+  PaperSize,
+  PageOrientation,
+  PrintMargin,
+  DocumentWatermark,
+  DocumentCopyType,
+} from "../../types/print";
 import { PrintDocumentViewer } from "./PrintDocumentViewer";
 import { useStore } from "../../context/StoreContext";
+import { formatNumber } from "../../utils/numberUtils";
 import {
   Printer,
   Download,
@@ -18,6 +27,10 @@ import {
   Check,
   History,
   FileText,
+  User,
+  Building,
+  Truck,
+  Layers,
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -33,6 +46,8 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
   onClose,
 }) => {
   const { currentUser, activeRole, addAuditLog } = useStore();
+
+  const [activeCopy, setActiveCopy] = useState<DocumentCopyType>(data.copyType || "customer");
 
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     paperSize: "A4",
@@ -60,6 +75,44 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  // Helper to generate copy-specific data
+  const getCopyData = (copy: DocumentCopyType): PrintableDocumentData => {
+    if (copy === "office") {
+      return {
+        ...data,
+        copyType: "office",
+        documentTitle: "ACCOUNTS & AUDIT INVOICE",
+        copyLabel: "OFFICE / ACCOUNTS COPY (অফিস ও হিসাব কপি)",
+        watermark: "OFFICE COPY",
+        notes: "Official Office Record. Retain in company sales & VAT tax archive. Validated by Accounts Division.",
+        signaturesNeeded: ["Prepared By (Billing)", "Verified By (Accounts)", "Authorized Signatory"],
+      };
+    }
+    if (copy === "shipment") {
+      return {
+        ...data,
+        copyType: "shipment",
+        documentTitle: "DELIVERY CHALLAN & COURIER DISPATCH",
+        copyLabel: "SHIPMENT & COURIER COPY (শিপমেন্ট ও ডেলিভারি চালান)",
+        watermark: "SHIPMENT COPY",
+        notes: "Logistics Dispatch Slip. Rider must verify sealed condition, package contents, and collect COD amount.",
+        signaturesNeeded: ["Warehouse Dispatch In-Charge", "Courier / Delivery Rider", "Receiver Signature & Mobile"],
+      };
+    }
+    return {
+      ...data,
+      copyType: "customer",
+      documentTitle: "OFFICIAL TAX INVOICE & CASH MEMO",
+      copyLabel: "CUSTOMER COPY (গ্রাহক কপি)",
+      watermark: "CUSTOMER COPY",
+      notes: data.notes || "Thank you for shopping with us! Retain this customer copy for 7-day exchange or warranty claims.",
+      signaturesNeeded: ["Customer Signature", "Delivery Agent / Rider", "Authorized Signatory"],
+    };
+  };
+
+  const isInvoiceDoc = data.documentType === "invoice" || data.documentType === "packing_slip";
+  const activeDocumentData = getCopyData(activeCopy);
 
   const handlePrint = () => {
     if (printCount > 1 && !reprintReason.trim()) {
@@ -162,8 +215,8 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
         }
         doc.text(item.name.substring(0, 45), 18, y);
         doc.text(`${item.quantity}`, 122, y);
-        doc.text(`${currency}${item.unitPrice.toLocaleString()}`, 145, y);
-        doc.text(`${currency}${item.total.toLocaleString()}`, 175, y);
+        doc.text(`${currency}${formatNumber(item.unitPrice, 2)}`, 145, y);
+        doc.text(`${currency}${formatNumber(item.total, 2)}`, 175, y);
         y += 8;
       });
     } else if (data.rawRows) {
@@ -189,7 +242,7 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text(`GRAND TOTAL:`, 110, y);
-      doc.text(`${currency}${data.grandTotal.toLocaleString()}`, 175, y);
+      doc.text(`${currency}${formatNumber(data.grandTotal, 2)}`, 175, y);
     }
 
     // Footer
@@ -275,9 +328,9 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-black tracking-tight text-white uppercase">{data.documentTitle}</h2>
+              <h2 className="text-sm font-black tracking-tight text-white uppercase">{activeDocumentData.documentTitle}</h2>
               <span className="text-[10px] font-bold bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-md font-mono">
-                #{data.documentNumber}
+                #{activeDocumentData.documentNumber}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">Enterprise Print & Export Engine</p>
@@ -328,6 +381,72 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Copy Type Selection Toolbar for Invoices / Challans */}
+      {isInvoiceDoc && (
+        <div className="bg-[#111827] border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center flex-wrap gap-1.5 font-bold">
+            <span className="text-[11px] text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">
+              Document Copy:
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveCopy("customer")}
+              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all text-xs ${
+                activeCopy === "customer"
+                  ? "bg-indigo-600 text-white shadow-md ring-1 ring-indigo-400"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              <User className="w-3.5 h-3.5 text-indigo-300" />
+              <span>Customer Copy (গ্রাহক কপি)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveCopy("office")}
+              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all text-xs ${
+                activeCopy === "office"
+                  ? "bg-slate-100 text-slate-900 shadow-md ring-1 ring-white"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              <Building className="w-3.5 h-3.5 text-slate-400" />
+              <span>Office / Accounts Copy (অফিস কপি)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveCopy("shipment")}
+              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all text-xs ${
+                activeCopy === "shipment"
+                  ? "bg-amber-600 text-white shadow-md ring-1 ring-amber-400"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 text-amber-300" />
+              <span>Shipment Copy (ডেলিভারি চালান)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveCopy("all")}
+              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all text-xs ${
+                activeCopy === "all"
+                  ? "bg-emerald-600 text-white shadow-md ring-1 ring-emerald-400"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-emerald-300" />
+              <span>All 3 Copies (Batch Print)</span>
+            </button>
+          </div>
+
+          <div className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
+            {activeCopy === "all" ? "3 Separate Pages with Page Breaks" : activeDocumentData.copyLabel}
+          </div>
+        </div>
+      )}
 
       {/* Center Body Grid: Sidebar Config + Scrollable Document Canvas */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
@@ -536,9 +655,41 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
         >
           <div
             style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: "top center" }}
-            className="transition-transform duration-200 my-4"
+            className="transition-transform duration-200 my-4 w-full flex flex-col items-center gap-8"
           >
-            <PrintDocumentViewer data={data} settings={printSettings} printCount={printCount} />
+            {activeCopy === "all" ? (
+              <>
+                <div className="page-break-after w-full flex justify-center">
+                  <PrintDocumentViewer
+                    data={getCopyData("customer")}
+                    settings={printSettings}
+                    printCount={printCount}
+                  />
+                </div>
+                <div className="page-break-after w-full flex justify-center">
+                  <PrintDocumentViewer
+                    data={getCopyData("office")}
+                    settings={printSettings}
+                    printCount={printCount}
+                  />
+                </div>
+                <div className="w-full flex justify-center">
+                  <PrintDocumentViewer
+                    data={getCopyData("shipment")}
+                    settings={printSettings}
+                    printCount={printCount}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="w-full flex justify-center">
+                <PrintDocumentViewer
+                  data={activeDocumentData}
+                  settings={printSettings}
+                  printCount={printCount}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

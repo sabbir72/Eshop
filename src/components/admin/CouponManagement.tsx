@@ -4,6 +4,7 @@ import { Coupon, CouponScopeType, CustomerEligibilityType, CodeType } from "../.
 import { PrintableDocumentData } from "../../types/print";
 import { buildReportPrintData } from "../../utils/printDocumentBuilder";
 import { EnterprisePrintModal } from "../common/EnterprisePrintModal";
+import { parseSafeNumber } from "../../utils/numberUtils";
 import {
   Tag,
   Plus,
@@ -915,10 +916,11 @@ export const CouponManagement: React.FC = () => {
                   <label className="font-bold text-slate-700 block mb-1">Discount Value *</label>
                   <input
                     type="number"
+                    step="any"
                     required
-                    min={1}
+                    min={0.01}
                     value={discountValue}
-                    onChange={(e) => setDiscountValue(Number(e.target.value))}
+                    onChange={(e) => setDiscountValue(parseSafeNumber(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-indigo-700"
                   />
                 </div>
@@ -929,9 +931,10 @@ export const CouponManagement: React.FC = () => {
                   </label>
                   <input
                     type="number"
+                    step="any"
                     min={0}
                     value={maxDiscount}
-                    onChange={(e) => setMaxDiscount(Number(e.target.value))}
+                    onChange={(e) => setMaxDiscount(parseSafeNumber(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                   />
                 </div>
@@ -945,9 +948,10 @@ export const CouponManagement: React.FC = () => {
                   </label>
                   <input
                     type="number"
+                    step="any"
                     min={0}
                     value={minSpend}
-                    onChange={(e) => setMinSpend(Number(e.target.value))}
+                    onChange={(e) => setMinSpend(parseSafeNumber(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold"
                   />
                 </div>

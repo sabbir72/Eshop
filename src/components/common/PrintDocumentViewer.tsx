@@ -2,6 +2,7 @@ import React from "react";
 import { PrintableDocumentData, PrintSettings } from "../../types/print";
 import { BarcodeSVG, QRCodeSVG } from "../../utils/codeGenerators";
 import { numberToWords } from "../../utils/numberToWords";
+import { formatNumber, formatCurrency } from "../../utils/numberUtils";
 import { CheckCircle2, Clock, ShieldCheck, Truck, Building2, Phone, Mail, Globe, FileText, AlertCircle } from "lucide-react";
 
 interface PrintDocumentViewerProps {
@@ -230,7 +231,29 @@ export const PrintDocumentViewer: React.FC<PrintDocumentViewerProps> = ({
         <div>
           {/* Header Section */}
           {settings.showHeader && (
-            <header className="border-b-2 border-slate-900 pb-5 mb-5">
+            <header className="print-document-header border-b-2 border-slate-900 pb-5 mb-5" data-printable="true">
+              {/* Copy Label Indicator Banner */}
+              {data.copyLabel && (
+                <div className="mb-3 flex justify-between items-center">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black uppercase tracking-wider border-2 shadow-xs ${
+                      data.copyType === "customer"
+                        ? "bg-indigo-50 text-indigo-900 border-indigo-600"
+                        : data.copyType === "office"
+                        ? "bg-slate-900 text-white border-slate-950"
+                        : data.copyType === "shipment"
+                        ? "bg-amber-50 text-amber-950 border-amber-600"
+                        : "bg-slate-100 text-slate-800 border-slate-400"
+                    }`}
+                  >
+                    ★ {data.copyLabel} ★
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 font-bold">
+                    ORDER INVOICE DISPATCH SYSTEM
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 {/* Company Logo & Details */}
                 <div className="space-y-1.5 max-w-md">
@@ -374,14 +397,14 @@ export const PrintDocumentViewer: React.FC<PrintDocumentViewerProps> = ({
                         )}
                       </td>
                       <td className="p-2.5 text-center font-bold">{item.quantity}</td>
-                      <td className="p-2.5 text-right font-mono">{currencySymbol}{item.unitPrice.toLocaleString()}</td>
+                      <td className="p-2.5 text-right font-mono">{currencySymbol}{formatNumber(item.unitPrice, 2)}</td>
                       {data.items?.some((i) => i.discount && i.discount > 0) && (
                         <td className="p-2.5 text-right font-mono text-emerald-600">
-                          {item.discount ? `-${currencySymbol}${item.discount.toLocaleString()}` : "-"}
+                          {item.discount ? `-${currencySymbol}${formatNumber(item.discount, 2)}` : "-"}
                         </td>
                       )}
                       <td className="p-2.5 text-right font-mono font-black text-slate-900">
-                        {currencySymbol}{item.total.toLocaleString()}
+                        {currencySymbol}{formatNumber(item.total, 2)}
                       </td>
                     </tr>
                   ))}
@@ -403,7 +426,9 @@ export const PrintDocumentViewer: React.FC<PrintDocumentViewerProps> = ({
                   {data.rawRows.map((row, rIdx) => (
                     <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
                       {row.map((cell, cIdx) => (
-                        <td key={cIdx} className="p-2 font-medium">{String(cell)}</td>
+                        <td key={cIdx} className="p-2 font-medium">
+                          {typeof cell === "number" ? formatNumber(cell, 2) : String(cell)}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -437,41 +462,41 @@ export const PrintDocumentViewer: React.FC<PrintDocumentViewerProps> = ({
                 {data.subtotal !== undefined && (
                   <div className="flex justify-between font-medium text-slate-600">
                     <span>Subtotal:</span>
-                    <span className="font-mono font-bold text-slate-800">{currencySymbol}{data.subtotal.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-slate-800">{currencySymbol}{formatNumber(data.subtotal, 2)}</span>
                   </div>
                 )}
 
                 {data.discountTotal !== undefined && data.discountTotal > 0 && (
                   <div className="flex justify-between text-emerald-600 font-bold">
                     <span>Discount:</span>
-                    <span className="font-mono">-{currencySymbol}{data.discountTotal.toLocaleString()}</span>
+                    <span className="font-mono">-{currencySymbol}{formatNumber(data.discountTotal, 2)}</span>
                   </div>
                 )}
 
                 {data.shippingCharge !== undefined && (
                   <div className="flex justify-between font-medium text-slate-600">
                     <span>Shipping Charge:</span>
-                    <span className="font-mono font-bold text-slate-800">{currencySymbol}{data.shippingCharge.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-slate-800">{currencySymbol}{formatNumber(data.shippingCharge, 2)}</span>
                   </div>
                 )}
 
                 {data.taxTotal !== undefined && (
                   <div className="flex justify-between font-medium text-slate-600">
                     <span>Tax (5%):</span>
-                    <span className="font-mono font-bold text-slate-800">{currencySymbol}{data.taxTotal.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-slate-800">{currencySymbol}{formatNumber(data.taxTotal, 2)}</span>
                   </div>
                 )}
 
                 {data.isGiftWrapped && (
                   <div className="flex justify-between font-bold text-pink-700 bg-pink-50/80 px-2 py-1 rounded-md border border-pink-200">
                     <span>🎁 Gift Wrapping:</span>
-                    <span className="font-mono">+{currencySymbol}{(data.giftWrappingCharge ?? 50).toLocaleString()}</span>
+                    <span className="font-mono">+{currencySymbol}{formatNumber(data.giftWrappingCharge ?? 50, 2)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center pt-2 border-t-2 border-slate-900 text-sm font-black text-slate-900">
                   <span>GRAND TOTAL:</span>
-                  <span className="font-mono text-base text-indigo-700">{currencySymbol}{data.grandTotal.toLocaleString()}</span>
+                  <span className="font-mono text-base text-indigo-700">{currencySymbol}{formatNumber(data.grandTotal, 2)}</span>
                 </div>
               </div>
             </div>
@@ -525,33 +550,60 @@ export const PrintDocumentViewer: React.FC<PrintDocumentViewerProps> = ({
             <div className="pt-8 pb-4 grid grid-cols-3 gap-4 text-center text-[10.5px] border-t border-slate-200 my-4">
               <div>
                 <div className="h-10 border-b border-dashed border-slate-400 mx-auto w-32"></div>
-                <p className="font-bold text-slate-700 mt-1">Prepared By</p>
-                <p className="text-[9px] text-slate-400 font-mono">{data.generatedBy}</p>
+                <p className="font-bold text-slate-800 mt-1">
+                  {data.copyType === "customer"
+                    ? "Customer Signature"
+                    : data.copyType === "shipment"
+                    ? "Warehouse Dispatch In-Charge"
+                    : "Prepared By (Billing)"}
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono">
+                  {data.copyType === "customer" ? "Sign & Date" : data.generatedBy}
+                </p>
               </div>
 
               <div>
                 <div className="h-10 border-b border-dashed border-slate-400 mx-auto w-32"></div>
-                <p className="font-bold text-slate-700 mt-1">Received By / Customer</p>
-                <p className="text-[9px] text-slate-400 font-mono">Sign & Date</p>
+                <p className="font-bold text-slate-800 mt-1">
+                  {data.copyType === "customer"
+                    ? "Delivery Agent / Rider"
+                    : data.copyType === "shipment"
+                    ? "Courier / Delivery Rider"
+                    : "Verified By (Accounts)"}
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono">
+                  {data.copyType === "customer" || data.copyType === "shipment"
+                    ? "Handover Confirmation"
+                    : "Audit & Ledger Check"}
+                </p>
               </div>
 
               <div>
                 <div className="h-10 border-b border-dashed border-slate-400 mx-auto w-32"></div>
-                <p className="font-bold text-slate-700 mt-1">Authorized Signature</p>
-                <p className="text-[9px] text-slate-400 font-mono">Company Stamp</p>
+                <p className="font-bold text-slate-800 mt-1">
+                  {data.copyType === "shipment"
+                    ? "Receiver Signature & Mobile"
+                    : "Authorized Signatory"}
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono">
+                  {data.copyType === "shipment" ? "Package Received Intact" : "Company Seal & Stamp"}
+                </p>
               </div>
             </div>
           )}
 
           {settings.showFooter && (
-            <footer className="pt-3 border-t-2 border-slate-900 flex flex-col sm:flex-row justify-between items-center text-[9.5px] font-mono text-slate-500 gap-1">
+            <footer
+              className="print-document-footer pt-3 border-t-2 border-slate-900 flex flex-col sm:flex-row justify-between items-center text-[9.5px] font-mono text-slate-500 gap-1"
+              data-printable="true"
+            >
               <div>
-                {company.name} • {company.website} • Support: {company.phone}
+                <strong className="text-slate-800">{company.name}</strong> • {company.website} • Support Hotline: {company.phone}
               </div>
               <div className="flex items-center gap-3">
-                <span>Print Count: #{printCount}</span>
+                <span>Print Copy: #{printCount}</span>
                 <span>Page 1 of 1</span>
-                <span>Confidential</span>
+                <span className="font-bold text-indigo-700">Official Computer Generated Document</span>
               </div>
             </footer>
           )}

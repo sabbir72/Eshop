@@ -126,8 +126,8 @@
 /* Global Print Styles */
 @media print {
   @page {
-    size: auto;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 8mm 10mm;
   }
 
   body {
@@ -136,21 +136,41 @@
     overflow: visible !important;
   }
 
-  /* Hide UI elements during print */
-  header,
-  footer,
+  /* Hide app navigation and interactive UI elements during print (Preserve print document header/footer) */
+  header:not(.print-document-header):not([data-printable="true"]),
+  footer:not(.print-document-footer):not([data-printable="true"]),
   nav,
   aside,
   button,
-  .print\:hidden {
+  .print\:hidden,
+  .print-hidden {
     display: none !important;
   }
 
-  /* Reset container backgrounds for paper */
+  /* Force display for printable documents, headers, and footers */
+  .print-document-header,
+  .print-document-footer,
+  .printable-document {
+    display: block !important;
+  }
+
+  /* Page break rules for multi-copy printing (Customer, Office, Shipment copies) */
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Reset container backgrounds for crisp printing */
   .bg-slate-950,
   .bg-slate-900,
   .bg-[#0F172A] {
     background-color: transparent !important;
+    color: #000000 !important;
   }
 
   /* Ensure print document fits page nicely */

@@ -1,11 +1,18 @@
 import Papa from "papaparse";
 import { jsPDF } from "jspdf";
 import * as XLSX from "xlsx";
+import { parseSafeNumber, formatNumber, formatCurrency, sanitizeExportRow } from "./numberUtils";
 
-// CSV Export
+export { parseSafeNumber, formatNumber, formatCurrency, sanitizeExportRow };
+
+// CSV Export with proper escaping and numeric normalization
 export function exportToCSV(filename: string, rows: Record<string, any>[]) {
-  const csv = Papa.unparse(rows);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  // Ensure rows are sanitized and numbers are formatted
+  const sanitizedRows = rows.map((r) => sanitizeExportRow(r));
+  const csv = Papa.unparse(sanitizedRows, {
+    quotes: true, // Quote fields to prevent commas in formatted numbers from breaking columns
+  });
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); // Add UTF-8 BOM for Excel compatibility
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
@@ -15,17 +22,35 @@ export function exportToCSV(filename: string, rows: Record<string, any>[]) {
   document.body.removeChild(link);
 }
 
-// Excel Export (.xlsx)
+// Excel Export (.xlsx) with proper numeric formatting and number formats
 export function exportToExcel(filename: string, sheetName: string, rows: Record<string, any>[]) {
-  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const sanitizedRows = rows.map((r) => sanitizeExportRow(r));
+  const worksheet = XLSX.utils.json_to_sheet(sanitizedRows);
+
+  // Apply number formatting to numeric cells
+  const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1:A1");
+  for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = worksheet[cellAddress];
+      if (cell && cell.t === "n") {
+        // Format decimal numbers with 2 decimal places and commas
+        if (cell.v % 1 !== 0) {
+          cell.z = "#,##0.00";
+        } else {
+          cell.z = "#,##0";
+        }
+      }
+    }
+  }
 
   // Set column widths dynamically
-  const colWidths = Object.keys(rows[0] || {}).map((key) => {
+  const colWidths = Object.keys(sanitizedRows[0] || {}).map((key) => {
     const maxLen = Math.max(
       key.length,
-      ...rows.map((r) => (r[key] ? String(r[key]).length : 0))
+      ...sanitizedRows.map((r) => (r[key] !== undefined && r[key] !== null ? String(r[key]).length : 0))
     );
-    return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
+    return { wch: Math.min(Math.max(maxLen + 4, 14), 45) };
   });
   worksheet["!cols"] = colWidths;
 
@@ -36,7 +61,7 @@ export function exportToExcel(filename: string, sheetName: string, rows: Record<
   XLSX.writeFile(workbook, cleanFilename);
 }
 
-// PDF Export
+// PDF Export with clean typography and formatted numbers
 export function exportToPDFReport(title: string, rows: Record<string, any>[]) {
   const doc = new jsPDF();
   doc.setFontSize(16);
@@ -52,7 +77,13 @@ export function exportToPDFReport(title: string, rows: Record<string, any>[]) {
       y = 20;
     }
     const text = Object.entries(row)
-      .map(([k, v]) => `${k}: ${String(v).replace(/৳/g, "Tk ")}`)
+      .map(([k, v]) => {
+        let valStr = String(v);
+        if (typeof v === "number") {
+          valStr = formatNumber(v, v % 1 !== 0 ? 2 : 0);
+        }
+        return `${k}: ${valStr.replace(/৳/g, "Tk ")}`;
+      })
       .join("  |  ");
     doc.text(`${i + 1}. ${text}`, 14, y);
     y += 8;
@@ -135,7 +166,15 @@ export function parseExcelOrCSVFile(file: File): Promise<any[]> {
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
           const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-          resolve(json);
+          // Normalize row keys and trim string values
+          const cleanJson = (json as any[]).map((row) => {
+            const cleanedRow: Record<string, any> = {};
+            for (const [k, v] of Object.entries(row)) {
+              cleanedRow[k.trim()] = typeof v === "string" ? v.trim() : v;
+            }
+            return cleanedRow;
+          });
+          resolve(cleanJson);
         } catch (err) {
           reject(err);
         }
@@ -147,7 +186,14 @@ export function parseExcelOrCSVFile(file: File): Promise<any[]> {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          resolve(results.data);
+          const cleanData = (results.data as any[]).map((row) => {
+            const cleanedRow: Record<string, any> = {};
+            for (const [k, v] of Object.entries(row)) {
+              cleanedRow[k.trim()] = typeof v === "string" ? v.trim() : v;
+            }
+            return cleanedRow;
+          });
+          resolve(cleanData);
         },
         error: (err) => reject(err),
       });

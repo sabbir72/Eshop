@@ -1,21 +1,55 @@
 import { Order, Product, SalesReportData } from "../types";
-import { PrintableDocumentData, PrintableDocumentType } from "../types/print";
+import { PrintableDocumentData, PrintableDocumentType, DocumentCopyType } from "../types/print";
 
 /**
  * Helper utility to build standard Enterprise Printable Document objects for any application entity.
  */
 
-export function buildOrderInvoiceData(order: Order, currencySymbol: string = "৳"): PrintableDocumentData {
+export function buildOrderInvoiceData(
+  order: Order,
+  currencySymbol: string = "৳",
+  copyType: DocumentCopyType = "customer"
+): PrintableDocumentData {
+  let documentTitle = "OFFICIAL TAX INVOICE & CASH MEMO";
+  let copyLabel = "CUSTOMER COPY (গ্রাহক কপি)";
+  let notes = order.isGiftWrapped
+    ? "🎁 GIFT ORDER: Handcrafted premium gift wrap applied. Thank you for shopping with us!"
+    : "Thank you for shopping with SmartShop! 7-day return policy applicable. Retain this customer copy for warranty.";
+  let signaturesNeeded = ["Customer Signature", "Authorized Signature & Seal"];
+
+  if (copyType === "office") {
+    documentTitle = "ACCOUNTS & AUDIT INVOICE";
+    copyLabel = "OFFICE / ACCOUNTS COPY (অফিস ও হিসাব কপি)";
+    notes = "Official Office Record. Retain in company sales & VAT tax archive. Validated by Accounts Division.";
+    signaturesNeeded = ["Prepared By (Sales)", "Verified By (Accounts)", "Authorized Managing Director"];
+  } else if (copyType === "shipment") {
+    documentTitle = "DELIVERY CHALLAN & COURIER DISPATCH";
+    copyLabel = "SHIPMENT & COURIER COPY (শিপমেন্ট ও ডেলিভারি চালান)";
+    notes = "Logistics Dispatch Slip. Rider must verify sealed condition, package contents, and collect COD amount.";
+    signaturesNeeded = ["Warehouse Dispatch Officer", "Courier / Delivery Rider", "Receiver Signature & Contact"];
+  }
+
   return {
     documentType: "invoice",
-    documentTitle: "OFFICIAL ORDER INVOICE",
+    documentTitle,
     documentNumber: order.orderNumber,
     referenceNumber: order.trackingNumber || `REF-${order.id.slice(0, 6).toUpperCase()}`,
+    copyType,
+    copyLabel,
     status: order.orderStatus,
-    watermark: order.paymentStatus === "Paid" ? "PAID" : order.orderStatus === "Cancelled" ? "CANCELLED" : "ORIGINAL",
+    watermark:
+      order.paymentStatus === "Paid"
+        ? "PAID"
+        : order.orderStatus === "Cancelled"
+        ? "CANCELLED"
+        : copyType === "customer"
+        ? "CUSTOMER COPY"
+        : copyType === "office"
+        ? "OFFICE COPY"
+        : "SHIPMENT COPY",
     generatedDate: new Date().toLocaleDateString(),
     generatedTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    generatedBy: "System Order Processing",
+    generatedBy: "Authorized Billing System",
 
     customerInfo: {
       name: order.customerName,
@@ -30,7 +64,7 @@ export function buildOrderInvoiceData(order: Order, currencySymbol: string = "�
       address: `${order.shippingAddress.street}, ${order.shippingAddress.city}`,
       city: order.shippingAddress.city,
       postalCode: order.shippingAddress.postalCode,
-      courierName: "Express Logistics",
+      courierName: "Express Courier Network",
       trackingNumber: order.trackingNumber || order.orderNumber,
     },
 
@@ -57,11 +91,17 @@ export function buildOrderInvoiceData(order: Order, currencySymbol: string = "�
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
 
-    notes: order.isGiftWrapped
-      ? "🎁 GIFT ORDER: Handcrafted gift wrap applied. Thank you for shopping with us!"
-      : "Thank you for shopping with Smart E-Commerce! Warranty applicable as per manufacturer policy.",
-    signaturesNeeded: ["Prepared By", "Customer", "Authorized"],
+    notes,
+    signaturesNeeded,
   };
+}
+
+export function buildAllOrderCopies(order: Order, currencySymbol: string = "৳"): PrintableDocumentData[] {
+  return [
+    buildOrderInvoiceData(order, currencySymbol, "customer"),
+    buildOrderInvoiceData(order, currencySymbol, "office"),
+    buildOrderInvoiceData(order, currencySymbol, "shipment"),
+  ];
 }
 
 export function buildPackingSlipData(order: Order): PrintableDocumentData {

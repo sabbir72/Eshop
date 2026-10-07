@@ -4,6 +4,7 @@ import { Order, OrderStatus } from "../../types";
 import { PrintableDocumentData } from "../../types/print";
 import { buildOrderInvoiceData } from "../../utils/printDocumentBuilder";
 import { EnterprisePrintModal } from "../common/EnterprisePrintModal";
+import { formatNumber } from "../../utils/numberUtils";
 import {
   PackageCheck,
   Truck,
@@ -235,7 +236,7 @@ export const OrderHistoryView: React.FC = () => {
                     </span>
 
                     <button
-                      onClick={() => openPrintModal(buildOrderInvoiceData(order, settings.currencySymbol))}
+                      onClick={() => openPrintModal(buildOrderInvoiceData(order, settings.currencySymbol, "customer"))}
                       className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl border border-indigo-200 transition-colors"
                     >
                       <Printer className="w-3.5 h-3.5 text-indigo-600" /> Print Invoice
@@ -313,8 +314,8 @@ export const OrderHistoryView: React.FC = () => {
                           </button>
                         )}
 
-                        <span className="font-bold text-slate-900">
-                          {settings.currencySymbol}{item.total.toLocaleString()}
+                        <span className="font-bold text-slate-900 font-mono">
+                          {settings.currencySymbol}{formatNumber(item.total, 2)}
                         </span>
                       </div>
                     </div>
@@ -362,7 +363,7 @@ export const OrderHistoryView: React.FC = () => {
                     )}
 
                     <span>
-                      Grand Total: <strong className="text-indigo-600 text-sm">{settings.currencySymbol}{order.total.toLocaleString()}</strong>
+                      Grand Total: <strong className="text-indigo-600 text-sm font-mono">{settings.currencySymbol}{formatNumber(order.total, 2)}</strong>
                     </span>
                   </div>
                 </div>

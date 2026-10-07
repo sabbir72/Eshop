@@ -1124,7 +1124,7 @@ export const initialUsers: User[] = [
   {
     id: "usr-1",
     name: "Sabbir Hossain (Super Admin)",
-    email: "sabbir.superadmin@smartecom.com",
+    email: "sabbircse72@gmail.com",
     phone: "+880 1711 000001",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     role: "Super Admin",
@@ -1132,7 +1132,7 @@ export const initialUsers: User[] = [
     ordersCount: 0,
     totalPurchase: 0,
     address: "Gulshan 2, Dhaka, Bangladesh",
-    twoFactorEnabled: true,
+    twoFactorEnabled: false,
     createdAt: "2025-01-01",
   },
   {

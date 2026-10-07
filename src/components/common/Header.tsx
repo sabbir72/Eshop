@@ -31,11 +31,11 @@ import {
 
 interface HeaderProps {
   onOpenCart: () => void;
-  onOpenAIChat: () => void;
+  onOpenAIChat?: () => void;
   onOpenAuth: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenCart, onOpenAIChat, onOpenAuth }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenCart, onOpenAuth }) => {
   const {
     mode,
     setMode,
@@ -470,44 +470,36 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart, onOpenAIChat, onOpen
         <div className="flex items-center gap-2 sm:gap-3">
           {mode === "storefront" && (
             <>
-              {/* Ask AI Assistant */}
-              <button
-                onClick={onOpenAIChat}
-                className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-xl transition-all"
-                title="AI Assistant"
-              >
-                <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
-                <span className="hidden lg:inline">Ask AI</span>
-              </button>
-
               {/* Wishlist Button */}
-              {isCustomer && (
+              {(isCustomer || isGuest) && (
                 <button
                   onClick={() => setStoreView("wishlist")}
                   className={`relative p-2.5 rounded-xl transition-colors ${
-                    storeView === "wishlist" ? "bg-rose-100 text-rose-700" : "text-slate-600 hover:bg-slate-100"
+                    storeView === "wishlist"
+                      ? "bg-rose-100 text-rose-700 ring-1 ring-rose-200"
+                      : "bg-rose-50/80 hover:bg-rose-100 text-rose-600 border border-rose-200/60"
                   }`}
                   title={t("wishlist", language)}
                 >
                   <Heart className="w-5 h-5" />
                   {wishlist.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center font-mono">
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center font-mono px-1 shadow-xs">
                       {wishlist.length}
                     </span>
                   )}
                 </button>
               )}
 
-              {/* Shopping Cart Button */}
+              {/* Shopping Cart Button (Styled matching Wishlist) */}
               {(isGuest || isCustomer) && (
                 <button
                   onClick={onOpenCart}
-                  className="relative flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-indigo-100 transition-all active:scale-95"
+                  className="relative p-2.5 rounded-xl transition-colors bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60"
+                  title={t("cart", language)}
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("cart", language)}</span>
+                  <ShoppingBag className="w-5 h-5" />
                   {totalCartItems > 0 && (
-                    <span className="bg-white text-indigo-950 text-[11px] font-black px-2 py-0.5 rounded-md font-mono">
+                    <span className="absolute -top-1.5 -right-1.5 bg-indigo-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center font-mono px-1 shadow-xs">
                       {totalCartItems}
                     </span>
                   )}

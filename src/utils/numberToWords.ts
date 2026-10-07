@@ -19,13 +19,13 @@ function convertLessThanThousand(num: number): string {
   return ones[Math.floor(num / 100)] + " Hundred " + convertLessThanThousand(num % 100);
 }
 
-export function numberToWords(amount: number, currencyName: string = "USD"): string {
-  if (isNaN(amount) || amount === 0) return `Zero ${currencyName}`;
+export function numberToWords(amount: number, currencyName: string = "BDT"): string {
+  if (isNaN(amount) || amount === 0) return `Zero ${currencyName === "BDT" || currencyName === "Tk" ? "Taka" : currencyName} Only`;
 
   const integerPart = Math.floor(Math.abs(amount));
   const decimalPart = Math.round((Math.abs(amount) - integerPart) * 100);
 
-  if (integerPart === 0 && decimalPart === 0) return `Zero ${currencyName}`;
+  if (integerPart === 0 && decimalPart === 0) return `Zero ${currencyName} Only`;
 
   let words = "";
 
@@ -47,10 +47,14 @@ export function numberToWords(amount: number, currencyName: string = "USD"): str
     words += convertLessThanThousand(remainder);
   }
 
-  words = words.trim() + ` ${currencyName}`;
+  const isBDT = currencyName === "BDT" || currencyName === "Tk" || currencyName === "৳" || currencyName === "Taka";
+  const mainCurrency = isBDT ? "Taka" : currencyName === "USD" || currencyName === "$" ? "Dollars" : currencyName;
+  const subCurrency = isBDT ? "Paisa" : "Cents";
+
+  words = words.trim() + ` ${mainCurrency}`;
 
   if (decimalPart > 0) {
-    words += ` and ${decimalPart}/100 Cents`;
+    words += ` and ${decimalPart} ${subCurrency} Only`;
   } else {
     words += " Only";
   }
