@@ -2,32 +2,57 @@ name: SmartShop CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
 
 jobs:
   lint-and-build:
-    name: Lint, Prisma Generate & Build
+    name: Validate, Lint, Prisma Generate & Build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
+
+      - name: Validate Firebase Config JSON
+        run: |
+          node -e "
+          const fs = require('fs');
+          const file = 'firebase-applet-config.json';
+
+          if (!fs.existsSync(file)) {
+            console.error('ERROR: firebase-applet-config.json not found');
+            process.exit(1);
+          }
+
+          try {
+            JSON.parse(fs.readFileSync(file, 'utf8'));
+            console.log('firebase-applet-config.json is valid JSON');
+          } catch (error) {
+            console.error('ERROR: Invalid firebase-applet-config.json');
+            console.error(error.message);
+            process.exit(1);
+          }
+          "
 
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Run Linter & Type Check
+      - name: Run Linter
         run: npm run lint
 
       - name: Build Application
@@ -36,20 +61,18 @@ jobs:
           NODE_ENV: production
 
   vercel-deploy:
-    name: Vercel Production Deployment Check
+    name: Vercel Production Deployment
     needs: lint-and-build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Vercel (Production)
+      - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         uses: amondnet/vercel-action@v25
-        if: ${{ env.VERCEL_TOKEN != '' }}
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
