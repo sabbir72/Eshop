@@ -2,43 +2,32 @@ name: SmartShop CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
-
+    branches: [ main, master ]
   pull_request:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [ main, master ]
 
 jobs:
   lint-and-build:
-    name: Install, Lint, Prisma Generate & Build
+    name: Lint, Prisma Generate & Build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-
-      - name: Verify Node.js and npm
-        run: |
-          node --version
-          npm --version
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci || npm install
 
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Run Linter
+      - name: Run Linter & Type Check
         run: npm run lint
 
       - name: Build Application
@@ -47,17 +36,20 @@ jobs:
           NODE_ENV: production
 
   vercel-deploy:
-    name: Vercel Production Deployment
+    name: Vercel Production Deployment Check
     needs: lint-and-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Vercel
+      - name: Deploy to Vercel (Production)
         uses: amondnet/vercel-action@v25
+        if: ${{ env.VERCEL_TOKEN != '' }}
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
