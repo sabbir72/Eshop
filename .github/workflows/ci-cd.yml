@@ -9,9 +9,12 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-build:
-    name: Validate, Lint, Prisma Generate & Build
+    name: Install, Lint, Prisma Generate & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -24,29 +27,13 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Verify Node.js and npm
+        run: |
+          node --version
+          npm --version
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Validate Firebase Config JSON
-        run: |
-          node -e "
-          const fs = require('fs');
-          const file = 'firebase-applet-config.json';
-
-          if (!fs.existsSync(file)) {
-            console.error('ERROR: firebase-applet-config.json not found');
-            process.exit(1);
-          }
-
-          try {
-            JSON.parse(fs.readFileSync(file, 'utf8'));
-            console.log('firebase-applet-config.json is valid JSON');
-          } catch (error) {
-            console.error('ERROR: Invalid firebase-applet-config.json');
-            console.error(error.message);
-            process.exit(1);
-          }
-          "
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -62,7 +49,7 @@ jobs:
   vercel-deploy:
     name: Vercel Production Deployment
     needs: lint-and-build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
