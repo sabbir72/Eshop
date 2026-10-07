@@ -8,7 +8,6 @@ on:
   pull_request:
     branches:
       - main
-      - master
 
 jobs:
   lint-and-build:
@@ -71,7 +70,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to Vercel
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
