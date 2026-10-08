@@ -18,6 +18,8 @@ import {
   BarChart3,
   Layers,
   ArrowRight,
+  Bot,
+  Sparkles,
 } from "lucide-react";
 import { CommandCenterDirectory } from "./CommandCenterDirectory";
 
@@ -49,6 +51,13 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => setAdminView("ai-agent")}
+              className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>AI Business Agent (5-in-1)</span>
+            </button>
             <button
               onClick={() => setAdminView("reports")}
               className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs flex items-center gap-1.5"

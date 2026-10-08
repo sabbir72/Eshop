@@ -10,6 +10,7 @@ import { ReportsAnalytics } from "./ReportsAnalytics";
 import { RoleManagement } from "./RoleManagement";
 import { AuditLogView } from "./AuditLogView";
 import { AdminAIAssistant } from "./AdminAIAssistant";
+import { AIAgentWorkspace } from "./AIAgentWorkspace";
 import { SettingsCMS } from "./SettingsCMS";
 import { WebsiteProfileSettings } from "./WebsiteProfileSettings";
 import { SecurityLabelManagement } from "./SecurityLabelManagement";
@@ -519,6 +520,7 @@ export const AdminPanel: React.FC = () => {
           {adminView === "roles" && <RoleManagement />}
           {adminView === "audit-logs" && <AuditLogView />}
           {adminView === "ai-assistant" && <AdminAIAssistant />}
+          {adminView === "ai-agent" && <AIAgentWorkspace />}
           {adminView === "cms-security" && <SecurityLabelManagement />}
           {adminView === "website-profile" && <WebsiteProfileSettings />}
           {adminView === "settings" && (

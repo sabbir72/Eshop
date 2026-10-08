@@ -107,6 +107,7 @@ export type AdminView =
   | "notifications"
   | "audit-logs"
   | "ai-assistant"
+  | "ai-agent"
   | "doc-pack"
   | "cms-security"
   | "company-cms"

@@ -3,8 +3,9 @@ import { MessageSquare, X, Send, Bot, User, Headphones } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 
 export const LiveChatWidget: React.FC = () => {
-  const { currentUser, contactInfo } = useStore();
+  const { currentUser, contactInfo, products } = useStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<
     { id: string; sender: "bot" | "user" | "agent"; text: string; time: string }[]
   >([
@@ -17,31 +18,72 @@ export const LiveChatWidget: React.FC = () => {
   ]);
   const [inputText, setInputText] = useState("");
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isTyping) return;
 
+    const userQuery = inputText.trim();
     const userMsg = {
       id: `u-${Date.now()}`,
       sender: "user" as const,
-      text: inputText,
+      text: userQuery,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    const currentQuery = inputText.toLowerCase();
     setInputText("");
+    setIsTyping(true);
 
-    // Instant automated smart response
+    try {
+      const res = await fetch("/api/ai/agent/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: "customer_handling",
+          payload: {
+            customerMessage: userQuery,
+            customerType: "Online Store Customer",
+            channel: "Storefront Live Support",
+          },
+          storeContext: {
+            productsCount: products.length,
+            sampleProducts: products.slice(0, 5).map((p) => ({ name: p.name, price: p.price, category: p.categoryName })),
+          },
+        }),
+      });
+      const data = await res.json();
+      const reply = data.suggestedResponseBengali || data.suggestedResponseEnglish || data.reply;
+
+      if (reply) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `b-${Date.now()}`,
+            sender: "agent" as const,
+            text: reply,
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        setIsTyping(false);
+        return;
+      }
+    } catch (e) {
+      // Fallback to offline rule-based knowledge
+    }
+
+    // Fallback instant automated smart response
     setTimeout(() => {
+      const q = userQuery.toLowerCase();
       let botResponse = "Thank you for reaching out! A customer care representative will connect shortly.";
 
-      if (currentQuery.includes("return") || currentQuery.includes("refund")) {
+      if (q.includes("return") || q.includes("refund")) {
         botResponse = "We offer a 7-day hassle-free return policy! You can submit a return claim under Help Center -> Returns.";
-      } else if (currentQuery.includes("delivery") || currentQuery.includes("ship")) {
+      } else if (q.includes("delivery") || q.includes("ship") || q.includes("কবে পাব")) {
         botResponse = "Dhaka City deliveries take 24-48 hours (৳60). Outside Dhaka takes 2-4 days via Courier (৳120).";
-      } else if (currentQuery.includes("payment") || currentQuery.includes("bkash")) {
+      } else if (q.includes("payment") || q.includes("bkash") || q.includes("টাকা")) {
         botResponse = "We accept bKash, Nagad, Rocket, Credit/Debit cards, and Cash on Delivery (COD)!";
+      } else if (q.includes("discount") || q.includes("কুপন") || q.includes("অফার")) {
+        botResponse = "Use coupon code 'WELCOME5' at checkout to receive 5% off your order!";
       }
 
       setMessages((prev) => [
@@ -53,7 +95,8 @@ export const LiveChatWidget: React.FC = () => {
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
-    }, 800);
+      setIsTyping(false);
+    }, 600);
   };
 
   return (
@@ -120,6 +163,16 @@ export const LiveChatWidget: React.FC = () => {
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex gap-2 max-w-[85%] mr-auto">
+                <div className="p-3 bg-white border border-slate-200 text-slate-500 rounded-2xl rounded-tl-none shadow-2xs flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
+                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <span className="text-[10px] text-slate-400 ml-1">AI agent typing...</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input Footer */}

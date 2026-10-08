@@ -21,6 +21,7 @@ import {
   ArrowLeftRight,
   Search,
   Globe,
+  Bot,
 } from "lucide-react";
 import { AdminView } from "../../context/StoreContext";
 import { ModuleName } from "../../types";
@@ -71,6 +72,15 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
             icon: LayoutDashboard,
             module: "Product",
             tag: "Live KPIs",
+            isPopular: true,
+          },
+          {
+            id: "ai-agent",
+            name: "AI Business Agent (5-in-1)",
+            description: "Autonomous Agent for Marketing, Leads, Sales Oversight & 24/7 Customer Service",
+            icon: Bot,
+            module: "Product",
+            tag: "Autonomous AI",
             isPopular: true,
           },
           {

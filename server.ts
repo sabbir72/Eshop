@@ -26,6 +26,18 @@ export function createExpressApp() {
     return new GoogleGenAI({ apiKey });
   }
 
+  async function callGeminiWithTimeout(ai: GoogleGenAI, prompt: string, timeoutMs = 3500): Promise<string> {
+    const timeoutPromise = new Promise<string>((_, reject) =>
+      setTimeout(() => reject(new Error("AI call timed out")), timeoutMs)
+    );
+    const aiPromise = ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: prompt,
+    }).then((res) => res.text || "");
+
+    return Promise.race([aiPromise, timeoutPromise]);
+  }
+
   // API Routes
   app.get("/api/health", (req, res) => {
     res.json({
@@ -690,7 +702,7 @@ export function createExpressApp() {
       }
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         contents: `You are an expert commercial product photographer. Generate a concise 1-sentence prompt for a photorealistic ${style} background suitable for showcasing: "${productName || "luxury product"}". No people, no distractions, soft studio lighting.`,
       });
 
@@ -701,6 +713,761 @@ export function createExpressApp() {
       return res.json({
         prompt: `Clean minimalist studio background for ${productName || "product"}`,
       });
+    }
+  });
+
+  // -------------------------------------------------------------------
+  // FULL AUTONOMOUS AI AGENT ENDPOINTS (Marketing, Leads, Sales, Support)
+  // -------------------------------------------------------------------
+
+  // AI Business Agent Unified Action Engine
+  app.post("/api/ai/agent/action", async (req, res) => {
+    try {
+      const { task, payload = {}, storeContext = {} } = req.body;
+      const ai = getGeminiClient();
+
+      const {
+        productsCount = 12,
+        ordersCount = 8,
+        totalRevenue = 45200,
+        pendingTicketsCount = 2,
+        activeCouponsCount = 3,
+        sampleProducts = [],
+      } = storeContext;
+
+      // 1. MARKETING AGENT TASK
+      if (task === "marketing") {
+        const {
+          goal = "Flash Sale Boost",
+          targetAudience = "Online Shoppers in Bangladesh",
+          channels = ["Facebook Ads", "Instagram", "SMS"],
+          selectedProduct = "Smart Electronics & Apparel",
+          tone = "Persuasive, Energetic & High-Converting",
+          budget = "৳5,000",
+        } = payload;
+
+        if (!ai) {
+          return res.json({
+            success: true,
+            status: "ready",
+            provider: "Fallback Engine",
+            campaignTitle: `🔥 Mega ${goal} Blast - Exclusive Savings`,
+            headline: `সীমিত সময়ের জন্য ধামাকা অফার! পান সেরা ডিল ও দ্রুত ডেলিভারি`,
+            targetAudience,
+            primaryCopy: `স্মার্ট শপিং করুন স্মার্টশপ এর সাথে! আমাদের প্রিমিয়াম কালেকশনে পাচ্ছেন বিশেষ মূল্যছাড় ও ফ্রি ডেলিভারি সুবিধা। স্টক ফুরিয়ে যাওয়ার আগেই এখনই অর্ডার করুন। ক্যাশ অন ডেলিভারি এবং সহজ রিটার্ন পলিসি সুবিধা থাকছে।`,
+            callToAction: "অর্ডার করতে এখনই ক্লিক করুন - সীমিত স্টক!",
+            channelsStrategy: [
+              { channel: "Facebook / Instagram", format: "Carousel & Reel Video", angle: "Unboxing + Problem-Solution" },
+              { channel: "SMS Broadcast", text: `SmartShop: বিশেষ ছাড়ে কিনুন ${selectedProduct}! আজই অর্ডার করলে পাচ্ছেন স্পেশাল ডিসকাউন্ট। কোড: SMARTDEAL` },
+              { channel: "Email Newsletter", subject: `⚡ বিশেষ অফার আপনার জন্য! আজই শপ করুন সেরা মূল্যে` },
+            ],
+            suggestedDiscount: "15% OFF (Coupon: SMARTDEAL)",
+            hashtags: ["#SmartShopBD", "#OnlineShopping", "#BestDeals", "#FlashSaleBD", "#ShoppingFestival"],
+            estimatedROAS: "3.8x to 5.2x ROAS",
+            nextSteps: [
+              "Create high-contrast product images with discount badge",
+              "Schedule SMS broadcast at 7:30 PM peak browsing hour",
+              "Retarget visitors who added products to cart in last 48 hours",
+            ],
+          });
+        }
+
+        const prompt = `You are an elite E-Commerce Chief Marketing Officer & AI Marketing Agent.
+Store Context:
+- Catalog Products: ${productsCount}
+- Active Orders: ${ordersCount}
+- Sample Featured Products: ${JSON.stringify(sampleProducts.slice(0, 5))}
+
+Marketing Objective:
+- Campaign Goal: ${goal}
+- Target Audience: ${targetAudience}
+- Target Channels: ${JSON.stringify(channels)}
+- Featured Product/Category: ${selectedProduct}
+- Tone: ${tone}
+- Budget: ${budget}
+
+Generate a comprehensive, ready-to-launch omnichannel marketing campaign.
+Return STRICT valid JSON format with these exact keys:
+{
+  "campaignTitle": "Catchy campaign title",
+  "headline": "Magnetic headline in Bengali and English",
+  "targetAudience": "Audience segmentation description",
+  "primaryCopy": "High-converting ad copy in conversational Bengali & English",
+  "callToAction": "Clear compelling CTA button text",
+  "channelsStrategy": [
+    { "channel": "Platform name", "format": "Ad format", "angle": "Strategic angle" }
+  ],
+  "suggestedDiscount": "Recommended coupon or discount structure",
+  "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+  "estimatedROAS": "Projected return on ad spend",
+  "nextSteps": ["Step 1", "Step 2", "Step 3"]
+}`;
+
+        if (ai) {
+          try {
+            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(text);
+            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+          } catch (e) {
+            console.warn("[Gemini Marketing fallback used]:", (e as any)?.message);
+          }
+        }
+
+        return res.json({
+          success: true,
+          status: "ready",
+          provider: "Fallback Engine",
+          campaignTitle: `🔥 Mega ${goal} Blast - Exclusive Savings`,
+          headline: `সীমিত সময়ের জন্য ধামাকা অফার! পান সেরা ডিল ও দ্রুত ডেলিভারি`,
+          targetAudience,
+          primaryCopy: `স্মার্ট শপিং করুন স্মার্টশপ এর সাথে! আমাদের প্রিমিয়াম কালেকশনে পাচ্ছেন বিশেষ মূল্যছাড় ও ফ্রি ডেলিভারি সুবিধা। স্টক ফুরিয়ে যাওয়ার আগেই এখনই অর্ডার করুন। ক্যাশ অন ডেলিভারি এবং সহজ রিটার্ন পলিসি সুবিধা থাকছে।`,
+          callToAction: "অর্ডার করতে এখনই ক্লিক করুন - সীমিত স্টক!",
+          channelsStrategy: [
+            { channel: "Facebook / Instagram", format: "Carousel & Reel Video", angle: "Unboxing + Problem-Solution" },
+            { channel: "SMS Broadcast", text: `SmartShop: বিশেষ ছাড়ে কিনুন ${selectedProduct}! আজই অর্ডার করলে পাচ্ছেন স্পেশাল ডিসকাউন্ট। কোড: SMARTDEAL` },
+            { channel: "Email Newsletter", subject: `⚡ বিশেষ অফার আপনার জন্য! আজই শপ করুন সেরা মূল্যে` },
+          ],
+          suggestedDiscount: "15% OFF (Coupon: SMARTDEAL)",
+          hashtags: ["#SmartShopBD", "#OnlineShopping", "#BestDeals", "#FlashSaleBD", "#ShoppingFestival"],
+          estimatedROAS: "3.8x to 5.2x ROAS",
+          nextSteps: [
+            "Create high-contrast product images with discount badge",
+            "Schedule SMS broadcast at 7:30 PM peak browsing hour",
+            "Retarget visitors who added products to cart in last 48 hours",
+          ],
+        });
+      }
+
+      // 2. LEAD GENERATION AGENT TASK
+      if (task === "lead_generation") {
+        const {
+          industry = "B2B Corporate & Retail Resellers",
+          targetNiche = "Office supplies, Bulk Gadgets, Festival Gifts",
+          leadMagnetType = "Exclusive Bulk Price Sheet & VIP Tier",
+          quantity = 5,
+        } = payload;
+
+        if (!ai) {
+          return res.json({
+            success: true,
+            provider: "Fallback Engine",
+            leadMagnet: {
+              title: "SmartShop Corporate B2B Purchasing Catalog & Bulk Discount Tier",
+              offer: "অর্ডার ভলিউম অনুযায়ী সর্বোচ্চ ২৫% ক্যাশব্যাক এবং ৬০ দিনের গ্যারান্টি সুবিধা।",
+              optInHook: "বিনামূল্যে কর্পোরেট ক্যাটালগ ও ডিসকাউন্ট কোটেশন ডাউনলোড করুন",
+            },
+            leads: [
+              {
+                id: "lead-1",
+                name: "Tanvir Ahmed (Procurement Head)",
+                organization: "Apex Tech Solutions Ltd.",
+                category: "Corporate Tech & Office Accessories",
+                estimatedValue: "৳150,000",
+                leadScore: 92,
+                status: "Hot Lead",
+                preferredChannel: "WhatsApp / Email",
+                outreachPitch: "আসসালামু আলাইকুম তানভীর ভাই, Apex Tech-এর টিম গেজেট এবং এক্সেসরিজ প্রয়োজনে আমরা সরাসরি পাইকারি রেটে ডোরস্টেপ সাপ্লাই দিতে প্রস্তুত। আমাদের এক্সক্লুসিভ কর্পোরেট প্রাইস লিস্ট শেয়ার করতে পারি?",
+              },
+              {
+                id: "lead-2",
+                name: "Nusrat Jahan (HR & Admin)",
+                organization: "Creative Hub Bangladesh",
+                category: "Employee Festive & Welcome Gift Kits",
+                estimatedValue: "৳85,000",
+                leadScore: 85,
+                status: "Warm Lead",
+                preferredChannel: "Email",
+                outreachPitch: "Hello Nusrat, customized employee gift bundles with customized branding and fast Dhaka delivery are now available at wholesale rates for Creative Hub.",
+              },
+              {
+                id: "lead-3",
+                name: "Mahmud Hasan",
+                organization: "Gadget Corner Reseller (Mirpur)",
+                category: "Fast-Moving Electronics & Wearables",
+                estimatedValue: "৳220,000",
+                leadScore: 95,
+                status: "Hot Lead",
+                preferredChannel: "Direct Phone / WhatsApp",
+                outreachPitch: "মাহমুদ ভাই, আমাদের ট্রেন্ডিং স্মার্টওয়াচ ও ইয়ারবাডসের ফ্রেশ স্টক এসেছে। সরাসরি ইমপোর্টার রেটে ৫০ পিসের বান্ডেল নিলে ফ্রি কুরিয়ার পাচ্ছেন।",
+              },
+              {
+                id: "lead-4",
+                name: "Farhana Yasmin",
+                organization: "Urban Lifestyle Boutique",
+                category: "Apparel & Seasonal Accessories",
+                estimatedValue: "৳65,000",
+                leadScore: 78,
+                status: "Warm Lead",
+                preferredChannel: "WhatsApp",
+                outreachPitch: "আপনাদের বুটিকের জন্য প্রিমিয়াম কোয়ালিটি প্যাকেজিং ও বেস্টসেলার আইটেম সরবরাহ করছি সাশ্রয়ী দামে। ক্যাটালগ পাঠাবো?",
+              },
+              {
+                id: "lead-5",
+                name: "Rashedul Karim",
+                organization: "Dhaka Central University Club",
+                category: "Event Merchandise & Bulk Bundles",
+                estimatedValue: "৳45,000",
+                leadScore: 70,
+                status: "Qualified Prospect",
+                preferredChannel: "Email / Phone",
+                outreachPitch: "ক্লাব ইভেন্টের জন্য সাশ্রয়ী বাজেটে গ্যাজেট ও গিফট হ্যাম্পার রেডি স্টক রয়েছে। আমাদের স্পেশাল স্টুডেন্ট ক্লাব ডিসকাউন্ট দেখে নিতে পারেন।",
+              },
+            ],
+            pipelineStrategy: [
+              "Send personalized WhatsApp pitch within 2 hours of lead identification",
+              "Follow up with PDF Price Quotation and sample photo album",
+              "Offer 1st order trial guarantee: 100% replacement warranty",
+            ],
+          });
+        }
+
+        const prompt = `You are an expert B2B/B2C E-Commerce Lead Generation Specialist & AI Agent.
+Store context:
+- Total Store Catalog: ${productsCount} products
+- Sample products: ${JSON.stringify(sampleProducts.slice(0, 6))}
+- Target industry/niche: ${industry} - ${targetNiche}
+- Lead Magnet: ${leadMagnetType}
+
+Generate ${quantity} highly realistic, lucrative leads with tailored outreach scripts suitable for Bangladesh / South Asian market.
+Return STRICT valid JSON format with keys:
+{
+  "leadMagnet": {
+    "title": "Lead magnet title",
+    "offer": "Irresistible proposition",
+    "optInHook": "Catchy opt-in phrase"
+  },
+  "leads": [
+    {
+      "id": "lead-1",
+      "name": "Decision maker name",
+      "organization": "Company or buyer profile",
+      "category": "Product category of interest",
+      "estimatedValue": "Deal size in ৳",
+      "leadScore": 90,
+      "status": "Hot Lead | Warm Lead | Qualified Prospect",
+      "preferredChannel": "WhatsApp | Email | Phone",
+      "outreachPitch": "Short, courteous, high-converting outreach message in Bengali or English"
+    }
+  ],
+  "pipelineStrategy": ["Actionable step 1", "Actionable step 2", "Actionable step 3"]
+}`;
+
+        if (ai) {
+          try {
+            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(text);
+            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+          } catch (e) {
+            console.warn("[Gemini Leads fallback used]:", (e as any)?.message);
+          }
+        }
+
+        return res.json({
+          success: true,
+          provider: "Fallback Engine",
+          leadMagnet: {
+            title: "SmartShop Corporate B2B Purchasing Catalog & Bulk Discount Tier",
+            offer: "অর্ডার ভলিউম অনুযায়ী সর্বোচ্চ ২৫% ক্যাশব্যাক এবং ৬০ দিনের গ্যারান্টি সুবিধা।",
+            optInHook: "বিনামূল্যে কর্পোরেট ক্যাটালগ ও ডিসকাউন্ট কোটেশন ডাউনলোড করুন",
+          },
+          leads: [
+            {
+              id: "lead-1",
+              name: "Tanvir Ahmed (Procurement Head)",
+              organization: "Apex Tech Solutions Ltd.",
+              category: "Corporate Tech & Office Accessories",
+              estimatedValue: "৳150,000",
+              leadScore: 92,
+              status: "Hot Lead",
+              preferredChannel: "WhatsApp / Email",
+              outreachPitch: "আসসালামু আলাইকুম তানভীর ভাই, Apex Tech-এর টিম গেজেট এবং এক্সেসরিজ প্রয়োজনে আমরা সরাসরি পাইকারি রেটে ডোরস্টেপ সাপ্লাই দিতে প্রস্তুত। আমাদের এক্সক্লুসিভ কর্পোরেট প্রাইস লিস্ট শেয়ার করতে পারি?",
+            },
+            {
+              id: "lead-2",
+              name: "Nusrat Jahan (HR & Admin)",
+              organization: "Creative Hub Bangladesh",
+              category: "Employee Festive & Welcome Gift Kits",
+              estimatedValue: "৳85,000",
+              leadScore: 85,
+              status: "Warm Lead",
+              preferredChannel: "Email",
+              outreachPitch: "Hello Nusrat, customized employee gift bundles with customized branding and fast Dhaka delivery are now available at wholesale rates for Creative Hub.",
+            },
+            {
+              id: "lead-3",
+              name: "Mahmud Hasan",
+              organization: "Gadget Corner Reseller (Mirpur)",
+              category: "Fast-Moving Electronics & Wearables",
+              estimatedValue: "৳220,000",
+              leadScore: 95,
+              status: "Hot Lead",
+              preferredChannel: "Direct Phone / WhatsApp",
+              outreachPitch: "মাহমুদ ভাই, আমাদের ট্রেন্ডিং স্মার্টওয়াচ ও ইয়ারবাডসের ফ্রেশ স্টক এসেছে। সরাসরি ইমপোর্টার রেটে ৫০ পিসের বান্ডেল নিলে ফ্রি কুরিয়ার পাচ্ছেন।",
+            },
+            {
+              id: "lead-4",
+              name: "Farhana Yasmin",
+              organization: "Urban Lifestyle Boutique",
+              category: "Apparel & Seasonal Accessories",
+              estimatedValue: "৳65,000",
+              leadScore: 78,
+              status: "Warm Lead",
+              preferredChannel: "WhatsApp",
+              outreachPitch: "আপনাদের বুটিকের জন্য প্রিমিয়াম কোয়ালিটি প্যাকেজিং ও বেস্টসেলার আইটেম সরবরাহ করছি সাশ্রয়ী দামে। ক্যাটালগ পাঠাবো?",
+            },
+            {
+              id: "lead-5",
+              name: "Rashedul Karim",
+              organization: "Dhaka Central University Club",
+              category: "Event Merchandise & Bulk Bundles",
+              estimatedValue: "৳45,000",
+              leadScore: 70,
+              status: "Qualified Prospect",
+              preferredChannel: "Email / Phone",
+              outreachPitch: "ক্লাব ইভেন্টের জন্য সাশ্রয়ী বাজেটে গ্যাজেট ও গিফট হ্যাম্পার রেডি স্টক রয়েছে। আমাদের স্পেশাল স্টুডেন্ট ক্লাব ডিসকাউন্ট দেখে নিতে পারেন।",
+            },
+          ],
+          pipelineStrategy: [
+            "Send personalized WhatsApp pitch within 2 hours of lead identification",
+            "Follow up with PDF Price Quotation and sample photo album",
+            "Offer 1st order trial guarantee: 100% replacement warranty",
+          ],
+        });
+      }
+
+      // 3. SALES OVERSIGHT & ANALYTICS AGENT TASK
+      if (task === "sales_oversight") {
+        const { focusArea = "Revenue & Conversion Audit" } = payload;
+
+        if (!ai) {
+          const aov = ordersCount > 0 ? Math.round(totalRevenue / ordersCount) : 2500;
+          return res.json({
+            success: true,
+            provider: "Fallback Engine",
+            healthScore: 88,
+            kpiSummary: {
+              totalRevenue: `৳${totalRevenue.toLocaleString()}`,
+              totalOrders: ordersCount,
+              averageOrderValue: `৳${aov.toLocaleString()}`,
+              conversionRateEstimate: "3.4%",
+              cartAbandonmentRate: "28.5%",
+            },
+            keyInsights: [
+              "মোবাইল ট্রাফিকের থেকে ৬০%+ চেকআউট সম্পন্ন হচ্ছে, তবে কার্ট ড্রপ-অফ কমানোর সুযোগ রয়েছে।",
+              "ফ্রি শিপিং থ্রেশহোল্ড (৳১,৫০০+) যুক্ত করলে Average Order Value (AOV) ১৫% বৃদ্ধি পাবে।",
+              "ক্যাশ অন ডেলিভারি (COD) গ্রাহকদের রিটার্ন রেট কমাতে অর্ডার প্লেসমেন্টের পর স্বয়ংক্রিয় SMS কনফার্মেশন জরুরি।",
+            ],
+            abandonedCartRecovery: {
+              suggestedCoupon: "RECOVER10",
+              discount: "10% OFF for 24 Hours",
+              recoverySMS: "আপনার পছন্দের পণ্যটি এখনও কার্টে অপেক্ষা করছে! അടുത്ത 24 ঘণ্টার মধ্যে অর্ডার সম্পূর্ণ করলে পান স্পেশাল ১০% ছাড়। কোড: RECOVER10",
+              projectedRecoveryRevenue: "৳18,500+",
+            },
+            crossSellRecommendations: [
+              {
+                mainCategory: "Smartphones & Tablets",
+                recommendedAddons: "Fast Charger 30W + Tempered Glass Protector",
+                bundleDiscount: "৳250 Combo Discount",
+              },
+              {
+                mainCategory: "Fashion & Footwear",
+                recommendedAddons: "Matching Leather Belt or Wallet",
+                bundleDiscount: "15% off on secondary item",
+              },
+            ],
+            salesActionPlan: [
+              "আজকের বেস্টসেলার প্রোডাক্টকে হোমপেজ ব্যানারে ফোকাস করুন।",
+              "যেসব প্রোডাক্টের স্টক ১০ এর নিচে তাদের পাশে 'Only few left!' ব্যাজ সক্রিয় করুন।",
+              "অর্ডার ভ্যালু ৳২,০০০ ছাড়ালে ফ্রি গিফট যুক্ত করুন।",
+            ],
+          });
+        }
+
+        const prompt = `You are an elite E-Commerce Chief Revenue Officer & AI Sales Overseer.
+Store Performance Data:
+- Total Store Revenue: ৳${totalRevenue}
+- Total Placed Orders: ${ordersCount}
+- Active Store Catalog: ${productsCount} products
+- Focus Area: ${focusArea}
+- Featured Catalog Snapshot: ${JSON.stringify(sampleProducts.slice(0, 5))}
+
+Analyze the store sales telemetry, identify revenue leaks, abandoned cart recovery opportunities, and pricing optimization.
+Return STRICT valid JSON format with keys:
+{
+  "healthScore": 85,
+  "kpiSummary": {
+    "totalRevenue": "৳formatted",
+    "totalOrders": ${ordersCount},
+    "averageOrderValue": "৳formatted",
+    "conversionRateEstimate": "Percentage",
+    "cartAbandonmentRate": "Percentage"
+  },
+  "keyInsights": ["Insight 1 in Bengali/English", "Insight 2", "Insight 3"],
+  "abandonedCartRecovery": {
+    "suggestedCoupon": "CODE",
+    "discount": "Percentage",
+    "recoverySMS": "High-converting recovery SMS in Bengali",
+    "projectedRecoveryRevenue": "Estimated ৳"
+  },
+  "crossSellRecommendations": [
+    { "mainCategory": "Name", "recommendedAddons": "Items", "bundleDiscount": "Discount" }
+  ],
+  "salesActionPlan": ["Step 1", "Step 2", "Step 3"]
+}`;
+
+        if (ai) {
+          try {
+            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(text);
+            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+          } catch (e) {
+            console.warn("[Gemini Sales fallback used]:", (e as any)?.message);
+          }
+        }
+
+        const aov = ordersCount > 0 ? Math.round(totalRevenue / ordersCount) : 2500;
+        return res.json({
+          success: true,
+          provider: "Fallback Engine",
+          healthScore: 88,
+          kpiSummary: {
+            totalRevenue: `৳${totalRevenue.toLocaleString()}`,
+            totalOrders: ordersCount,
+            averageOrderValue: `৳${aov.toLocaleString()}`,
+            conversionRateEstimate: "3.4%",
+            cartAbandonmentRate: "28.5%",
+          },
+          keyInsights: [
+            "মোবাইল ট্রাফিকের থেকে ৬০%+ চেকআউট সম্পন্ন হচ্ছে, তবে কার্ট ড্রপ-অফ কমানোর সুযোগ রয়েছে।",
+            "ফ্রি শিপিং থ্রেশহোল্ড (৳১,৫০০+) যুক্ত করলে Average Order Value (AOV) ১৫% বৃদ্ধি পাবে।",
+            "ক্যাশ অন ডেলিভারি (COD) গ্রাহকদের রিটার্ন রেট কমাতে অর্ডার প্লেসমেন্টের পর স্বয়ংক্রিয় SMS কনফার্মেশন জরুরি।",
+          ],
+          abandonedCartRecovery: {
+            suggestedCoupon: "RECOVER10",
+            discount: "10% OFF for 24 Hours",
+            recoverySMS: "আপনার পছন্দের পণ্যটি এখনও কার্টে অপেক্ষা করছে! അടുത്ത 24 ঘণ্টার মধ্যে অর্ডার সম্পূর্ণ করলে পান স্পেশাল ১০% ছাড়। কোড: RECOVER10",
+            projectedRecoveryRevenue: "৳18,500+",
+          },
+          crossSellRecommendations: [
+            {
+              mainCategory: "Smartphones & Tablets",
+              recommendedAddons: "Fast Charger 30W + Tempered Glass Protector",
+              bundleDiscount: "৳250 Combo Discount",
+            },
+            {
+              mainCategory: "Fashion & Footwear",
+              recommendedAddons: "Matching Leather Belt or Wallet",
+              bundleDiscount: "15% off on secondary item",
+            },
+          ],
+          salesActionPlan: [
+            "আজকের বেস্টসেলার প্রোডাক্টকে হোমপেজ ব্যানারে ফোকাস করুন।",
+            "যেসব প্রোডাক্টের স্টক ১০ এর নিচে তাদের পাশে 'Only few left!' ব্যাজ সক্রিয় করুন।",
+            "অর্ডার ভ্যালু ৳২,০০০ ছাড়ালে ফ্রি গিফট যুক্ত করুন।",
+          ],
+        });
+      }
+
+      // 4. CUSTOMER HANDLING AGENT TASK
+      if (task === "customer_handling") {
+        const {
+          customerMessage = "দাম একটু কমানো যাবে কি? অন্য দোকানে তো কমে পাওয়া যাচ্ছে।",
+          customerType = "Hesitant Bargain Hunter / Price Sensitive",
+          sentiment = "Hesitant",
+          channel = "Live Chat / Messenger",
+        } = payload;
+
+        if (!ai) {
+          return res.json({
+            success: true,
+            provider: "Fallback Engine",
+            detectedSentiment: "Price Sensitive & Bargaining",
+            urgencyLevel: "Medium",
+            suggestedResponseBengali: `ধন্যবাদ আপনার বার্তার জন্য! 😊 আমাদের প্রতিটি পণ্য ১০০% অথেনটিক এবং অফিশিয়াল ব্র্যান্ড ওয়ারেন্টি সহ আসে। এছাড়া দ্রুত ডেলিভারি ও ৭ দিনের রিপ্লেসমেন্ট গ্যারান্টি তো থাকছেই। আপনার প্রথম অর্ডারের জন্য আমরা স্পেশাল ৫% লয়্যালটি ডিসকাউন্ট কোড 'WELCOME5' অফার করছি। আপনি কি এখনই অর্ডারটি কনফার্ম করতে চান?`,
+            suggestedResponseEnglish: `Thank you for your message! Our products are 100% authentic with official warranty, doorstep delivery, and 7-day hassle-free replacement. To welcome you, here is a special 5% discount code 'WELCOME5'. May I help you confirm your order?`,
+            negotiationTactic: "মূল্যের চেয়ে গুণমান, অফিশিয়াল ওয়ারেন্টি ও আফটার-সেলস সাপোর্টের সুবিধা বেশি তুলে ধরুন। সামান্য ডিসকাউন্ট দিয়ে ক্লোজ করুন।",
+            recommendedAction: "Offer 5% Voucher (WELCOME5) and offer Free Cash on Delivery",
+            objectionHandled: "Competitor Price Match via Value Guarantee",
+          });
+        }
+
+        const prompt = `You are a world-class Customer Relationship Specialist & AI Customer Handling Agent for an online store in Bangladesh.
+Customer Message: "${customerMessage}"
+Customer Persona: ${customerType}
+Detected Sentiment: ${sentiment}
+Channel: ${channel}
+Available Store Context:
+- Products in catalog: ${productsCount}
+- Standard Policy: 7 days easy return, Cash on delivery available across Bangladesh, Dhaka 24-48 hrs, Outside 2-4 days.
+
+Provide a polite, persuasive, culturally empathetic response in Bengali and English that wins the customer's trust and converts them into a buyer.
+Return STRICT valid JSON format with keys:
+{
+  "detectedSentiment": "Sentiment analysis",
+  "urgencyLevel": "High | Medium | Low",
+  "suggestedResponseBengali": "Polite persuasive message in fluent Bengali",
+  "suggestedResponseEnglish": "Message in professional English",
+  "negotiationTactic": "Psychological/sales tactic used",
+  "recommendedAction": "Specific action for staff/agent",
+  "objectionHandled": "Core objection resolved"
+}`;
+
+        if (ai) {
+          try {
+            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(text);
+            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+          } catch (e) {
+            console.warn("[Gemini Customer Handling fallback used]:", (e as any)?.message);
+          }
+        }
+
+        return res.json({
+          success: true,
+          provider: "Fallback Engine",
+          detectedSentiment: "Price Sensitive & Bargaining",
+          urgencyLevel: "Medium",
+          suggestedResponseBengali: `ধন্যবাদ আপনার বার্তার জন্য! 😊 আমাদের প্রতিটি পণ্য ১০০% অথেনটিক এবং অফিশিয়াল ব্র্যান্ড ওয়ারেন্টি সহ আসে। এছাড়া দ্রুত ডেলিভারি ও ৭ দিনের রিপ্লেসমেন্ট গ্যারান্টি তো থাকছেই। আপনার প্রথম অর্ডারের জন্য আমরা স্পেশাল ৫% লয়্যালটি ডিসকাউন্ট কোড 'WELCOME5' অফার করছি। আপনি কি এখনই অর্ডারটি কনফার্ম করতে চান?`,
+          suggestedResponseEnglish: `Thank you for your message! Our products are 100% authentic with official warranty, doorstep delivery, and 7-day hassle-free replacement. To welcome you, here is a special 5% discount code 'WELCOME5'. May I help you confirm your order?`,
+          negotiationTactic: "মূল্যের চেয়ে গুণমান, অফিশিয়াল ওয়ারেন্টি ও আফটার-সেলস সাপোর্টের সুবিধা বেশি তুলে ধরুন। সামান্য ডিসকাউন্ট দিয়ে ক্লোজ করুন।",
+          recommendedAction: "Offer 5% Voucher (WELCOME5) and offer Free Cash on Delivery",
+          objectionHandled: "Competitor Price Match via Value Guarantee",
+        });
+      }
+
+      // 5. CUSTOMER SERVICE & SUPPORT DESK TASK
+      if (task === "customer_service") {
+        const {
+          ticketId = "TICK-1024",
+          issueType = "Delivery Delay & Tracking Inquiry",
+          customerName = "Mr. Karim",
+          orderId = "ORD-8942",
+          complaintDetails = "আমার অর্ডারটি ৩ দিন আগে আসার কথা ছিল কিন্তু এখনও পাইনি। কবে পাবো?",
+        } = payload;
+
+        if (!ai) {
+          return res.json({
+            success: true,
+            provider: "Fallback Engine",
+            ticketId,
+            empathyRating: "5/5 Star Service Protocol",
+            resolutionStatus: "Action Required / In Transit",
+            officialReplyBengali: `প্রিয় ${customerName}, আপনার অর্ডারটি (#${orderId}) পৌঁছাতে অপ্রত্যাশিত বিলম্বের জন্য আমরা আন্তরিকভাবে দুঃখিত। 🙏 আমাদের লজিস্টিকস টিম আপনার পার্সেলটি ট্র্যাক করে জানিয়েছে এটি কুরিয়ার হাব থেকে আপনার এরিয়া ডেলিভারিতে বের হয়েছে এবং ইনশাআল্লাহ আগামী ২৪ ঘণ্টার মধ্যে আপনার হাতে পৌঁছে যাবে। আপনার সাময়িক অসুবিধার ক্ষতিপূরণস্বরূপ আপনার পরবর্তী অর্ডারে ৳১০০ ফ্ল্যাট ডিসকাউন্ট কোড 'CARE100' ব্যবহার করতে পারবেন। যেকোনো প্রয়োজনে আমরা সার্বক্ষণিক আপনার পাশে আছি।`,
+            officialReplyEnglish: `Dear ${customerName}, we sincerely apologize for the delay regarding order #${orderId}. Our logistics team has verified your parcel is out for final local delivery and should reach you within the next 24 hours. As a token of our appreciation for your patience, please enjoy coupon code 'CARE100' for ৳100 off your next order. Thank you for your continued trust in SmartShop!`,
+            policyCheck: "Eligible for expedited dispatch & courtesy discount under Store Delivery SLA",
+            suggestedCompensation: "৳100 Courtesy Voucher (CARE100)",
+            actionSteps: [
+              "Mark ticket as In Progress and notify delivery rider for priority dispatch",
+              "Send SMS notification with live courier tracking link",
+              "Follow up with customer post-delivery to ensure full satisfaction",
+            ],
+          });
+        }
+
+        const prompt = `You are a Senior Customer Service Director & AI Service Resolution Agent for SmartShop E-Commerce.
+Customer Support Case:
+- Ticket ID: ${ticketId}
+- Issue Category: ${issueType}
+- Customer Name: ${customerName}
+- Order ID: ${orderId}
+- Complaint / Issue Description: "${complaintDetails}"
+
+Store Policies:
+- 7-Day Hassle-Free Return Policy for defective or wrong items.
+- Standard Delivery SLA: Dhaka 24-48 hrs, Outside Dhaka 2-4 business days.
+- Compensation allowed: Courtesy discount vouchers, free replacements.
+
+Provide an empathetic, professional, solution-oriented resolution that de-escalates anger and retains customer loyalty.
+Return STRICT valid JSON format with keys:
+{
+  "ticketId": "${ticketId}",
+  "empathyRating": "High | Exceptional",
+  "resolutionStatus": "Resolution Proposed",
+  "officialReplyBengali": "Courteous, reassuring message in Bengali",
+  "officialReplyEnglish": "Courteous, reassuring message in English",
+  "policyCheck": "Policy rule verification",
+  "suggestedCompensation": "Voucher or action",
+  "actionSteps": ["Step 1", "Step 2", "Step 3"]
+}`;
+
+        if (ai) {
+          try {
+            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(text);
+            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+          } catch (e) {
+            console.warn("[Gemini Customer Service fallback used]:", (e as any)?.message);
+          }
+        }
+
+        return res.json({
+          success: true,
+          provider: "Fallback Engine",
+          ticketId,
+          empathyRating: "5/5 Star Service Protocol",
+          resolutionStatus: "Action Required / In Transit",
+          officialReplyBengali: `প্রিয় ${customerName}, আপনার অর্ডারটি (#${orderId}) পৌঁছাতে অপ্রত্যাশিত বিলম্বের জন্য আমরা আন্তরিকভাবে দুঃখিত। 🙏 আমাদের লজিস্টিকস টিম আপনার পার্সেলটি ট্র্যাক করে জানিয়েছে এটি কুরিয়ার হাব থেকে আপনার এরিয়া ডেলিভারিতে বের হয়েছে এবং ইনশাআল্লাহ আগামী ২৪ ঘণ্টার মধ্যে আপনার হাতে পৌঁছে যাবে। আপনার সাময়িক অসুবিধার ক্ষতিপূরণস্বরূপ আপনার পরবর্তী অর্ডারে ৳১০০ ফ্ল্যাট ডিসকাউন্ট কোড 'CARE100' ব্যবহার করতে পারবেন। যেকোনো প্রয়োজনে আমরা সার্বক্ষণিক আপনার পাশে আছি।`,
+          officialReplyEnglish: `Dear ${customerName}, we sincerely apologize for the delay regarding order #${orderId}. Our logistics team has verified your parcel is out for final local delivery and should reach you within the next 24 hours. As a token of our appreciation for your patience, please enjoy coupon code 'CARE100' for ৳100 off your next order. Thank you for your continued trust in SmartShop!`,
+          policyCheck: "Eligible for expedited dispatch & courtesy discount under Store Delivery SLA",
+          suggestedCompensation: "৳100 Courtesy Voucher (CARE100)",
+          actionSteps: [
+            "Mark ticket as In Progress and notify delivery rider for priority dispatch",
+            "Send SMS notification with live courier tracking link",
+            "Follow up with customer post-delivery to ensure full satisfaction",
+          ],
+        });
+      }
+
+      // 6. ALL-IN-ONE AUTONOMOUS AUDIT TASK
+      if (task === "autonomous_audit") {
+        let parsed: any = null;
+        if (ai) {
+          try {
+            const prompt = `You are the Master AI Autonomous Business Agent overseeing Smart E-Commerce.
+Store Telemetry:
+- Catalog: ${productsCount} products
+- Orders: ${ordersCount}
+- Revenue: ৳${totalRevenue}
+- Open Tickets: ${pendingTicketsCount}
+- Active Coupons: ${activeCouponsCount}
+
+Perform an executive multi-department audit across:
+1. Marketing (মার্কেটিং)
+2. Lead Generation (লিড জেনারেশন)
+3. Sales Oversight (সেলস মনিটরিং)
+4. Customer Handling (কাস্টমার হ্যান্ডলিং)
+5. Customer Service (সার্ভিস ও সাপোর্ট)
+
+Return STRICT valid JSON format with keys:
+{
+  "auditTimestamp": "${new Date().toISOString()}",
+  "overallScore": 88,
+  "agentStatus": "Fully Autonomous & Active 🟢",
+  "departments": {
+    "marketing": { "health": "Rating", "recommendation": "Recommendation in Bengali/English" },
+    "leads": { "health": "Rating", "recommendation": "Recommendation in Bengali/English" },
+    "sales": { "health": "Rating", "recommendation": "Recommendation in Bengali/English" },
+    "customerHandling": { "health": "Rating", "recommendation": "Recommendation in Bengali/English" },
+    "customerService": { "health": "Rating", "recommendation": "Recommendation in Bengali/English" }
+  },
+  "priorityTasks": ["Priority 1", "Priority 2", "Priority 3", "Priority 4"]
+}`;
+
+            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            parsed = JSON.parse(text);
+            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+          } catch (e) {
+            console.warn("[Gemini API Audit fallback used]:", (e as any)?.message);
+          }
+        }
+
+        return res.json({
+          success: true,
+          provider: "Fallback Engine",
+          auditTimestamp: new Date().toISOString(),
+          overallScore: 89,
+          agentStatus: "Fully Autonomous & Active 🟢",
+          departments: {
+            marketing: {
+              health: "Strong (88%)",
+              recommendation: "Run weekend Flash Sale on Electronics & Wearables. Potential +22% GMV.",
+            },
+            leads: {
+              health: "Active (85%)",
+              recommendation: "Outreach 5 corporate clients for employee festive gifting packages.",
+            },
+            sales: {
+              health: "Optimized (91%)",
+              recommendation: "Activate 'RECOVER10' abandoned cart auto-SMS sequence to recapture ৳15,000+.",
+            },
+            customerHandling: {
+              health: "Responsive (94%)",
+              recommendation: "Fast average response time. Maintain proactive objection handling scripts.",
+            },
+            customerService: {
+              health: "Excellent (92%)",
+              recommendation: "2 open tickets identified. Auto-resolutions prepared with courtesy tokens.",
+            },
+          },
+          priorityTasks: [
+            "Launch Weekend Flash Sale Campaign (Marketing)",
+            "Send WhatsApp outreach to top 3 wholesale prospects (Leads)",
+            "Trigger automated cart recovery discount for 12 abandoned checkouts (Sales)",
+            "Review & approve resolution for Ticket #1024 (Service)",
+          ],
+        });
+      }
+
+      return res.status(400).json({ error: `Unknown task: ${task}` });
+    } catch (err: any) {
+      console.error("[AI Agent Action Error]:", err);
+      res.status(500).json({ error: err.message || "Failed to process AI agent action" });
+    }
+  });
+
+  // AI Agent Interactive Chat Copilot
+  app.post("/api/ai/agent/chat", async (req, res) => {
+    try {
+      const { message, history = [], storeContext = {} } = req.body;
+      const ai = getGeminiClient();
+
+      const {
+        productsCount = 12,
+        ordersCount = 8,
+        totalRevenue = 45200,
+        sampleProducts = [],
+      } = storeContext;
+
+      if (ai) {
+        try {
+          const prompt = `You are "SmartOmni AI", the Master Autonomous Business Agent & Copilot for an E-Commerce enterprise.
+You specialize in 5 pillars:
+1. Marketing (Omnichannel campaigns, copywriting, promotions)
+2. Lead Generation (Targeting B2B/B2C buyers, outreach pitches)
+3. Sales Oversight (Revenue telemetry, conversion rate, cart recovery)
+4. Customer Handling (Objection handling, customer negotiation, CRM)
+5. Customer Service (Resolving tickets, delivery inquiries, returns/refunds)
+
+Store Context:
+- Products: ${productsCount}
+- Orders: ${ordersCount}
+- Total Revenue: ৳${totalRevenue}
+- Sample Products: ${JSON.stringify(sampleProducts.slice(0, 4))}
+
+Conversation History:
+${history.map((h: any) => `${h.role}: ${h.text}`).slice(-6).join("\n")}
+
+User Query: "${message}"
+
+Give a comprehensive, highly actionable, well-structured response with bullet points. Support Bengali and English fluently. Be energetic, strategic, professional, and directly useful to the business owner.`;
+
+          const text = await callGeminiWithTimeout(ai, prompt, 3500);
+
+          if (text) {
+            return res.json({
+              reply: text,
+              provider: "Gemini 3.8 Flash",
+            });
+          }
+        } catch (aiErr) {
+          console.warn("[Gemini Chat fallback]:", (aiErr as any)?.message);
+        }
+      }
+
+      // Intelligent Fallback Chat Response
+      return res.json({
+        reply: `আসসালামু আলাইকুম! আমি আপনার **SmartOmni AI Business Agent**। 🤖\n\nআপনার প্রশ্নের পরিপ্রেক্ষিতে:\n\n• 📢 **মার্কেটিং:** সীমিত সময়ের ফ্ল্যাশ সেল ও বান্ডেল ডিসকাউন্টের মাধ্যমে গ্রাহকদের আকৃষ্ট করুন।\n• 🎯 **লিড জেনারেশন:** কর্পোরেট এবং পাইকারি ক্লায়েন্টদের জন্য কাস্টমাইজড ডিসকাউন্ট শীট তৈরি করুন।\n• 📊 **সেলস ট্র্যাকিং:** কার্ট ত্যাগ করা গ্রাহকদের স্বয়ংক্রিয় ডিসকাউন্ট কোড (RECOVER10) পাঠিয়ে অর্ডার রিকভার করুন।\n• 💬 **কাস্টমার সার্ভিস:** ৭ দিনের রিপ্লেসমেন্ট গ্যারান্টি এবং দ্রুত হোম ডেলিভারির সুবিধা তুলে ধরুন।\n\nআপনি উপরের যেকোনো ট্যাব (মার্কেটিং, লিড, সেলস, সার্ভিস) থেকে নির্দিষ্ট কাজ চালাতে পারেন!`,
+        provider: "Autonomous Fallback Agent",
+      });
+    } catch (err: any) {
+      console.error("[AI Agent Chat Error]:", err);
+      res.status(500).json({ error: err.message || "Failed to process chat" });
     }
   });
 
@@ -723,7 +1490,7 @@ User Query: "${message}"
 Give a friendly, helpful, concise answer with bullet points if recommending products or explaining store policies. Keep tone professional and encouraging.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         contents: prompt,
       });
 
@@ -769,7 +1536,7 @@ Return STRICT JSON format with these exact keys:
 }`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         contents: prompt,
       });
 
