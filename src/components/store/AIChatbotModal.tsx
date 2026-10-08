@@ -57,7 +57,7 @@ export const AIChatbotModal: React.FC<AIChatbotModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white rounded-3xl shadow-2xl border border-indigo-200 overflow-hidden flex flex-col h-[480px]">
+    <div className="fixed inset-x-3 bottom-20 sm:bottom-6 sm:right-6 sm:left-auto sm:max-w-sm z-50 bg-white rounded-3xl shadow-2xl border border-indigo-200 overflow-hidden flex flex-col h-[75vh] sm:h-[480px]">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">

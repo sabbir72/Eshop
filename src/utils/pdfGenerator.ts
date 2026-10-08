@@ -12,175 +12,196 @@ export function generateInvoicePDF(order: Order, currencySymbol: string = "৳")
 
   // Premium Header Banner (Deep Slate Navy)
   doc.setFillColor(15, 23, 42); // Slate-900
-  doc.rect(0, 0, 210, 38, "F");
+  doc.rect(0, 0, 210, 36, "F");
 
   // Top Accent Line (Royal Blue)
   doc.setFillColor(37, 99, 235);
   doc.rect(0, 0, 210, 3, "F");
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("SMART E-COMMERCE", 15, 18);
+  doc.text("SMART E-COMMERCE", 15, 17);
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("Official Invoice & Receipt | চালান ও রসিদ", 15, 25);
-  doc.text("Level 12, Corporate Tower, Banani, Dhaka-1213 | BIN: 001928374-0101", 15, 31);
-
-  // Document Metadata (Right aligned)
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text(`INVOICE #: ${order.orderNumber}`, 135, 16);
-  
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
-  doc.text(`Date: ${order.createdAt}`, 135, 22);
-  doc.text(`Status: ${order.orderStatus.toUpperCase()}`, 135, 27);
-  doc.text(`Payment: ${order.paymentMethod} (${order.paymentStatus})`, 135, 32);
+  doc.setTextColor(203, 213, 225);
+  doc.text("Official Invoice & Cash Memo | Customer Tax Invoice", 15, 23.5);
+  doc.text("Level 12, Corporate Tower, Banani, Dhaka-1213 | BIN: 001928374-0101", 15, 29.5);
+
+  // Document Metadata (Right aligned)
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(`INVOICE #: ${order.orderNumber}`, 135, 15);
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(203, 213, 225);
+  doc.text(`Date: ${order.createdAt}`, 135, 21);
+  doc.text(`Status: ${order.orderStatus.toUpperCase()}`, 135, 26);
+  doc.text(`Payment: ${order.paymentMethod} (${order.paymentStatus})`, 135, 31);
 
   // Customer & Shipping Info Grid
-  let y = 48;
+  const cardY = 44;
+  const cardHeight = 34;
 
   // Customer Box
   doc.setFillColor(248, 250, 252); // Slate-50
   doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(15, y, 88, 38, 2, 2, "FD");
+  doc.roundedRect(15, cardY, 88, cardHeight, 2, 2, "FD");
 
   doc.setTextColor(15, 23, 42);
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
-  doc.text("BILLED TO (CUSTOMER):", 19, y + 7);
+  doc.text("BILLED TO (CUSTOMER):", 19, cardY + 6.5);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.text(`Name: ${order.customerName}`, 19, y + 14);
-  doc.text(`Phone: ${order.customerPhone}`, 19, y + 20);
-  doc.text(`Email: ${order.customerEmail}`, 19, y + 26);
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  doc.text(`Name: ${order.customerName}`, 19, cardY + 13);
+  doc.text(`Phone: ${order.customerPhone}`, 19, cardY + 19);
+  doc.text(`Email: ${order.customerEmail}`, 19, cardY + 25);
 
   // Shipping Box
-  doc.roundedRect(107, y, 88, 38, 2, 2, "FD");
+  doc.setFillColor(248, 250, 252); // Slate-50
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(107, cardY, 88, cardHeight, 2, 2, "FD");
 
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("DELIVERY ADDRESS:", 111, y + 7);
+  doc.text("DELIVERY ADDRESS:", 111, cardY + 6.5);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
   const fullAddress = `${order.shippingAddress.street}, ${order.shippingAddress.city} ${order.shippingAddress.postalCode}`;
-  doc.text(`Address: ${fullAddress.substring(0, 38)}`, 111, y + 14);
-  if (fullAddress.length > 38) {
-    doc.text(fullAddress.substring(38, 76), 111, y + 19);
+  doc.text(`Address: ${fullAddress.substring(0, 36)}`, 111, cardY + 13);
+  if (fullAddress.length > 36) {
+    doc.text(fullAddress.substring(36, 72), 111, cardY + 18);
   }
-  doc.text(`Tracking #: ${order.trackingNumber || order.orderNumber}`, 111, y + 26);
-  doc.text(`Country: Bangladesh`, 111, y + 32);
-
-  y += 46;
+  doc.text(`Tracking #: ${order.trackingNumber || order.orderNumber}`, 111, cardY + 25);
 
   // Items Table Header
+  const tableHeaderY = cardY + cardHeight + 8; // 44 + 34 + 8 = 86
+  const headerHeight = 9;
+
   doc.setFillColor(15, 23, 42);
-  doc.rect(15, y, 180, 8, "F");
+  doc.rect(15, tableHeaderY, 180, headerHeight, "F");
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
-  doc.text("Item / Description", 19, y + 5.5);
-  doc.text("Qty", 115, y + 5.5);
-  doc.text("Unit Price", 140, y + 5.5);
-  doc.text("Total Amount", 170, y + 5.5);
+  doc.text("Item / Description", 19, tableHeaderY + 6.2);
+  doc.text("Qty", 115, tableHeaderY + 6.2);
+  doc.text("Unit Price", 142, tableHeaderY + 6.2);
+  doc.text("Total Amount", 170, tableHeaderY + 6.2);
 
-  y += 10;
-
-  // Table Body Rows
-  doc.setTextColor(15, 23, 42);
-  doc.setFont("helvetica", "normal");
+  // Table Body Rows (Strict non-overlapping row-by-row layout)
+  let currentY = tableHeaderY + headerHeight;
 
   order.items.forEach((item, index) => {
-    if (y > 250) {
+    const rowHeight = item.variantSummary ? 14 : 9.5;
+
+    if (currentY + rowHeight > 250) {
       doc.addPage();
-      y = 20;
+      currentY = 20;
     }
 
-    // Alternating background
+    // Row Background (Zebra Striping)
     if (index % 2 === 1) {
       doc.setFillColor(248, 250, 252);
-      doc.rect(15, y - 4, 180, item.variantSummary ? 11 : 8, "F");
+    } else {
+      doc.setFillColor(255, 255, 255);
     }
+    doc.rect(15, currentY, 180, rowHeight, "F");
 
+    // Row subtle divider line
+    doc.setDrawColor(241, 245, 249);
+    doc.line(15, currentY + rowHeight, 195, currentY + rowHeight);
+
+    // Text Baseline: placed comfortably inside row (with ~6mm top padding)
+    const textBaseline = currentY + 6.2;
+
+    doc.setTextColor(15, 23, 42);
     doc.setFont("helvetica", "bold");
-    doc.text(item.productName.substring(0, 48), 19, y);
-    
+    doc.setFontSize(8.5);
+    doc.text(item.productName.substring(0, 48), 19, textBaseline);
+
     if (item.variantSummary) {
       doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139);
       doc.setFont("helvetica", "normal");
-      doc.text(`Variant: ${item.variantSummary}`, 19, y + 4);
+      doc.text(`Variant: ${item.variantSummary}`, 19, textBaseline + 4.8);
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
     }
 
     doc.setFont("helvetica", "normal");
-    doc.text(`${item.quantity}`, 117, y);
-    doc.text(formatPdfCurrency(item.price, currencySymbol), 140, y);
+    doc.text(`${item.quantity}`, 117, textBaseline);
+    doc.text(formatPdfCurrency(item.price, currencySymbol), 142, textBaseline);
     doc.setFont("helvetica", "bold");
-    doc.text(formatPdfCurrency(item.total, currencySymbol), 170, y);
+    doc.text(formatPdfCurrency(item.total, currencySymbol), 170, textBaseline);
 
-    y += item.variantSummary ? 12 : 8;
+    currentY += rowHeight;
   });
 
-  // Table Bottom Divider
+  // Table Bottom Closing Line
   doc.setDrawColor(203, 213, 225);
-  doc.line(15, y, 195, y);
-  y += 6;
+  doc.line(15, currentY, 195, currentY);
 
   // Summary & Breakdown Section
+  let sumY = currentY + 7;
+
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(51, 65, 85);
 
-  doc.text("Subtotal:", 135, y);
-  doc.text(formatPdfCurrency(order.subtotal, currencySymbol), 170, y);
-  y += 5.5;
+  doc.text("Subtotal:", 135, sumY);
+  doc.text(formatPdfCurrency(order.subtotal, currencySymbol), 170, sumY);
+  sumY += 5.5;
 
   if (order.discount > 0) {
     doc.setTextColor(16, 185, 129); // Green
-    doc.text(`Discount (${order.couponCode || "Promo"}):`, 135, y);
-    doc.text(`-${formatPdfCurrency(order.discount, currencySymbol)}`, 170, y);
-    doc.setTextColor(15, 23, 42);
-    y += 5.5;
+    doc.text(`Discount (${order.couponCode || "Promo"}):`, 135, sumY);
+    doc.text(`-${formatPdfCurrency(order.discount, currencySymbol)}`, 170, sumY);
+    doc.setTextColor(51, 65, 85);
+    sumY += 5.5;
   }
 
-  doc.text("Shipping Charge:", 135, y);
-  doc.text(formatPdfCurrency(order.shippingCharge, currencySymbol), 170, y);
-  y += 5.5;
+  doc.text("Shipping Charge:", 135, sumY);
+  doc.text(formatPdfCurrency(order.shippingCharge, currencySymbol), 170, sumY);
+  sumY += 5.5;
 
-  doc.text(`Tax / VAT (${order.tax ? "5%" : "0%"}):`, 135, y);
-  doc.text(formatPdfCurrency(order.tax, currencySymbol), 170, y);
-  y += 7;
+  doc.text(`Tax / VAT (${order.tax ? "5%" : "0%"}):`, 135, sumY);
+  doc.text(formatPdfCurrency(order.tax, currencySymbol), 170, sumY);
+  sumY += 6.5;
 
   // Grand Total Box
   doc.setFillColor(239, 246, 255); // Light Blue
   doc.setDrawColor(59, 130, 246);
-  doc.roundedRect(128, y - 4, 67, 10, 1, 1, "FD");
+  doc.roundedRect(128, sumY - 4, 67, 10, 1.5, 1.5, "FD");
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(29, 78, 216);
-  doc.text("Grand Total:", 132, y + 2);
-  doc.text(formatPdfCurrency(order.total, currencySymbol), 168, y + 2);
+  doc.text("Grand Total:", 132, sumY + 2.5);
+  doc.text(formatPdfCurrency(order.total, currencySymbol), 168, sumY + 2.5);
 
-  y += 22;
+  sumY += 20;
 
   // Signatures Section
-  if (y < 260) {
+  if (sumY < 265) {
     doc.setDrawColor(203, 213, 225);
-    doc.line(20, y, 70, y);
-    doc.line(140, y, 190, y);
+    doc.line(20, sumY, 75, sumY);
+    doc.line(135, sumY, 190, sumY);
 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text("Prepared / Customer Signature", 20, y + 4);
-    doc.text("Authorized Representative Seal", 140, y + 4);
+    doc.text("Prepared / Customer Signature", 20, sumY + 4.5);
+    doc.text("Authorized Representative Seal", 135, sumY + 4.5);
   }
 
   // Footer Note

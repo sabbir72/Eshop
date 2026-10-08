@@ -194,42 +194,92 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
     y += 28;
 
     // Table Header
-    doc.setFillColor(241, 245, 249);
-    doc.rect(15, y, 180, 8, "F");
-    doc.setFontSize(9);
+    const tableHeaderY = y;
+    const headerHeight = 9;
+    doc.setFillColor(15, 23, 42); // Slate-900
+    doc.rect(15, tableHeaderY, 180, headerHeight, "F");
+    doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
-    doc.text("Item / Description", 18, y + 6);
-    doc.text("Qty", 120, y + 6);
-    doc.text("Unit Price", 145, y + 6);
-    doc.text("Total", 175, y + 6);
+    doc.setTextColor(255, 255, 255);
+    doc.text("Item / Description", 18, tableHeaderY + 6.2);
+    doc.text("Qty", 118, tableHeaderY + 6.2);
+    doc.text("Unit Price", 142, tableHeaderY + 6.2);
+    doc.text("Total", 172, tableHeaderY + 6.2);
 
-    y += 12;
+    let currentItemY = tableHeaderY + headerHeight;
 
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(15, 23, 42);
 
     if (data.items) {
-      data.items.forEach((item) => {
-        if (y > 260) {
+      data.items.forEach((item, idx) => {
+        const rowHeight = item.sku ? 13 : 9.5;
+
+        if (currentItemY + rowHeight > 255) {
           doc.addPage();
-          y = 20;
+          currentItemY = 20;
         }
-        doc.text(item.name.substring(0, 45), 18, y);
-        doc.text(`${item.quantity}`, 122, y);
-        doc.text(`${currency}${formatNumber(item.unitPrice, 2)}`, 145, y);
-        doc.text(`${currency}${formatNumber(item.total, 2)}`, 175, y);
-        y += 8;
+
+        // Alternating row background
+        if (idx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+        } else {
+          doc.setFillColor(255, 255, 255);
+        }
+        doc.rect(15, currentItemY, 180, rowHeight, "F");
+
+        // Row subtle divider line
+        doc.setDrawColor(241, 245, 249);
+        doc.line(15, currentItemY + rowHeight, 195, currentItemY + rowHeight);
+
+        const rowBaseline = currentItemY + 6.2;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(item.name.substring(0, 46), 18, rowBaseline);
+
+        if (item.sku) {
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          doc.setFont("helvetica", "normal");
+          doc.text(`SKU: ${item.sku}`, 18, rowBaseline + 4.5);
+          doc.setFontSize(8.5);
+          doc.setTextColor(15, 23, 42);
+        }
+
+        doc.setFont("helvetica", "normal");
+        doc.text(`${item.quantity}`, 120, rowBaseline);
+        doc.text(`${currency}${formatNumber(item.unitPrice, 2)}`, 142, rowBaseline);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${currency}${formatNumber(item.total, 2)}`, 172, rowBaseline);
+
+        currentItemY += rowHeight;
       });
+      y = currentItemY;
     } else if (data.rawRows) {
-      data.rawRows.forEach((row) => {
-        if (y > 260) {
+      data.rawRows.forEach((row, idx) => {
+        const rowHeight = 8.5;
+        if (currentItemY + rowHeight > 255) {
           doc.addPage();
-          y = 20;
+          currentItemY = 20;
         }
-        row.forEach((cell, idx) => {
-          doc.text(String(cell).substring(0, 20), 18 + idx * 35, y);
+        if (idx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(15, currentItemY, 180, rowHeight, "F");
+        }
+        doc.setDrawColor(241, 245, 249);
+        doc.line(15, currentItemY + rowHeight, 195, currentItemY + rowHeight);
+
+        const rowBaseline = currentItemY + 5.8;
+        doc.setTextColor(15, 23, 42);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        row.forEach((cell, cIdx) => {
+          doc.text(String(cell).substring(0, 20), 18 + cIdx * 35, rowBaseline);
         });
-        y += 7;
+        currentItemY += rowHeight;
       });
+      y = currentItemY;
     }
 
     // Totals

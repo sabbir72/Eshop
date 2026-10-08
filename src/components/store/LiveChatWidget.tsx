@@ -57,19 +57,20 @@ export const LiveChatWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40">
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl flex items-center gap-2 font-bold text-xs transition transform hover:scale-105 group"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 sm:p-4 rounded-full shadow-2xl flex items-center gap-2 font-bold text-xs transition transform hover:scale-105 group border-2 border-white/20"
+          title="Customer Care Live Support"
         >
-          <Headphones className="w-6 h-6 animate-bounce" />
-          <span className="hidden group-hover:inline pr-1">Live Support</span>
+          <Headphones className="w-5 h-5 sm:w-6 sm:h-6" />
+          <span className="hidden sm:inline-block pr-1 text-xs">Live Support</span>
         </button>
       )}
 
       {isOpen && (
-        <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-80 sm:w-96 overflow-hidden flex flex-col h-[460px] animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-[calc(100vw-2rem)] sm:w-96 max-w-sm overflow-hidden flex flex-col h-[440px] max-h-[75vh] animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
           <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">

@@ -445,7 +445,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 relative">
+      <div className="bg-white w-full max-w-md max-h-[92vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl border border-slate-200 relative">
         {/* Modal Header */}
         <div className="bg-[#0F172A] text-white p-5 flex items-center justify-between border-b border-slate-800">
           <div>

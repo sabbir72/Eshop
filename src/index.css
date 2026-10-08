@@ -168,7 +168,7 @@
   /* Reset container backgrounds for crisp printing */
   .bg-slate-950,
   .bg-slate-900,
-  .bg-[#0F172A] {
+  [class*="bg-[#0F172A]"] {
     background-color: transparent !important;
     color: #000000 !important;
   }

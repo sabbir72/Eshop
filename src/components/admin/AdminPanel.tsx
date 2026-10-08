@@ -196,6 +196,15 @@ export const AdminPanel: React.FC = () => {
             </button>
           )}
 
+          <button
+            onClick={() => setMode("storefront")}
+            className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5"
+            title="Switch to Storefront"
+          >
+            <Store className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">Storefront</span>
+          </button>
+
           <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200 hidden sm:block">
             {activeRole}
           </div>

@@ -76,7 +76,7 @@ export const ProductGridCard: React.FC<{
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-500 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative"
+      className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-500 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative h-full min-w-0 w-full"
     >
       {/* Top Badges Bar */}
       <div className="relative bg-slate-50 aspect-square overflow-hidden flex items-center justify-center p-4">
@@ -147,8 +147,8 @@ export const ProductGridCard: React.FC<{
           )}
         </div>
 
-        {/* Floating Hover Action Overlay */}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-20">
+        {/* Action Overlay (Always visible on mobile touch, hover on desktop) */}
+        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 flex items-center justify-center gap-1 sm:gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 transform translate-y-0 sm:translate-y-2 sm:group-hover:translate-y-0 z-20">
           <button
             onClick={() => onToggleWishlist(product)}
             className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all active:scale-95 ${
@@ -190,10 +190,10 @@ export const ProductGridCard: React.FC<{
       </div>
 
       {/* Details & Info Section */}
-      <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-between">
+      <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-between min-w-0">
         <div className="space-y-1">
           {/* Category, Brand & SKU */}
-          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold gap-1">
             <span className="text-indigo-600 font-bold truncate">
               {product.brandName} • {product.categoryName}
             </span>
@@ -231,7 +231,7 @@ export const ProductGridCard: React.FC<{
         </div>
 
         {/* Pricing & CTA Buttons */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
+        <div className="pt-2 border-t border-slate-100 space-y-2 mt-auto">
           <div className="flex items-baseline justify-between">
             <div>
               <span className="text-lg font-black text-slate-900 font-mono">
@@ -248,11 +248,11 @@ export const ProductGridCard: React.FC<{
           </div>
 
           {/* Action Buttons Grid */}
-          <div className="flex items-center gap-1.5 pt-1">
+          <div className="flex items-center gap-2 pt-1.5 w-full">
             {isOutOfStock ? (
               <button
                 onClick={() => onNotifyMe(product)}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Bell className="w-3.5 h-3.5 text-amber-600" /> Notify Me
               </button>
@@ -260,17 +260,17 @@ export const ProductGridCard: React.FC<{
               <>
                 <button
                   onClick={() => onAddToCart(product)}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs py-2 px-2.5 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all"
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs py-2.5 px-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all whitespace-nowrap min-w-0"
                 >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Add to Cart</span>
+                  <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Add to Cart</span>
                 </button>
 
                 <button
                   onClick={() => onBuyNow(product)}
-                  className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs py-2 px-2.5 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all shrink-0"
+                  className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all whitespace-nowrap shrink-0"
                 >
-                  <Zap className="w-3.5 h-3.5" />
+                  <Zap className="w-3.5 h-3.5 shrink-0" />
                   <span>Buy Now</span>
                 </button>
               </>
@@ -743,13 +743,11 @@ export const ProductCatalogView: React.FC<ProductCatalogViewProps> = ({ onQuickV
             </div>
           ) : viewMode === "grid" ? (
             /* RESPONSIVE GRID LAYOUT
-               Desktop: 4–5 columns (xl:grid-cols-4 2xl:grid-cols-5)
-               Laptop: 4 columns (lg:grid-cols-4 or xl:grid-cols-4)
-               Tablet: 3 columns (md:grid-cols-3)
-               Mobile: 2 columns (min-[380px]:grid-cols-2)
-               Small Mobile: 1 column (grid-cols-1)
+               Desktop: 3–4 spacious columns (xl:grid-cols-3 2xl:grid-cols-4)
+               Laptop / Tablet: 2 columns (min-[420px]:grid-cols-2 lg:grid-cols-2)
+               Mobile: 1–2 columns (grid-cols-1 min-[420px]:grid-cols-2)
             */
-            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-5">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5">
               {paginatedProducts.map((p) => (
                 <ProductGridCard
                   key={p.id}

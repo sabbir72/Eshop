@@ -1,9 +1,9 @@
 {
-  "apiKey": "AIzaSyAw9GBH348vj70Z9sMurzRuDzCSb9g0HbI",
-  "authDomain": "smartshop-a2d37.firebaseapp.com",
-  "projectId": "smartshop-a2d37",
-  "storageBucket": "smartshop-a2d37.firebasestorage.app",
-  "messagingSenderId": "444309318646",
-  "appId": "1:444309318646:web:05bdc705e69890907f75d7",
+  "apiKey": "AIzaSyMockKeyForAppletEnvironment",
+  "authDomain": "smartshop-preview.firebaseapp.com",
+  "projectId": "smartshop-preview",
+  "storageBucket": "smartshop-preview.appspot.com",
+  "messagingSenderId": "100000000000",
+  "appId": "1:100000000000:web:abcdef123456",
   "firestoreDatabaseId": "(default)"
 }

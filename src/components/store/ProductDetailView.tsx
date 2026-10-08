@@ -52,11 +52,6 @@ export const ProductDetailView: React.FC = () => {
   const [newReviewRating, setNewReviewRating] = useState<number>(5);
   const [newReviewComment, setNewReviewComment] = useState<string>("");
 
-  // AI Assistant Query state
-  const [aiQuestion, setAiQuestion] = useState("");
-  const [aiAnswer, setAiAnswer] = useState("");
-  const [loadingAi, setLoadingAi] = useState(false);
-
   if (!p) {
     return (
       <div className="py-12 text-center space-y-4">
@@ -80,35 +75,6 @@ export const ProductDetailView: React.FC = () => {
   const currentStock = activeVariant?.stock ?? p.totalStock;
 
   const productReviews = reviews.filter((r) => r.productId === p.id && r.status === "Approved");
-
-  const handleAskAI = async () => {
-    if (!aiQuestion.trim()) return;
-    setLoadingAi(true);
-    setAiAnswer("");
-
-    try {
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: aiQuestion,
-          context: {
-            productName: p.name,
-            sku: p.sku,
-            specifications: p.specifications,
-            price: currentPrice,
-            warranty: p.warranty,
-          },
-        }),
-      });
-      const data = await res.json();
-      setAiAnswer(data.reply || "I am glad to assist with this product!");
-    } catch (e) {
-      setAiAnswer("This product features official brand warranty and high performance specifications.");
-    } finally {
-      setLoadingAi(false);
-    }
-  };
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,43 +357,6 @@ export const ProductDetailView: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Ask AI Product Assistant Box */}
-      <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-blue-900 text-white p-6 rounded-3xl shadow-xl space-y-4 border border-indigo-700/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-indigo-300 animate-pulse" />
-          </div>
-          <div>
-            <h3 className="font-bold text-base">Ask Gemini AI About {p.name}</h3>
-            <p className="text-xs text-indigo-200">Instant answers regarding specs, battery, compatibility, or warranty</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={aiQuestion}
-            onChange={(e) => setAiQuestion(e.target.value)}
-            placeholder={`e.g. Is this ${p.name} suitable for gaming or photo editing?`}
-            className="flex-1 bg-white/10 hover:bg-white/15 focus:bg-white text-white placeholder-slate-400 focus:text-slate-900 text-xs px-4 py-2.5 rounded-xl border border-white/20 focus:outline-none transition-all"
-          />
-          <button
-            onClick={handleAskAI}
-            disabled={loadingAi}
-            className="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-colors disabled:opacity-50"
-          >
-            {loadingAi ? "Thinking..." : "Ask AI"}
-          </button>
-        </div>
-
-        {aiAnswer && (
-          <div className="bg-white/10 border border-white/20 p-4 rounded-2xl text-xs text-indigo-100 leading-relaxed">
-            <strong className="text-amber-300 block mb-1">AI Assistant Response:</strong>
-            {aiAnswer}
-          </div>
-        )}
       </div>
 
       {/* Customer Reviews & Modal */}

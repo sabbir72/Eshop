@@ -280,7 +280,46 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
   const recommendedProducts = getUniqueProducts(products, products, 8);
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-6 sm:space-y-8 pb-16">
+      {/* Mobile / Tablet Quick Categories Carousel Bar */}
+      <div className="lg:hidden bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+            <Grid className="w-3.5 h-3.5 text-indigo-600" /> {t("all_categories", language)}
+          </span>
+          <button
+            onClick={() => setStoreView("categories")}
+            className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+          >
+            <span>{t("view_all_categories", language)}</span>
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1 px-0.5">
+          {categories.slice(0, 10).map((cat) => (
+            <button
+              key={`quick-mob-${cat.id}`}
+              onClick={() => {
+                setSelectedCategoryId(cat.id);
+                setStoreView("products");
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group w-16"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center p-2.5 group-hover:bg-indigo-50 group-hover:border-indigo-200 group-hover:scale-105 transition-all shadow-2xs">
+                {cat.image ? (
+                  <img src={cat.image} alt={cat.name} className="w-full h-full object-contain" />
+                ) : (
+                  getCategoryIcon(cat.name)
+                )}
+              </div>
+              <span className="text-[10px] font-bold text-slate-700 group-hover:text-indigo-600 text-center line-clamp-1 w-full">
+                {translateDynamic(cat.name, cat.name_bn, language)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 1. Hero Grid Section (Left Category Panel + Main Hero Banner + Supplier Promo Banner) */}
       <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-xs grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Category Navigation Panel */}
@@ -527,7 +566,7 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
         </div>
 
         {/* Right Product Items Row */}
-        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y lg:divide-y-0 divide-slate-100">
+        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 divide-x divide-y lg:divide-y-0 divide-slate-100">
           {dealProducts.map((p, idx) => {
             const hasDiscount = p.discountPrice && p.discountPrice < p.sellingPrice;
             const discountPercent = hasDiscount
@@ -541,17 +580,17 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
                   setSelectedProduct(p);
                   setStoreView("product-detail");
                 }}
-                className="p-4 flex flex-col items-center text-center space-y-3 hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                className="p-4 flex flex-col items-center justify-between text-center space-y-3 hover:bg-slate-50/80 transition-colors cursor-pointer group min-w-0"
               >
-                <div className="w-28 h-28 p-2 overflow-hidden flex items-center justify-center">
+                <div className="w-28 h-28 p-2 overflow-hidden flex items-center justify-center shrink-0">
                   <img
                     src={p.mainImage}
                     alt={p.name}
                     className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
                   />
                 </div>
-                <div className="space-y-1 w-full">
-                  <h4 className="text-xs font-bold text-slate-800 truncate group-hover:text-indigo-600 transition-colors">
+                <div className="space-y-1 w-full min-w-0">
+                  <h4 className="text-xs font-bold text-slate-800 truncate group-hover:text-indigo-600 transition-colors" title={p.name}>
                     {p.name}
                   </h4>
                   <span className="inline-block bg-rose-100 text-rose-700 text-[11px] font-black px-2.5 py-0.5 rounded-full">
@@ -592,7 +631,7 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
         </div>
 
         {/* Right 4x2 Grid (8 Products) */}
-        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-slate-100">
+        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-slate-100">
           {homeAndOutdoorProducts.map((p, idx) => (
             <div
               key={`home-${p.id}-${idx}`}
@@ -600,10 +639,10 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
                 setSelectedProduct(p);
                 setStoreView("product-detail");
               }}
-              className="p-4 flex flex-col justify-between hover:bg-slate-50 transition-colors cursor-pointer group space-y-2"
+              className="p-4 flex flex-col justify-between hover:bg-slate-50 transition-colors cursor-pointer group space-y-2 min-w-0"
             >
               <div>
-                <h4 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                <h4 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors" title={p.name}>
                   {p.name}
                 </h4>
                 <p className="text-[11px] text-slate-400 font-medium">
@@ -651,7 +690,7 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
         </div>
 
         {/* Right 4x2 Grid (8 Products) */}
-        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-slate-100">
+        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-slate-100">
           {electronicsProducts.map((p, idx) => (
             <div
               key={`elec-${p.id}-${idx}`}
@@ -659,10 +698,10 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
                 setSelectedProduct(p);
                 setStoreView("product-detail");
               }}
-              className="p-4 flex flex-col justify-between hover:bg-slate-50 transition-colors cursor-pointer group space-y-2"
+              className="p-4 flex flex-col justify-between hover:bg-slate-50 transition-colors cursor-pointer group space-y-2 min-w-0"
             >
               <div>
-                <h4 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                <h4 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors" title={p.name}>
                   {p.name}
                 </h4>
                 <p className="text-[11px] text-slate-400 font-medium">
@@ -768,7 +807,7 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
           </button>
         </div>
 
-        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
           {recommendedProducts.map((product, idx) => (
             <ProductCard
               key={`rec-${product.id}-${idx}`}
@@ -819,7 +858,7 @@ export const ProductCard: React.FC<{
   const isOutOfStock = product.totalStock <= 0;
 
   return (
-    <div className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-400 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+    <div className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-400 hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full min-w-0 w-full">
       <div className="relative bg-slate-50 p-4 aspect-square overflow-hidden flex items-center justify-center">
         {/* Badges Column */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
@@ -887,10 +926,10 @@ export const ProductCard: React.FC<{
         </div>
       </div>
 
-      <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+      <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-between min-w-0">
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span className="font-bold text-slate-900 font-mono text-sm">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span className="font-black text-slate-900 font-mono text-base">
               {currencySymbol}{displayPrice.toLocaleString()}
               {hasDiscount && (
                 <span className="text-xs text-slate-400 line-through font-normal ml-1.5 font-mono">
@@ -900,12 +939,12 @@ export const ProductCard: React.FC<{
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-amber-500 text-[11px] font-bold">
+          <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`w-3 h-3 ${
+                  className={`w-3.5 h-3.5 ${
                     i < Math.floor(product.rating)
                       ? "fill-amber-400 text-amber-400"
                       : "fill-slate-200 text-slate-200"
@@ -913,35 +952,36 @@ export const ProductCard: React.FC<{
                 />
               ))}
             </div>
-            <span className="text-slate-600 font-medium">({product.reviewsCount})</span>
+            <span className="text-slate-600 font-medium text-[11px]">({product.reviewsCount})</span>
           </div>
 
           <h3
             onClick={() => onSelectProduct(product)}
-            className="font-semibold text-slate-800 text-xs line-clamp-2 hover:text-indigo-600 transition-colors cursor-pointer leading-snug"
+            className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-2 hover:text-indigo-600 transition-colors cursor-pointer leading-snug"
+            title={product.name}
           >
             {product.name}
           </h3>
         </div>
 
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <span className="text-[10px] text-slate-400 font-medium truncate">
+        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 mt-auto">
+          <span className="text-xs text-slate-400 font-medium truncate max-w-[45%]" title={product.brandName}>
             {product.brandName}
           </span>
 
           {isOutOfStock ? (
             <button
               disabled
-              className="bg-slate-100 text-slate-400 font-bold text-[11px] px-3 py-1.5 rounded-lg cursor-not-allowed"
+              className="bg-slate-100 text-slate-400 font-bold text-xs px-3 py-1.5 rounded-lg cursor-not-allowed shrink-0"
             >
               Out of Stock
             </button>
           ) : (
             <button
               onClick={() => onAddToCart(product)}
-              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs transition-all shrink-0"
             >
-              <ShoppingBag className="w-3 h-3" />
+              <ShoppingBag className="w-3.5 h-3.5" />
               <span>Add to Cart</span>
             </button>
           )}

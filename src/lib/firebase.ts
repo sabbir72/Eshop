@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -12,29 +12,20 @@ import {
 import { getFirestore, setLogLevel } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
 
-// Silence unnecessary Firestore connection warning logs in console
 try {
   setLogLevel("silent");
 } catch (_e) {
   // Ignore
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(
   app,
-  (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId
+  (firebaseConfig as { firestoreDatabaseId?: string })?.firestoreDatabaseId || "(default)"
 );
-
-// Initialize Firebase Authentication
 export const auth = getAuth(app);
-
-// Google Authentication Provider
 export const googleProvider = new GoogleAuthProvider();
 
-// Export Firebase Authentication methods
 export {
   signInWithPopup,
   signOut,
@@ -44,7 +35,6 @@ export {
   onAuthStateChanged,
 };
 
-// Firestore operation types
 export enum OperationType {
   CREATE = "create",
   UPDATE = "update",
@@ -54,7 +44,6 @@ export enum OperationType {
   WRITE = "write",
 }
 
-// Firestore error information
 export interface FirestoreErrorInfo {
   error: string;
   operationType: OperationType;
@@ -72,7 +61,6 @@ export interface FirestoreErrorInfo {
   };
 }
 
-// Handle Firestore errors
 export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
@@ -80,7 +68,6 @@ export function handleFirestoreError(
 ) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
-
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -93,20 +80,13 @@ export function handleFirestoreError(
           email: provider.email,
         })) || [],
     },
-
     operationType,
     path,
   };
-
   console.error("Firestore Error: ", JSON.stringify(errInfo));
-
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test Firestore connection
 export async function testFirestoreConnection() {
-  // SmartShop primary database is PostgreSQL (Supabase) via Prisma.
-  // Firestore operates in seamless offline/cached mode
-  // without forcing blocking pings.
   return true;
 }
