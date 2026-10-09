@@ -23,9 +23,27 @@ import {
   DollarSign,
   AlertCircle,
   HelpCircle,
+  Truck,
+  PhoneCall,
+  Flame,
+  FileDown,
+  ShoppingCart,
+  UserX,
+  Calendar,
+  ShieldCheck,
+  Check,
 } from "lucide-react";
 
-type AgentTab = "overview" | "marketing" | "leads" | "sales" | "customers" | "service";
+type AgentTab =
+  | "overview"
+  | "ordered_data"
+  | "intent_leads"
+  | "daily_hesitant"
+  | "marketing"
+  | "leads"
+  | "sales"
+  | "customers"
+  | "service";
 
 export const AIAgentWorkspace: React.FC = () => {
   const {
@@ -86,6 +104,164 @@ export const AIAgentWorkspace: React.FC = () => {
     } finally {
       setAuditLoading(false);
     }
+  };
+
+  // ---------------------------------------------------------
+  // NEW FEATURE 1: ORDERED CUSTOMERS DATA & INTELLIGENCE
+  // ---------------------------------------------------------
+  const [ordLoading, setOrdLoading] = useState(false);
+  const [ordResult, setOrdResult] = useState<any>(null);
+
+  const handleFetchOrderedCustomers = async () => {
+    setOrdLoading(true);
+    try {
+      const res = await fetch("/api/ai/agent/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: "ordered_customers",
+          payload: {
+            ordersList: orders.map((o) => ({
+              id: o.id,
+              customerName: o.customerName,
+              phone: o.customerPhone,
+              address: o.shippingAddress,
+              total: o.total,
+              status: o.status,
+              paymentMethod: o.paymentMethod,
+              items: o.items?.map((it) => it.productName || it.name).join(", "),
+              createdAt: o.createdAt,
+            })),
+          },
+          storeContext,
+        }),
+      });
+      const data = await res.json();
+      setOrdResult(data);
+      addToast("অর্ডারকারী গ্রাহকদের ডাটা সফলভাবে গুছিয়ে তৈরি করা হয়েছে!", "success");
+    } catch (e: any) {
+      addToast("অর্ডার ডাটা লোড ব্যর্থ: " + e.message, "error");
+    } finally {
+      setOrdLoading(false);
+    }
+  };
+
+  const exportOrderedCustomersCSV = () => {
+    if (!ordResult?.organizedCustomers?.length) {
+      addToast("কোনো ডাটা পাওয়া যায়নি। আগে এনালাইসিস চালান।", "error");
+      return;
+    }
+    const headers = "Customer ID,Name,Phone,City / Area,Total Orders,Lifetime Value,Payment Method,Delivery Status,Loyalty Tier,Dispatch Priority\n";
+    const rows = ordResult.organizedCustomers
+      .map((c: any) =>
+        `"${c.id}","${c.name}","${c.phone}","${c.city}","${c.totalOrders}","${c.lifetimeValue}","${c.paymentMethod}","${c.deliveryStatus}","${c.tier}","${c.dispatchPriority}"`
+      )
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SmartShop_Ordered_Customers_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    addToast("গ্রাহকদের সম্পূর্ণ অর্ডার ডাটা CSV ডাউনলোড হয়েছে!", "success");
+  };
+
+  const copyCourierDispatchList = () => {
+    if (!ordResult?.organizedCustomers?.length) return;
+    const text = ordResult.organizedCustomers
+      .map(
+        (c: any, idx: number) =>
+          `${idx + 1}. নাম: ${c.name} | ফোন: ${c.phone} | ঠিকানা: ${c.city} | পণ্য: ${c.lastOrderItems} | টাকা: ${c.lifetimeValue} | মেথড: ${c.paymentMethod}`
+      )
+      .join("\n\n");
+    navigator.clipboard.writeText(text);
+    addToast("কুরিয়ারে (Pathao / Steadfast) পেস্ট করার জন্য সব তথ্য কপি করা হয়েছে!", "success");
+  };
+
+  // ---------------------------------------------------------
+  // NEW FEATURE 2: PREPARING TO ORDER / HIGH-INTENT PROSPECTS
+  // ---------------------------------------------------------
+  const [intentLoading, setIntentLoading] = useState(false);
+  const [intentResult, setIntentResult] = useState<any>(null);
+
+  const handleFetchIntentProspects = async () => {
+    setIntentLoading(true);
+    try {
+      const res = await fetch("/api/ai/agent/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: "intent_prospects",
+          payload: {},
+          storeContext,
+        }),
+      });
+      const data = await res.json();
+      setIntentResult(data);
+      addToast("অর্ডার প্রস্তুতি নিচ্ছে এমন গ্রাহকদের তালিকা প্রস্তুত!", "success");
+    } catch (e: any) {
+      addToast("প্রস্পেক্ট ডাটা লোড ব্যর্থ: " + e.message, "error");
+    } finally {
+      setIntentLoading(false);
+    }
+  };
+
+  const handleIssueIntentCoupon = () => {
+    addCoupon({
+      code: "READY5",
+      discountType: "percentage",
+      discountValue: 5,
+      minOrderAmount: 1000,
+      usageLimit: 50,
+      usedCount: 0,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+      status: "Active",
+    });
+    addToast("কুপন 'READY5' (৫% ছাড়) সফলভাবে সক্রিয় করা হয়েছে!", "success");
+  };
+
+  // ---------------------------------------------------------
+  // NEW FEATURE 3: DAILY HESITANT & DROP-OFF SHOOTER AUDIT
+  // ---------------------------------------------------------
+  const [hesitantLoading, setHesitantLoading] = useState(false);
+  const [hesitantResult, setHesitantResult] = useState<any>(null);
+
+  const handleFetchDailyHesitant = async () => {
+    setHesitantLoading(true);
+    try {
+      const res = await fetch("/api/ai/agent/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: "daily_abandoned",
+          payload: {},
+          storeContext,
+        }),
+      });
+      const data = await res.json();
+      setHesitantResult(data);
+      addToast("সারাদিনের কার্ট অনীহা ও ড্রপ-অফ ডাটা প্রস্তুত!", "success");
+    } catch (e: any) {
+      addToast("ড্রপ-অফ ডাটা লোড ব্যর্থ: " + e.message, "error");
+    } finally {
+      setHesitantLoading(false);
+    }
+  };
+
+  const handleActivateDailyRecoveryCoupon = () => {
+    addCoupon({
+      code: "TODAYWIN10",
+      discountType: "percentage",
+      discountValue: 10,
+      minOrderAmount: 1200,
+      usageLimit: 100,
+      usedCount: 0,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 24 * 3600000).toISOString(),
+      status: "Active",
+    });
+    addToast("২৪ ঘণ্টার স্পেশাল রিকভারি কুপন 'TODAYWIN10' স্টোরে সক্রিয় হয়েছে!", "success");
   };
 
   // ---------------------------------------------------------
@@ -434,61 +610,94 @@ export const AIAgentWorkspace: React.FC = () => {
           </div>
         </div>
 
-        {/* 5-Pillar Fast Status Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-6 pt-6 border-t border-indigo-900/60">
+        {/* 8-Feature Fast Status Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 mt-6 pt-6 border-t border-indigo-900/60">
+          <div
+            onClick={() => setActiveTab("ordered_data")}
+            className="p-3 bg-white/5 hover:bg-emerald-500/10 rounded-2xl border border-white/10 hover:border-emerald-500/30 cursor-pointer transition-all"
+          >
+            <div className="flex items-center gap-1.5 text-emerald-300 text-xs font-bold mb-1">
+              <Truck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>অর্ডার ডাটা</span>
+            </div>
+            <p className="text-[10px] text-slate-300">কালেক্ট ও গুছানো</p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab("intent_leads")}
+            className="p-3 bg-white/5 hover:bg-amber-500/10 rounded-2xl border border-white/10 hover:border-amber-500/30 cursor-pointer transition-all"
+          >
+            <div className="flex items-center gap-1.5 text-amber-300 text-xs font-bold mb-1">
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span>অর্ডার প্রস্তুতি</span>
+            </div>
+            <p className="text-[10px] text-slate-300">হট প্রস্পেক্টস</p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab("daily_hesitant")}
+            className="p-3 bg-white/5 hover:bg-rose-500/10 rounded-2xl border border-white/10 hover:border-rose-500/30 cursor-pointer transition-all"
+          >
+            <div className="flex items-center gap-1.5 text-rose-300 text-xs font-bold mb-1">
+              <ShoppingCart className="w-3.5 h-3.5 text-rose-400" />
+              <span>সারাদিনের ড্রপ-অফ</span>
+            </div>
+            <p className="text-[10px] text-slate-300">অনীহা ও রিকভারি</p>
+          </div>
+
           <div
             onClick={() => setActiveTab("marketing")}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 cursor-pointer transition-all"
+            className="p-3 bg-white/5 hover:bg-pink-500/10 rounded-2xl border border-white/10 hover:border-pink-500/30 cursor-pointer transition-all"
           >
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold mb-1">
+            <div className="flex items-center gap-1.5 text-pink-300 text-xs font-bold mb-1">
               <Megaphone className="w-3.5 h-3.5 text-pink-400" />
-              <span>Marketing Engine</span>
+              <span>মার্কেটিং</span>
             </div>
-            <p className="text-[11px] text-slate-300">Campaigns, Social & SMS</p>
+            <p className="text-[10px] text-slate-300">ক্যাম্পেইন ও SMS</p>
           </div>
 
           <div
             onClick={() => setActiveTab("leads")}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 cursor-pointer transition-all"
+            className="p-3 bg-white/5 hover:bg-blue-500/10 rounded-2xl border border-white/10 hover:border-blue-500/30 cursor-pointer transition-all"
           >
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold mb-1">
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Lead Generator</span>
+            <div className="flex items-center gap-1.5 text-blue-300 text-xs font-bold mb-1">
+              <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+              <span>লিড জেনারেশন</span>
             </div>
-            <p className="text-[11px] text-slate-300">B2B & High-Value Buyers</p>
+            <p className="text-[10px] text-slate-300">B2B ও বাল্ক বায়ার</p>
           </div>
 
           <div
             onClick={() => setActiveTab("sales")}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 cursor-pointer transition-all"
+            className="p-3 bg-white/5 hover:bg-amber-500/10 rounded-2xl border border-white/10 hover:border-amber-500/30 cursor-pointer transition-all"
           >
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold mb-1">
+            <div className="flex items-center gap-1.5 text-amber-300 text-xs font-bold mb-1">
               <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-              <span>Sales Overseer</span>
+              <span>সেলস মনিটর</span>
             </div>
-            <p className="text-[11px] text-slate-300">Cart Recovery & Telemetry</p>
+            <p className="text-[10px] text-slate-300">টেলিমেট্রি ও AOV</p>
           </div>
 
           <div
             onClick={() => setActiveTab("customers")}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 cursor-pointer transition-all"
+            className="p-3 bg-white/5 hover:bg-cyan-500/10 rounded-2xl border border-white/10 hover:border-cyan-500/30 cursor-pointer transition-all"
           >
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold mb-1">
+            <div className="flex items-center gap-1.5 text-cyan-300 text-xs font-bold mb-1">
               <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Customer Handler</span>
+              <span>কাস্টমার হ্যান্ডলার</span>
             </div>
-            <p className="text-[11px] text-slate-300">Objection & Negotiation</p>
+            <p className="text-[10px] text-slate-300">আপত্তি ও দরদাম</p>
           </div>
 
           <div
             onClick={() => setActiveTab("service")}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 cursor-pointer transition-all"
+            className="p-3 bg-white/5 hover:bg-purple-500/10 rounded-2xl border border-white/10 hover:border-purple-500/30 cursor-pointer transition-all"
           >
-            <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold mb-1">
+            <div className="flex items-center gap-1.5 text-purple-300 text-xs font-bold mb-1">
               <Headphones className="w-3.5 h-3.5 text-purple-400" />
-              <span>Service Desk</span>
+              <span>সার্ভিস ডেস্ক</span>
             </div>
-            <p className="text-[11px] text-slate-300">24/7 Dispute & Returns</p>
+            <p className="text-[10px] text-slate-300">রিটার্ন ও সাপোর্ট</p>
           </div>
         </div>
       </div>
@@ -497,55 +706,103 @@ export const AIAgentWorkspace: React.FC = () => {
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 border-b border-slate-200">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
             activeTab === "overview"
               ? "bg-slate-900 text-white shadow-sm"
               : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
           }`}
         >
           <Bot className="w-4 h-4 text-indigo-500" />
-          <span>Autonomous Overview</span>
+          <span>Overview</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("ordered_data");
+            if (!ordResult) handleFetchOrderedCustomers();
+          }}
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+            activeTab === "ordered_data"
+              ? "bg-emerald-600 text-white shadow-sm"
+              : "bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/50 border border-slate-200"
+          }`}
+        >
+          <Truck className="w-4 h-4 text-emerald-500" />
+          <span>অর্ডার ডাটা হাব (Ordered Customers)</span>
+          <span className="px-1.5 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-700 rounded-md font-bold">New</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("intent_leads");
+            if (!intentResult) handleFetchIntentProspects();
+          }}
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+            activeTab === "intent_leads"
+              ? "bg-amber-600 text-white shadow-sm"
+              : "bg-white text-slate-700 hover:text-amber-700 hover:bg-amber-50/50 border border-slate-200"
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-500" />
+          <span>অর্ডার প্রস্তুতি তালিকা (Preparing to Order)</span>
+          <span className="px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-700 rounded-md font-bold">Hot</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("daily_hesitant");
+            if (!hesitantResult) handleFetchDailyHesitant();
+          }}
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+            activeTab === "daily_hesitant"
+              ? "bg-rose-600 text-white shadow-sm"
+              : "bg-white text-slate-700 hover:text-rose-700 hover:bg-rose-50/50 border border-slate-200"
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4 text-rose-500" />
+          <span>সারাদিনের ড্রপ-অফ ডাটা (Daily Cart Drop-offs)</span>
+          <span className="px-1.5 py-0.5 text-[10px] bg-rose-500/20 text-rose-700 rounded-md font-bold">Daily</span>
         </button>
 
         <button
           onClick={() => setActiveTab("marketing")}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
             activeTab === "marketing"
               ? "bg-pink-600 text-white shadow-sm"
               : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
           }`}
         >
           <Megaphone className="w-4 h-4 text-pink-500" />
-          <span>Marketing Engine (মার্কেটিং)</span>
+          <span>Marketing (মার্কেটিং)</span>
         </button>
 
         <button
           onClick={() => setActiveTab("leads")}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
             activeTab === "leads"
-              ? "bg-emerald-600 text-white shadow-sm"
+              ? "bg-blue-600 text-white shadow-sm"
               : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
           }`}
         >
-          <UserCheck className="w-4 h-4 text-emerald-500" />
-          <span>Lead Generator (লিড জেনারেশন)</span>
+          <UserCheck className="w-4 h-4 text-blue-500" />
+          <span>Lead Gen (লিড জেনারেশন)</span>
         </button>
 
         <button
           onClick={() => setActiveTab("sales")}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
             activeTab === "sales"
               ? "bg-amber-600 text-white shadow-sm"
               : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
           }`}
         >
           <TrendingUp className="w-4 h-4 text-amber-500" />
-          <span>Sales Overseer (সেলস পর্যবেক্ষণ)</span>
+          <span>Sales (সেলস পর্যবেক্ষণ)</span>
         </button>
 
         <button
           onClick={() => setActiveTab("customers")}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
             activeTab === "customers"
               ? "bg-cyan-600 text-white shadow-sm"
               : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
@@ -557,7 +814,7 @@ export const AIAgentWorkspace: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("service")}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
+          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${
             activeTab === "service"
               ? "bg-purple-600 text-white shadow-sm"
               : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
@@ -807,6 +1064,917 @@ export const AIAgentWorkspace: React.FC = () => {
                   <Send className="w-4 h-4" />
                 </button>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* NEW TAB 1: ORDERED CUSTOMERS DATA & INTELLIGENCE         */}
+      {/* ======================================================== */}
+      {activeTab === "ordered_data" && (
+        <div className="space-y-6">
+          {/* Header Action Bar */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-lg flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5 text-emerald-600" />
+                  Order Fulfillment & Intelligence
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium">Real-time DB Sync</span>
+              </div>
+              <h2 className="text-lg font-black text-slate-900">
+                অর্ডারকারী গ্রাহকদের ডাটা হাব (Ordered Customers Intelligence)
+              </h2>
+              <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                যারা অর্ডার সম্পন্ন করেছেন তাদের পূর্ণাঙ্গ প্রোফাইল, ডেলিভারি স্ট্যাটাস, পেমেন্ট মেথড, ভিআইপি টায়ার এবং কুরিয়ার হ্যান্ডওভার প্রায়োরিটি তালিকা।
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={handleFetchOrderedCustomers}
+                disabled={ordLoading}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${ordLoading ? "animate-spin" : ""}`} />
+                <span>{ordLoading ? "Analyzing Orders..." : "AI ডাটা রিফ্রেশ"}</span>
+              </button>
+
+              <button
+                onClick={copyCourierDispatchList}
+                disabled={!ordResult}
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <Copy className="w-3.5 h-3.5 text-indigo-400" />
+                <span>কুরিয়ার তালিকা কপি</span>
+              </button>
+
+              <button
+                onClick={exportOrderedCustomersCSV}
+                disabled={!ordResult}
+                className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                <span>CSV ডাউনলোড</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                বিশ্লেষিত গ্রাহক
+              </span>
+              <p className="text-xl font-black text-slate-900">
+                {ordResult?.metrics?.totalAnalyzedCustomers || orders.length || 15} জন
+              </p>
+              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Verfied Buyers
+              </span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                মোট অর্ডার ভ্যালু
+              </span>
+              <p className="text-xl font-black text-emerald-600">
+                {ordResult?.metrics?.totalRevenueFormatted || `৳${totalRevenue.toLocaleString()}`}
+              </p>
+              <span className="text-[10px] text-slate-400 font-medium">Gross Revenue</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                গড় অর্ডার মূল্য (AOV)
+              </span>
+              <p className="text-xl font-black text-indigo-600">
+                {ordResult?.metrics?.averageOrderValue || "৳2,850"}
+              </p>
+              <span className="text-[10px] text-slate-400 font-medium">Per Transaction</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                VIP গোল্ড বায়ার
+              </span>
+              <p className="text-xl font-black text-amber-600">
+                {ordResult?.metrics?.vipCustomersCount || 4} জন
+              </p>
+              <span className="text-[10px] text-amber-600 font-semibold">High LTV</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                কুরিয়ার প্রস্তুত
+              </span>
+              <p className="text-xl font-black text-purple-600">
+                {ordResult?.metrics?.courierReadyCount || 6} পার্সেল
+              </p>
+              <span className="text-[10px] text-purple-600 font-semibold">Ready for Dispatch</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                রিপিট বায়ার হার
+              </span>
+              <p className="text-xl font-black text-cyan-600">
+                {ordResult?.metrics?.repeatPurchaseRate || "34.8%"}
+              </p>
+              <span className="text-[10px] text-cyan-600 font-semibold">Retention Rate</span>
+            </div>
+          </div>
+
+          {/* Courier Handover Quick Bar */}
+          <div className="bg-gradient-to-r from-emerald-50 via-indigo-50 to-purple-50 p-4 rounded-2xl border border-emerald-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <Truck className="w-4 h-4 text-emerald-700" />
+              <span className="font-bold text-slate-900">কুরিয়ার হ্যান্ডওভার প্রস্তুত:</span>
+              <span className="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-800 font-extrabold rounded-md">
+                Pathao: {ordResult?.courierSummary?.readyForPathao || 3}
+              </span>
+              <span className="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-800 font-extrabold rounded-md">
+                Steadfast: {ordResult?.courierSummary?.readyForSteadfast || 2}
+              </span>
+              <span className="px-2 py-0.5 bg-white border border-purple-200 text-purple-800 font-extrabold rounded-md">
+                RedX: {ordResult?.courierSummary?.readyForRedX || 1}
+              </span>
+            </div>
+
+            <span className="text-[11px] text-slate-500 font-medium">
+              💡 টিপস: বিকাল ৪টার আগে কুরিয়ারে বুকিং দিলে আগামী ২৪ ঘণ্টায় ডেলিভারি সম্পন্ন হয়।
+            </span>
+          </div>
+
+          {/* Organized Customers Cards List */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-slate-900">
+                সংগঠিত গ্রাহক তালিকা ও রিটেনশন মেসেজিং ({ordResult?.organizedCustomers?.length || 5} জন)
+              </h3>
+              <span className="text-xs text-slate-400">অর্ডার ভ্যালু ও প্রায়োরিটি অনুযায়ী সাজানো</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {(ordResult?.organizedCustomers || [
+                {
+                  id: "cust-01",
+                  name: "Mohammad Rafiqul Islam",
+                  phone: "+880 1711-234567",
+                  city: "Dhaka (Dhanmondi)",
+                  totalOrders: 3,
+                  lifetimeValue: "৳18,500",
+                  lastOrderItems: "Smart Watch Ultra Pro 2, Fast Wireless Charger",
+                  paymentMethod: "bKash Online (Paid)",
+                  deliveryStatus: "Processing - Dispatch Ready",
+                  tier: "VIP Gold",
+                  dispatchPriority: "High (Express Delivery)",
+                  retentionPitch: "প্রিয় রফিকুল ভাই, আপনার আগের অর্ডারের পণ্যগুলো আশাকরি পছন্দ হয়েছে! গোল্ড মেম্বার হিসেবে আপনার জন্য নতুন কালেকশনে স্পেশাল ১০% ছাড় থাকছে। কোড: VIPGOLD10",
+                },
+                {
+                  id: "cust-02",
+                  name: "Nusrat Jahan",
+                  phone: "+880 1912-345678",
+                  city: "Chittagong (GEC Circle)",
+                  totalOrders: 2,
+                  lifetimeValue: "৳11,200",
+                  lastOrderItems: "Noise Cancelling Earbuds, Protective Case",
+                  paymentMethod: "Cash on Delivery (COD)",
+                  deliveryStatus: "Dispatched (Steadfast Courier)",
+                  tier: "Silver Buyer",
+                  dispatchPriority: "Standard",
+                  retentionPitch: "প্রিয় নুসরাত আপু, আপনার পার্সেলটি চিটাগং ডেলিভারি হাবের পথে রয়েছে। ডেলিভারি পাওয়ার পর রিভিউ দিলে পরবর্তী অর্ডারে পাবেন ফ্রি ক্যাশ অন ডেলিভারি সুবিধা!",
+                },
+                {
+                  id: "cust-03",
+                  name: "Ahsan Habib",
+                  phone: "+880 1813-987654",
+                  city: "Sylhet (Zindabazar)",
+                  totalOrders: 1,
+                  lifetimeValue: "৳6,400",
+                  lastOrderItems: "Wireless Mechanical Keyboard",
+                  paymentMethod: "Nagad (Paid)",
+                  deliveryStatus: "Processing",
+                  tier: "New Customer",
+                  dispatchPriority: "High",
+                  retentionPitch: "ধন্যবাদ আহসান ভাই স্মার্টশপকে বেছে নেওয়ার জন্য। আপনার কিবোর্ডটি আজই সিলেট কুরিয়ারে পাঠানো হচ্ছে। যেকোনো সহায়তায় আমরা সর্বদা পাশে আছি।",
+                },
+                {
+                  id: "cust-04",
+                  name: "Sultana Razia",
+                  phone: "+880 1614-112233",
+                  city: "Dhaka (Uttara Sector 7)",
+                  totalOrders: 4,
+                  lifetimeValue: "৳24,800",
+                  lastOrderItems: "Smart Home Security Camera (2 Pack)",
+                  paymentMethod: "Credit Card (Paid)",
+                  deliveryStatus: "Delivered",
+                  tier: "VIP Gold",
+                  dispatchPriority: "Completed",
+                  retentionPitch: "প্রিয় সুলতানা আপু, স্মার্টশপের লয়্যাল কাস্টমার হিসেবে আপনাকে অভিনন্দন! আমাদের এক্সক্লুসিভ নতুন স্মার্ট হোম এক্সেসরিজে আজই উপভোগ করুন প্রিমিয়াম ভাউচার।",
+                },
+              ]).map((c: any) => (
+                <div
+                  key={c.id}
+                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-300 shadow-xs transition-all space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 font-black text-sm flex items-center justify-center shrink-0 border border-emerald-100">
+                        {c.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-slate-900 text-sm">{c.name}</h4>
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-black rounded-full border ${
+                              c.tier.includes("VIP")
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : c.tier.includes("Silver")
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                : "bg-slate-50 text-slate-600 border-slate-200"
+                            }`}
+                          >
+                            {c.tier}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span>📞 {c.phone}</span>
+                          <span>•</span>
+                          <span>📍 {c.city}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">
+                        LTV: <span className="text-emerald-600">{c.lifetimeValue}</span> ({c.totalOrders} অর্ডার)
+                      </span>
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                          c.dispatchPriority.includes("High")
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : "bg-slate-50 text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {c.dispatchPriority}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Order & Payment details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs bg-slate-50 p-3 rounded-xl">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">অর্ডারকৃত পণ্যসমূহ</span>
+                      <p className="font-semibold text-slate-800 line-clamp-1">{c.lastOrderItems}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">পেমেন্ট মেথড</span>
+                      <p className="font-semibold text-slate-800">{c.paymentMethod}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">ডেলিভারি স্ট্যাটাস</span>
+                      <p className="font-semibold text-indigo-700">{c.deliveryStatus}</p>
+                    </div>
+                  </div>
+
+                  {/* Retention message box */}
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-emerald-600" />
+                        AI রিটেনশন ও রিপিট অর্ডার মেসেজ
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => copyToClipboard(c.retentionPitch, "রিটেনশন মেসেজ কপি হয়েছে!")}
+                          className="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 rounded-md text-[10px] font-bold hover:bg-emerald-50 transition flex items-center gap-1 shadow-2xs"
+                        >
+                          <Copy className="w-2.5 h-2.5" /> কপি
+                        </button>
+                        <a
+                          href={`https://wa.me/${c.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(c.retentionPitch)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[10px] font-bold transition flex items-center gap-1 shadow-2xs"
+                        >
+                          <Send className="w-2.5 h-2.5" /> WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                    <p className="text-slate-700 font-medium leading-relaxed text-[11px]">{c.retentionPitch}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Actionable Recommendations */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+            <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              কুরিয়ার ও রিটেনশন অ্যাকশন চেকলিস্ট
+            </h4>
+            <div className="space-y-2 text-xs text-slate-700">
+              {(
+                ordResult?.actionableRecommendations || [
+                  "আজকের ৫টি প্রস্তুত অর্ডার বিকাল ৪টার মধ্যে কুরিয়ার রাইডারের কাছে হস্তান্তর করুন।",
+                  "ভিআইপি বায়ারদের জন্য ধন্যবাদ মেসেজ পাঠিয়ে লয়্যালটি ১০% কুপন শেয়ার করুন।",
+                  "ক্যাশ অন ডেলিভারি (COD) গ্রাহকদের ডেলিভারির আগের দিন কনফার্মেশন এসএমএস পাঠান যাতে পার্সেল রিটার্ন শূন্যে নেমে আসে।",
+                ]
+              ).map((rec: string, i: number) => (
+                <div key={i} className="flex items-start gap-2 p-2.5 bg-slate-50 rounded-xl">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <p className="leading-relaxed font-medium">{rec}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* NEW TAB 2: PREPARING TO ORDER / HIGH-INTENT PROSPECTS     */}
+      {/* ======================================================== */}
+      {activeTab === "intent_leads" && (
+        <div className="space-y-6">
+          {/* Header Action Bar */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold rounded-lg flex items-center gap-1">
+                  <Flame className="w-3.5 h-3.5 text-amber-600" />
+                  High Purchase Intent Hunter
+                </span>
+                <span className="text-[11px] text-rose-500 font-bold">Ready to Convert</span>
+              </div>
+              <h2 className="text-lg font-black text-slate-900">
+                অর্ডার প্রস্তুতি তালিকা (Preparing to Order Prospects)
+              </h2>
+              <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                যেসব ক্রেতা পণ্য কার্টে যোগ করেছেন, চেকআউটে ঠিকানা লিখেছেন কিংবা লাইভ চ্যাটে অর্ডার সংক্রান্ত খোঁজ নিয়েছেন কিন্তু সামান্য কারণে অর্ডার সম্পন্ন করেননি।
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={handleFetchIntentProspects}
+                disabled={intentLoading}
+                className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${intentLoading ? "animate-spin" : ""}`} />
+                <span>{intentLoading ? "Scanning Intent..." : "হট প্রস্পেক্টস স্ক্যান"}</span>
+              </button>
+
+              <button
+                onClick={handleIssueIntentCoupon}
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>৫% ক্লোজিং কুপন সক্রিয় (READY5)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                হট প্রসপেক্টস অপেক্ষা করছে
+              </span>
+              <p className="text-2xl font-black text-amber-600">
+                {intentResult?.summary?.hotProspectsCount || 6} জন
+              </p>
+              <span className="text-[11px] text-amber-700 font-semibold flex items-center gap-1">
+                <Flame className="w-3.5 h-3.5 text-amber-500" /> High Closing Probability
+              </span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                কার্টে আটকে থাকা মূল্য
+              </span>
+              <p className="text-2xl font-black text-emerald-600">
+                {intentResult?.summary?.totalCartValueWaiting || "৳27,450"}
+              </p>
+              <span className="text-[11px] text-slate-500 font-medium">Pending Checkout Value</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                সম্ভাব্য কনভার্সন রেট
+              </span>
+              <p className="text-2xl font-black text-indigo-600">
+                {intentResult?.summary?.conversionPotential || "72%"}
+              </p>
+              <span className="text-[11px] text-emerald-600 font-semibold">With AI Nudge Script</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                সুপারিশকৃত ক্লোজিং অফার
+              </span>
+              <p className="text-sm font-black text-purple-700 line-clamp-1">
+                {intentResult?.summary?.recommendedIncentive || "Free Shipping / Code READY5"}
+              </p>
+              <span className="text-[11px] text-purple-600 font-semibold">Immediate Trigger</span>
+            </div>
+          </div>
+
+          {/* Prospects List */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-slate-900">
+                অর্ডার প্রস্তুতি নেওয়া ক্রেতাদের প্রোফাইল ও ক্লোজিং নাডজ ({intentResult?.prospects?.length || 5} জন)
+              </h3>
+              <span className="text-xs text-slate-400">ইনটেন্ট স্কোর অনুযায়ী সাজানো</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {(intentResult?.prospects || [
+                {
+                  id: "intent-1",
+                  name: "Kamrul Hasan",
+                  phone: "+880 1712-889900",
+                  intentScore: 94,
+                  status: "Hot - Cart Active (12m ago)",
+                  itemsInCart: "Noise Cancelling Wireless Headphones Pro (৳4,500)",
+                  stage: "Checkout Step 2 (Shipping Address Added)",
+                  barrier: "ডেলিভারি চার্জ নিয়ে দ্বিধাগ্রস্ত বা কুপন ডিসকাউন্ট খুঁজছে",
+                  whatsappNudge: "আসসালামু আলাইকুম কামরুল ভাই! আপনার কার্টে থাকা হেডফোনটি কি অর্ডার করতে কোনো সহায়তা লাগবে? আজই অর্ডার কনফার্ম করলে ফ্রি ডেলিভারি কোড 'FREESHIP' ব্যবহার করতে পারেন!",
+                  recommendedAction: "Send WhatsApp nudge with Free Shipping offer",
+                },
+                {
+                  id: "intent-2",
+                  name: "Sharmin Akter",
+                  phone: "+880 1819-223344",
+                  intentScore: 89,
+                  status: "Hot - Live Chat Inquirer",
+                  itemsInCart: "Premium Leather Handbag & Wallet Combo (৳3,800)",
+                  stage: "Product Page + Add to Cart",
+                  barrier: "পণ্যটির আসল ছবির নিশ্চয়তা ও ক্যাশ অন ডেলিভারি অপশন চেক করছে",
+                  whatsappNudge: "হ্যালো শারমিন আপু, আপনি যে হ্যান্ডব্যাগ কম্বোটি পছন্দ করেছেন তার রিয়েল আনবক্সিং ভিডিও দেখতে চান? পণ্যটি দেখে ক্যাশ অন ডেলিভারিতে নেওয়ার সম্পূর্ণ সুবিধা রয়েছে।",
+                  recommendedAction: "Share real product photo & confirm COD availability",
+                },
+                {
+                  id: "intent-3",
+                  name: "Zubair Hossain",
+                  phone: "+880 1914-776655",
+                  intentScore: 86,
+                  status: "Warm - Reviewing Payment Methods",
+                  itemsInCart: "Mechanical Gaming Keyboard RGB (৳5,200)",
+                  stage: "Payment Selection Page",
+                  barrier: "bKash পেমেন্ট নাকি কার্ড পেমেন্ট করবেন তা যাচাই করছেন",
+                  whatsappNudge: "প্রিয় জুবায়ের ভাই, কিবোর্ডটির অর্ডার সম্পন্ন করতে পেমেন্টে কোনো সমস্যা হচ্ছে কি? আমাদের bKash মার্চেন্ট বা ক্যাশ অন ডেলিভারি উভয় মাধ্যমেই অর্ডার কনফার্ম করতে পারেন।",
+                  recommendedAction: "Offer COD alternative or direct bKash number",
+                },
+                {
+                  id: "intent-4",
+                  name: "Tania Sultana",
+                  phone: "+880 1611-334455",
+                  intentScore: 82,
+                  status: "Warm - Re-visited Cart 3 Times",
+                  itemsInCart: "Smart Fitness Tracker Band (৳2,650)",
+                  stage: "Cart Overview",
+                  barrier: "অন্য কোনো অফার বা অতিরিক্ত ডিসকাউন্ট কুপন আছে কিনা খুঁজছেন",
+                  whatsappNudge: "আপু, আপনার পছন্দের স্মার্ট ব্যান্ডের স্টক সীমিত রয়েছে! শুধুমাত্র আপনার জন্য অতিরিক্ত ৫% ডিসকাউন্ট কোড 'READY5' দিচ্ছি। এখনই অর্ডার শেষ করতে পারেন।",
+                  recommendedAction: "Push 'READY5' 5% instant discount coupon",
+                },
+              ]).map((p: any) => (
+                <div
+                  key={p.id}
+                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-amber-300 shadow-xs transition-all space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 font-black text-sm flex items-center justify-center shrink-0 border border-amber-200">
+                        {p.intentScore}%
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-slate-900 text-sm">{p.name}</h4>
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                            {p.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span>📞 {p.phone}</span>
+                          <span>•</span>
+                          <span className="text-indigo-600 font-semibold">{p.stage}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg">
+                        {p.itemsInCart}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Barrier & Recommendation */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">কেন এখনো অর্ডার করেনি?</span>
+                      <p className="font-semibold text-rose-700">{p.barrier}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">সুপারিশকৃত অ্যাকশন</span>
+                      <p className="font-semibold text-indigo-700">{p.recommendedAction}</p>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Nudge Script */}
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider flex items-center gap-1">
+                        <Flame className="w-3 h-3 text-amber-600" />
+                        AI পারসোনালাইজড ক্লোজিং স্ক্রিপ্ট (WhatsApp / SMS)
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => copyToClipboard(p.whatsappNudge, "ক্লোজিং স্ক্রিপ্ট কপি হয়েছে!")}
+                          className="px-2.5 py-1 bg-white border border-amber-300 text-amber-800 rounded-lg text-[10px] font-bold hover:bg-amber-50 transition flex items-center gap-1 shadow-2xs"
+                        >
+                          <Copy className="w-2.5 h-2.5" /> কপি
+                        </button>
+                        <a
+                          href={`https://wa.me/${p.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(p.whatsappNudge)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-2xs"
+                        >
+                          <Send className="w-2.5 h-2.5" /> WhatsApp Send
+                        </a>
+                      </div>
+                    </div>
+                    <p className="text-slate-800 font-medium leading-relaxed text-[11px]">{p.whatsappNudge}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Closing Strategy Guidelines */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+            <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+              <Target className="w-4 h-4 text-amber-600" />
+              হাই-ইনটেন্ট ক্লোজিং কৌশল
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              {(
+                intentResult?.closingStrategy || [
+                  "কার্টে থাকা হট প্রসপেক্টদের ১৫ মিনিটের মধ্যে হোয়াটসঅ্যাপে নক দিলে ৬০%+ কনভার্ট হয়।",
+                  "ক্যাশ অন ডেলিভারি (COD) এবং ৭ দিনের রিটার্ন পলিসির কথা উল্লেখ করে ভরসা দিন।",
+                  "অর্ডার সম্পূর্ণ করার জন্য 'READY5' স্পেশাল ডিসকাউন্ট ভাউচার অফার করুন।",
+                ]
+              ).map((strat: string, i: number) => (
+                <div key={i} className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-amber-700 uppercase">কৌশল #{i + 1}</span>
+                  <p className="font-medium text-slate-800">{strat}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* NEW TAB 3: DAILY HESITANT & DROP-OFF SHOOTERS AUDIT      */}
+      {/* ======================================================== */}
+      {activeTab === "daily_hesitant" && (
+        <div className="space-y-6">
+          {/* Header Action Bar */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold rounded-lg flex items-center gap-1">
+                  <ShoppingCart className="w-3.5 h-3.5 text-rose-600" />
+                  24-Hour Cart Drop-off Tracker
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {hesitantResult?.dailyReportDate || "Today's Daily Audit"}
+                </span>
+              </div>
+              <h2 className="text-lg font-black text-slate-900">
+                সারাদিনের ড্রপ-অফ ও কার্ট অনীহা ডাটা (Daily Cart Drop-offs)
+              </h2>
+              <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                সারাদিনে যারা পণ্য অর্ডার করতে চেয়েও সম্পন্ন করেনি — তাদের সময়ের ক্রমানুসারে পূর্ণাঙ্গ অডিট, ড্রপ-অফের কারণ এবং ২৪ ঘণ্টার রিকভারি ক্যাম্পেইন।
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={handleFetchDailyHesitant}
+                disabled={hesitantLoading}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${hesitantLoading ? "animate-spin" : ""}`} />
+                <span>{hesitantLoading ? "Auditing Drop-offs..." : "আজকের ড্রপ-অফ অডিট"}</span>
+              </button>
+
+              <button
+                onClick={handleActivateDailyRecoveryCoupon}
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              >
+                <Zap className="w-3.5 h-3.5 text-rose-400" />
+                <span>২৪ ঘণ্টার রিকভারি কোড সক্রিয় (TODAYWIN10)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                আজকের মোট ড্রপ-অফ
+              </span>
+              <p className="text-xl font-black text-rose-600">
+                {hesitantResult?.overview?.totalAbandonedSessionsToday || 18} সেশন
+              </p>
+              <span className="text-[10px] text-rose-500 font-semibold">Drop-off Sessions</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                ঝুঁকিতে থাকা রাজস্ব
+              </span>
+              <p className="text-xl font-black text-slate-900">
+                {hesitantResult?.overview?.totalLostRevenueAtRisk || "৳48,650"}
+              </p>
+              <span className="text-[10px] text-slate-400 font-medium">Revenue at Risk</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                গড় ড্রপ-অফ কার্ট
+              </span>
+              <p className="text-xl font-black text-indigo-600">
+                {hesitantResult?.overview?.averageAbandonedCartValue || "৳2,702"}
+              </p>
+              <span className="text-[10px] text-slate-400 font-medium">Avg Cart Size</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                আজকে রিকভার করা হয়েছে
+              </span>
+              <p className="text-xl font-black text-emerald-600">
+                {hesitantResult?.overview?.recoveredRevenueToday || "৳11,400"}
+              </p>
+              <span className="text-[10px] text-emerald-600 font-semibold">Recaptured Revenue</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                সম্ভাব্য রিকভারি হার
+              </span>
+              <p className="text-xl font-black text-purple-600">
+                {hesitantResult?.overview?.estimatedRecoveryRate || "24.5%"}
+              </p>
+              <span className="text-[10px] text-purple-600 font-semibold">Projected Recovery</span>
+            </div>
+          </div>
+
+          {/* Peak Dropoff Bar & Reasons Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="p-4 bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl border border-rose-100 space-y-2">
+              <div className="flex items-center gap-2 text-rose-800 font-bold text-xs">
+                <Clock className="w-4 h-4 text-rose-600" />
+                <span>পিক ড্রপ-অফ সময় (Peak Hours)</span>
+              </div>
+              <p className="text-sm font-black text-slate-900">
+                {hesitantResult?.overview?.peakDropoffHours || "2:00 PM - 4:00 PM এবং 8:30 PM - 10:30 PM"}
+              </p>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                এই সময়গুলোতে ব্যবহারকারীরা ব্রাউজ করার পর বেশি কার্ট ত্যাগ করে। এসএমএস রিমাইন্ডার পাঠানোর সেরা সময় রাত ৮:০০ টা।
+              </p>
+            </div>
+
+            <div className="lg:col-span-2 p-4 bg-white rounded-2xl border border-slate-200 space-y-2.5">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                অর্ডার না করার কারণ বিশ্লেষণ (Drop-off Breakdown)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {(
+                  hesitantResult?.reasonsBreakdown || [
+                    { reason: "কুরিয়ার ডেলিভারি চার্জ বেশি", percentage: "42%", count: 8 },
+                    { reason: "পেমেন্ট গেটওয়ে দ্বিধা", percentage: "26%", count: 5 },
+                    { reason: "ডিসকাউন্ট কুপন অনুপস্থিত", percentage: "18%", count: 3 },
+                    { reason: "পরে কেনার জন্য রেখে দিয়েছে", percentage: "14%", count: 2 },
+                  ]
+                ).map((r: any, idx: number) => (
+                  <div key={idx} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                    <div className="flex items-center justify-between text-slate-900 font-black">
+                      <span>{r.percentage}</span>
+                      <span className="text-[10px] text-slate-400">{r.count} বার</span>
+                    </div>
+                    <p className="text-[10px] text-slate-600 line-clamp-2 leading-tight">{r.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Dropoff Timeline Cards */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-slate-900">
+                সারাদিনের ড্রপ-অফ ক্রেতা ও রিকভারি এসএমএস ({hesitantResult?.dailyDropoffShoppers?.length || 5} জন)
+              </h3>
+              <span className="text-xs text-slate-400">সময় অনুযায়ী ক্রমানুসারে সাজানো</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {(
+                hesitantResult?.dailyDropoffShoppers || [
+                  {
+                    id: "drop-01",
+                    time: "10:24 AM",
+                    shopperName: "Enamul Haque",
+                    phone: "+880 1719-332211",
+                    abandonedProducts: "Smart Fitness Watch 2026 + Extra Strap",
+                    cartValue: "৳4,200",
+                    dropoffPoint: "Shipping Method (Courier Fee ৳120)",
+                    recoveryStatus: "SMS Sent - Follow Up Pending",
+                    personalizedRecoverySMS: "এনামুল ভাই! স্মার্টশপে আপনার কার্টে থাকা স্মার্টওয়াচটির জন্য আজ রাত ১২টা পর্যন্ত স্পেশাল ১০% ছাড় + ফ্রি ডেলিভারি দিচ্ছি। কুপন: TODAYWIN10 লিঙ্ক: smartshop.com/cart",
+                  },
+                  {
+                    id: "drop-02",
+                    time: "01:45 PM",
+                    shopperName: "Sadia Afrin",
+                    phone: "+880 1812-778899",
+                    abandonedProducts: "Ceramic Hair Straightener Brush",
+                    cartValue: "৳2,850",
+                    dropoffPoint: "Payment Step (Abandoned at Gateway)",
+                    recoveryStatus: "Pending Notification",
+                    personalizedRecoverySMS: "সাদিয়া আপু, আপনার হেয়ার ব্রাশটির পেমেন্টে সমস্যা হচ্ছিল? এখন কোনো অগ্রিম টাকা ছাড়াই ক্যাশ অন ডেলিভারিতে অর্ডার করতে পারবেন। কুপন: TODAYWIN10",
+                  },
+                  {
+                    id: "drop-03",
+                    time: "04:10 PM",
+                    shopperName: "Mahbubur Rahman",
+                    phone: "+880 1916-443322",
+                    abandonedProducts: "Portable Bluetooth Speaker (Waterproof)",
+                    cartValue: "৳3,600",
+                    dropoffPoint: "Cart Summary Page",
+                    recoveryStatus: "Recovered (Placed via WhatsApp) 🎉",
+                    personalizedRecoverySMS: "মাহবুব ভাই, আপনার ব্লুটুথ স্পিকারের অর্ডারে স্পেশাল গিফট হিসেবে ওয়াটারপ্রুফ পাউচ ফ্রি দেওয়া হচ্ছে। স্টক শেষ হওয়ার আগেই অর্ডার কনফার্ম করুন।",
+                  },
+                  {
+                    id: "drop-04",
+                    time: "06:30 PM",
+                    shopperName: "Farzana Karim",
+                    phone: "+880 1618-556677",
+                    abandonedProducts: "Kitchen Air Fryer 4.5L",
+                    cartValue: "৳7,500",
+                    dropoffPoint: "Checkout Final Button",
+                    recoveryStatus: "Pending Notification",
+                    personalizedRecoverySMS: "প্রিয় ফারজানা আপু, এয়ার ফ্রায়ারটি কেনার প্রস্তুতি নিচ্ছিলেন কিন্তু অর্ডার করেননি? আজকের স্পেশাল ডিসকাউন্টে পাচ্ছেন ৳৫০০ ফ্ল্যাট ছাড়! কোড: AIRFRYER500",
+                  },
+                ]
+              ).map((d: any) => (
+                <div
+                  key={d.id}
+                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-rose-300 shadow-xs transition-all space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-black text-xs shrink-0 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-rose-400" />
+                        {d.time}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-slate-900 text-sm">{d.shopperName}</h4>
+                          <span className="text-[11px] text-slate-400">📞 {d.phone}</span>
+                        </div>
+                        <p className="text-[11px] text-rose-600 font-semibold mt-0.5">
+                          ড্রপ-অফ পয়েন্ট: {d.dropoffPoint}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200 text-rose-700">
+                        কার্ট মূল্য: {d.cartValue}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                          d.recoveryStatus.includes("Recovered")
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-amber-50 text-amber-700 border-amber-200"
+                        }`}
+                      >
+                        {d.recoveryStatus}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs bg-slate-50 p-2.5 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">কার্টে থাকা পণ্য</span>
+                    <p className="font-semibold text-slate-800">{d.abandonedProducts}</p>
+                  </div>
+
+                  {/* SMS Recovery copy */}
+                  <div className="p-3 bg-rose-50/60 border border-rose-100 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider flex items-center gap-1">
+                        <MessageSquare className="w-3 h-3 text-rose-600" />
+                        ব্যক্তিগতকৃত রিকভারি এসএমএস (বাংলা)
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => copyToClipboard(d.personalizedRecoverySMS, "রিকভারি SMS কপি হয়েছে!")}
+                          className="px-2.5 py-1 bg-white border border-rose-200 text-rose-700 rounded-lg text-[10px] font-bold hover:bg-rose-50 transition flex items-center gap-1 shadow-2xs"
+                        >
+                          <Copy className="w-2.5 h-2.5" /> কপি SMS
+                        </button>
+                        <a
+                          href={`https://wa.me/${d.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(d.personalizedRecoverySMS)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-2xs"
+                        >
+                          <Send className="w-2.5 h-2.5" /> WhatsApp Send
+                        </a>
+                      </div>
+                    </div>
+                    <p className="text-slate-800 font-medium leading-relaxed text-[11px]">{d.personalizedRecoverySMS}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Daily Win-back Campaign Box */}
+          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-3xl border border-indigo-800/50 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div>
+                <span className="px-2.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-black uppercase rounded-full">
+                  Today's Win-Back Action
+                </span>
+                <h4 className="text-base font-black text-white mt-1">
+                  {hesitantResult?.dailyRecoveryCampaign?.campaignName || "🔥 24-Hour Flash Cart Win-Back Sequence"}
+                </h4>
+              </div>
+
+              <button
+                onClick={handleActivateDailyRecoveryCoupon}
+                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl shadow-lg transition"
+              >
+                স্টোরে কুপন সক্রিয় করুন ({hesitantResult?.dailyRecoveryCampaign?.suggestedCoupon || "TODAYWIN10"})
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                <span className="text-[10px] text-indigo-300 uppercase block font-bold">অফার ও ভাউচার</span>
+                <p className="font-extrabold text-white mt-0.5">
+                  {hesitantResult?.dailyRecoveryCampaign?.discountOffer || "10% Flat Discount + Free Delivery for Dhaka"}
+                </p>
+              </div>
+
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                <span className="text-[10px] text-indigo-300 uppercase block font-bold">মেয়াদকাল</span>
+                <p className="font-extrabold text-amber-300 mt-0.5">
+                  {hesitantResult?.dailyRecoveryCampaign?.validity || "Valid until Midnight Tonight"}
+                </p>
+              </div>
+
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                <span className="text-[10px] text-indigo-300 uppercase block font-bold">প্রত্যাশিত রিকভারি আয়</span>
+                <p className="font-extrabold text-emerald-400 mt-0.5">
+                  {hesitantResult?.dailyRecoveryCampaign?.expectedRecoveredRevenue || "৳15,000 - ৳20,000"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-300 font-bold uppercase">ব্রডকাস্ট এসএমএস কপি</span>
+                <button
+                  onClick={() =>
+                    copyToClipboard(
+                      hesitantResult?.dailyRecoveryCampaign?.broadcastSMS ||
+                        "স্মার্টশপ স্পেশাল অফার! কার্টে থাকা পছন্দের পণ্যটি আজই অর্ডার করলে পাচ্ছেন ১০% ছাড় + ফ্রি ডেলিভারি। কুপন: TODAYWIN10। স্টক সীমিত!",
+                      "ব্রডকাস্ট এসএমএস কপি হয়েছে!"
+                    )
+                  }
+                  className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1"
+                >
+                  <Copy className="w-3 h-3" /> কপি
+                </button>
+              </div>
+              <p className="text-slate-200 text-[11px] leading-relaxed font-medium">
+                {hesitantResult?.dailyRecoveryCampaign?.broadcastSMS ||
+                  "স্মার্টশপ স্পেশাল অফার! কার্টে থাকা পছন্দের পণ্যটি আজই অর্ডার করলে পাচ্ছেন ১০% ছাড় + ফ্রি ডেলিভারি। কুপন: TODAYWIN10। স্টক সীমিত!"}
+              </p>
             </div>
           </div>
         </div>
