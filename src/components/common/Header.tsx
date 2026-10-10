@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useStore } from "../../context/StoreContext";
 import { UserRole } from "../../types";
 import { t, translateDynamic } from "../../utils/i18n";
@@ -75,6 +75,38 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Auto-hide user profile popup when clicking anywhere outside
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target as Node)
+      ) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    if (userDropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      document.addEventListener("touchstart", handleOutsideClick);
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [userDropdownOpen]);
+
   const [searchFocused, setSearchFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [searchCategory, setSearchCategory] = useState<string>("all");
@@ -538,7 +570,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* User Account Menu */}
               {!isGuest && (
-                <div className="relative">
+                <div className="relative" ref={userDropdownRef}>
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                     className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 transition-colors"
