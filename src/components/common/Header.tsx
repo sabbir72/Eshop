@@ -27,20 +27,29 @@ import {
   LogOut,
   Grid,
   Home as HomeIcon,
+  Smartphone,
 } from "lucide-react";
 
 interface HeaderProps {
   onOpenCart: () => void;
   onOpenAIChat?: () => void;
   onOpenAuth: () => void;
+  onOpenAndroidAppModal?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenCart, onOpenAIChat, onOpenAuth }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenCart,
+  onOpenAIChat,
+  onOpenAuth,
+  onOpenAndroidAppModal,
+}) => {
   const {
     mode,
     setMode,
     storeView,
     setStoreView,
+    adminView,
+    setAdminView,
     activeRole,
     switchRole,
     logoutUser,
@@ -468,6 +477,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart, onOpenAIChat, onOpen
 
         {/* Action Buttons Header Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Android App Button */}
+          <button
+            onClick={onOpenAndroidAppModal}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-700 border border-emerald-300/80 text-xs font-bold transition shadow-2xs shrink-0"
+            title="SmartShop Android App"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-600 animate-bounce" />
+            <span className="hidden sm:inline">Android App</span>
+          </button>
+
           {mode === "storefront" && (
             <>
               {/* Wishlist Button */}
@@ -890,93 +909,115 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart, onOpenAIChat, onOpen
               <Gift className="w-4 h-4" />
               <span>{t("gift_boxes", language)}</span>
             </button>
+
+            {/* Android App Install Banner in Mobile Menu */}
+            <div className="pt-3 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAndroidAppModal?.();
+                }}
+                className="w-full p-3 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-emerald-800 font-black text-xs shadow-xs hover:bg-emerald-50 transition"
+              >
+                <span className="flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <Smartphone className="w-4 h-4" />
+                  </span>
+                  <span>অ্যান্ড্রয়েড অ্যাপ ইনস্টল করুন (v2.4.0)</span>
+                </span>
+                <span className="px-2 py-0.5 bg-emerald-600 text-white text-[10px] rounded-md font-bold">
+                  Install
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sticky Mobile Bottom Navigation Bar */}
-      {mode === "storefront" && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-2xl text-[10px] font-bold text-slate-600">
-          <button
-            onClick={() => setStoreView("home")}
-            className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-colors ${
-              storeView === "home" ? "text-indigo-600 font-black" : "hover:text-indigo-600"
+      {/* Unified Android Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-1 py-1 flex items-center justify-around shadow-2xl text-[10px] font-bold text-slate-400 pb-[env(safe-area-inset-bottom,4px)]">
+        {/* 1. Home */}
+        <button
+          onClick={() => {
+            setMode("storefront");
+            setStoreView("home");
+          }}
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-colors ${
+            mode === "storefront" && storeView === "home" ? "text-indigo-400 font-black" : "hover:text-slate-200"
+          }`}
+        >
+          <HomeIcon className="w-5 h-5" />
+          <span>হোম</span>
+        </button>
+
+        {/* 2. Shop / Deals */}
+        <button
+          onClick={() => {
+            setMode("storefront");
+            setStoreView("products");
+          }}
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-colors ${
+            mode === "storefront" && storeView === "products" ? "text-indigo-400 font-black" : "hover:text-slate-200"
+          }`}
+        >
+          <ShoppingBag className="w-5 h-5" />
+          <span>শপ</span>
+        </button>
+
+        {/* 3. AI Business Agent (Centerpiece) */}
+        <button
+          onClick={() => {
+            setMode("admin");
+            setAdminView("ai-agent");
+          }}
+          className="flex flex-col items-center -mt-3 relative group"
+        >
+          <div
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
+              mode === "admin" && adminView === "ai-agent"
+                ? "bg-gradient-to-tr from-emerald-500 to-indigo-600 text-white ring-2 ring-emerald-400/60 shadow-emerald-500/30"
+                : "bg-gradient-to-tr from-indigo-600 via-indigo-700 to-slate-900 text-white shadow-indigo-500/30"
             }`}
           >
-            <HomeIcon className="w-5 h-5" />
-            <span>Home</span>
-          </button>
-
-          <button
-            onClick={() => setStoreView("categories")}
-            className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-colors ${
-              storeView === "categories" ? "text-indigo-600 font-black" : "hover:text-indigo-600"
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border border-slate-950 animate-ping" />
+          </div>
+          <span
+            className={`text-[9px] mt-0.5 font-bold ${
+              mode === "admin" && adminView === "ai-agent" ? "text-emerald-400 font-black" : "text-slate-300"
             }`}
           >
-            <Grid className="w-5 h-5" />
-            <span>Categories</span>
-          </button>
+            AI এজেন্ট
+          </span>
+        </button>
 
-          <button
-            onClick={() => setStoreView("products")}
-            className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-colors ${
-              storeView === "products" ? "text-indigo-600 font-black" : "hover:text-indigo-600"
-            }`}
-          >
-            <Tag className="w-5 h-5" />
-            <span>Deals</span>
-          </button>
-
-          <button
-            onClick={() => setStoreView("wishlist")}
-            className={`flex flex-col items-center gap-1 p-1.5 rounded-xl relative transition-colors ${
-              storeView === "wishlist" ? "text-indigo-600 font-black" : "hover:text-indigo-600"
-            }`}
-          >
-            <Heart className="w-5 h-5" />
-            <span>Wishlist</span>
-            {wishlist.length > 0 && (
-              <span className="absolute top-1 right-2 bg-rose-600 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center font-mono">
-                {wishlist.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={onOpenCart}
-            className="flex flex-col items-center gap-1 p-1.5 rounded-xl relative text-slate-700 hover:text-indigo-600 transition-colors"
-          >
-            <ShoppingBag className="w-5 h-5 text-indigo-600" />
-            <span>Cart</span>
+        {/* 4. Cart */}
+        <button
+          onClick={onOpenCart}
+          className="flex flex-col items-center gap-0.5 p-1 rounded-xl relative hover:text-slate-200 transition-colors"
+        >
+          <div className="relative">
+            <ShoppingBag className="w-5 h-5" />
             {totalCartItems > 0 && (
-              <span className="absolute top-1 right-2 bg-indigo-600 text-white text-[9px] font-black px-1 rounded-full font-mono">
+              <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[9px] font-black px-1 rounded-full font-mono min-w-[16px] h-[16px] flex items-center justify-center border border-slate-950">
                 {totalCartItems}
               </span>
             )}
-          </button>
+          </div>
+          <span>কার্ট</span>
+        </button>
 
-          {/* Account / Login Tab */}
-          {isGuest ? (
-            <button
-              onClick={onOpenAuth}
-              className="flex flex-col items-center gap-1 p-1.5 rounded-xl text-slate-700 hover:text-indigo-600 transition-colors"
-            >
-              <UserIcon className="w-5 h-5" />
-              <span>Login</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setStoreView("profile")}
-              className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-colors ${
-                storeView === "profile" ? "text-indigo-600 font-black" : "hover:text-indigo-600"
-              }`}
-            >
-              <UserIcon className="w-5 h-5" />
-              <span>Account</span>
-            </button>
-          )}
-        </div>
-      )}
+        {/* 5. Android App */}
+        <button
+          onClick={onOpenAndroidAppModal}
+          className="flex flex-col items-center gap-0.5 p-1 rounded-xl text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          <div className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <Smartphone className="w-4 h-4" />
+          </div>
+          <span className="text-emerald-400 font-bold">অ্যাপ</span>
+        </button>
+      </nav>
     </header>
   );
 };

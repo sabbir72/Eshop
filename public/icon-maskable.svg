@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81"/>
+      <stop offset="50%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="bagGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+    <linearGradient id="sparkGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <filter id="shadowMask" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Full bleed background for Android squircle / circle mask -->
+  <rect width="512" height="512" fill="url(#bgGradMask)"/>
+
+  <!-- Centered Scaled Content (80% safe zone) -->
+  <g transform="translate(51, 51) scale(0.8)">
+    <g filter="url(#shadowMask)">
+      <!-- Bag handles -->
+      <path d="M196 170 V134 C196 100.86 222.86 74 256 74 C289.14 74 316 100.86 316 134 V170" 
+            fill="none" stroke="url(#bagGradMask)" stroke-width="26" stroke-linecap="round"/>
+      
+      <!-- Bag base -->
+      <path d="M140 170 L164 410 C166.5 432 185 448 207 448 H305 C327 448 345.5 432 348 410 L372 170 Z" 
+            fill="url(#bagGradMask)"/>
+      
+      <!-- AI Spark inside bag -->
+      <path d="M268 200 L212 300 H260 L244 414 L312 288 H264 Z" 
+            fill="url(#sparkGradMask)"/>
+    </g>
+
+    <!-- Android Accent badge -->
+    <circle cx="360" cy="130" r="14" fill="#10b981"/>
+    <circle cx="360" cy="130" r="8" fill="#ffffff"/>
+  </g>
+</svg>

@@ -22,6 +22,8 @@ import {
   Youtube,
   Linkedin,
   Twitter,
+  Smartphone,
+  Download,
 } from "lucide-react";
 
 export const SHOW_SECURITY_TRUST_SECTION = false;
@@ -297,6 +299,36 @@ export const Footer: React.FC = () => {
             className="w-full bg-slate-800 hover:bg-slate-700 text-indigo-400 font-bold text-xs py-2.5 px-3 rounded-xl border border-slate-700 transition-colors shadow-xs"
           >
             {t("launch_admin", language)}
+          </button>
+        </div>
+      </div>
+
+      {/* Android App Showcase Banner */}
+      <div className="border-t border-slate-800/80 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 py-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20 shrink-0">
+              <Smartphone className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <h4 className="text-sm font-black text-white">SmartShop Android Mobile App</h4>
+                <span className="px-2 py-0.2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold rounded-md">
+                  v2.4.0 Live
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                আপনার অ্যান্ড্রয়েড ফোনে সরাসরি অ্যাপ হিসেবে ইনস্টল করুন — কোনো স্টোর ঝামেলা ছাড়া ১-ক্লিকে ইনস্টল ও অফলাইন সুবিধা।
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("open-android-install"))}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition shrink-0"
+          >
+            <Download className="w-4 h-4 text-slate-950" />
+            <span>অ্যান্ড্রয়েড অ্যাপ ইনস্টল (Install App)</span>
           </button>
         </div>
       </div>
