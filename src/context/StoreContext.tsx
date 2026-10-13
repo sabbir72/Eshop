@@ -124,7 +124,8 @@ export type AdminView =
   | "marketing"
   | "warehouse-movement"
   | "seo-marketing"
-  | "website-profile";
+  | "website-profile"
+  | "excel-hub";
 
 interface ToastNotification {
   id: string;

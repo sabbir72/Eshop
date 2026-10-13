@@ -23,6 +23,7 @@ import { SupplierManagement } from "./SupplierManagement";
 import { MarketingManagement } from "./MarketingManagement";
 import { WarehouseMovementManagement } from "./WarehouseMovementManagement";
 import { SEOMarketingManagement } from "./SEOMarketingManagement";
+import { ExcelHubManagement } from "./ExcelHubManagement";
 import {
   COMMAND_CENTER_CATEGORIES,
   findBreadcrumbsForView,
@@ -59,6 +60,7 @@ import {
   Compass,
   ArrowLeft,
   LogOut,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export const AdminPanel: React.FC = () => {
@@ -199,16 +201,41 @@ export const AdminPanel: React.FC = () => {
 
           <button
             onClick={() => setMode("storefront")}
-            className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5"
+            className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
             title="Switch to Storefront"
           >
             <Store className="w-3.5 h-3.5 text-indigo-600" />
             <span className="hidden sm:inline">Storefront</span>
           </button>
 
-          <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200 hidden sm:block">
-            {activeRole}
-          </div>
+          {/* Excel Data Hub Button */}
+          <button
+            onClick={() => setAdminView("excel-hub")}
+            className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+              adminView === "excel-hub"
+                ? "bg-emerald-600 text-white shadow-emerald-500/20"
+                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+            }`}
+            title="এক্সেল ডাটা হাব ও ইনপুট টেমপ্লেট"
+          >
+            <FileSpreadsheet className={`w-3.5 h-3.5 ${adminView === "excel-hub" ? "text-white" : "text-emerald-600"}`} />
+            <span className="hidden sm:inline">Excel Hub</span>
+          </button>
+
+          {/* User Profile Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("open-user-profile"))}
+            className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="ব্যবহারকারী প্রোফাইল ও সেটিংস খুলুন"
+          >
+            <div className="w-4 h-4 rounded-md bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center">
+              {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+            </div>
+            <span className="hidden sm:inline">{currentUser.name.split(" ")[0]}</span>
+            <span className="text-[10px] text-indigo-600 font-extrabold bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100">
+              {activeRole}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -511,6 +538,7 @@ export const AdminPanel: React.FC = () => {
           {adminView === "marketing" && <MarketingManagement />}
           {adminView === "seo-marketing" && <SEOMarketingManagement />}
           {adminView === "reports" && <ReportsAnalytics />}
+          {adminView === "excel-hub" && <ExcelHubManagement />}
           {adminView === "supplier-management" && <SupplierManagement />}
           {adminView === "company-cms" && <CompanyCMSManagement />}
           {adminView === "careers" && <CareersManagement />}

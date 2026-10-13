@@ -22,6 +22,7 @@ import {
   Search,
   Globe,
   Bot,
+  FileSpreadsheet,
 } from "lucide-react";
 import { AdminView } from "../../context/StoreContext";
 import { ModuleName } from "../../types";
@@ -96,8 +97,8 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
       },
       {
         id: "analytics-reports",
-        name: "Business Intelligence",
-        description: "Deep data visualization and performance reporting",
+        name: "Business Intelligence & Data",
+        description: "Deep data visualization, Excel synchronization and performance reporting",
         features: [
           {
             id: "reports",
@@ -106,6 +107,15 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
             icon: BarChart3,
             module: "Reports",
             tag: "Analytics",
+            isPopular: true,
+          },
+          {
+            id: "excel-hub",
+            name: "Excel Data Hub",
+            description: "Universal Excel & CSV data sync, bulk product upload & multi-sheet master backup",
+            icon: FileSpreadsheet,
+            module: "Product",
+            tag: "Excel System",
             isPopular: true,
           },
         ],
@@ -261,8 +271,8 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
         features: [
           {
             id: "marketing",
-            name: "Marketing Management",
-            description: "Hero banners, slider promotions, flash sales & announcement popups",
+            name: "Marketing & Ad Management",
+            description: "Hero sliders, popups, flash deals, SMS/WhatsApp broadcast, UTM tracking & AI copy",
             icon: Megaphone,
             module: "CMS",
             tag: "Campaigns",
@@ -300,11 +310,11 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
         features: [
           {
             id: "customer-support",
-            name: "Customer Support & RMA",
-            description: "Support tickets, live chat conversations, return requests & refund management",
+            name: "Customer Handler & Service Desk Hub",
+            description: "Omnichannel service desk, SLA tracking, AI resolution, RMA return audit & live conversations",
             icon: Headphones,
             module: "Support",
-            tag: "Helpdesk",
+            tag: "Service Desk",
             isPopular: true,
           },
           {

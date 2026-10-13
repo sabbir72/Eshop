@@ -20,6 +20,7 @@ import {
   ArrowRight,
   Bot,
   Sparkles,
+  FileSpreadsheet,
 } from "lucide-react";
 import { CommandCenterDirectory } from "./CommandCenterDirectory";
 
@@ -57,6 +58,13 @@ export const AdminDashboard: React.FC = () => {
             >
               <Bot className="w-3.5 h-3.5" />
               <span>AI Business Agent (5-in-1)</span>
+            </button>
+            <button
+              onClick={() => setAdminView("excel-hub")}
+              className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Excel Data Hub</span>
             </button>
             <button
               onClick={() => setAdminView("reports")}

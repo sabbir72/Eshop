@@ -571,13 +571,23 @@ export interface SupportTicket {
   customerId: string;
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
   subject: string;
   category: "Account" | "Order" | "Payment" | "Coupons" | "Shipping" | "Returns" | "Technical" | "General";
   priority: "Low" | "Medium" | "High" | "Urgent";
   status: "Open" | "In Progress" | "Resolved" | "Closed";
   assignedAgent?: string;
+  channel?: "Web Ticket" | "Live Chat" | "WhatsApp" | "Phone" | "Email";
+  orderNumber?: string;
+  slaStatus?: "On Time" | "Warning" | "Breached";
+  slaDueHours?: number;
+  csatRating?: number; // 1 to 5
+  csatFeedback?: string;
+  internalNotes?: string[];
+  tags?: string[];
   messages: TicketMessage[];
   isLiveChat?: boolean;
+  resolvedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

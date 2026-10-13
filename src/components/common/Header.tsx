@@ -35,6 +35,7 @@ interface HeaderProps {
   onOpenAIChat?: () => void;
   onOpenAuth: () => void;
   onOpenAndroidAppModal?: () => void;
+  onOpenUserProfile?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAIChat,
   onOpenAuth,
   onOpenAndroidAppModal,
+  onOpenUserProfile,
 }) => {
   const {
     mode,
@@ -218,16 +220,25 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Top Banner & Language / RBAC Bar */}
       {mode === "admin" || isAdminRole ? (
         <div className="bg-[#0F172A] text-slate-300 text-xs py-2 px-4 sm:px-8 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="flex items-center gap-1 bg-indigo-500/20 text-indigo-300 font-semibold px-2.5 py-0.5 rounded-full border border-indigo-500/30">
               <Shield className="w-3.5 h-3.5 text-indigo-400" /> RBAC Engine
             </span>
-            <span className="hidden sm:inline text-slate-400">
-              Logged User: <strong className="text-white font-semibold">{currentUser.name}</strong>
-            </span>
-            <span className="bg-indigo-900/60 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded border border-indigo-700/50">
-              {activeRole}
-            </span>
+            <button
+              onClick={() => onOpenUserProfile?.()}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg border border-slate-700 transition cursor-pointer"
+              title="ব্যবহারকারী প্রোফাইল ও সেটিংস খুলুন"
+            >
+              <div className="w-5 h-5 rounded-md bg-indigo-600 text-white font-black text-[10px] flex items-center justify-center">
+                {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+              </div>
+              <span className="hidden sm:inline text-slate-300 text-xs">
+                User: <strong className="text-white font-semibold">{currentUser.name.split(" ")[0]}</strong>
+              </span>
+              <span className="bg-indigo-900/80 text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-700/50">
+                {activeRole}
+              </span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -512,8 +523,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Android App Button */}
           <button
             onClick={onOpenAndroidAppModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-700 border border-emerald-300/80 text-xs font-bold transition shadow-2xs shrink-0"
-            title="SmartShop Android App"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-700 border border-emerald-300/80 text-xs font-bold transition shadow-2xs shrink-0 cursor-pointer"
+            title="SmartShop Android App v2.5.0"
           >
             <Smartphone className="w-4 h-4 text-emerald-600 animate-bounce" />
             <span className="hidden sm:inline">Android App</span>
@@ -541,7 +552,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
 
-              {/* Shopping Cart Button (Styled matching Wishlist) */}
+              {/* Shopping Cart Button */}
               {(isGuest || isCustomer) && (
                 <button
                   onClick={onOpenCart}
@@ -556,89 +567,38 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                 </button>
               )}
-
-              {/* Login / Register Button */}
-              {isGuest && (
-                <button
-                  onClick={onOpenAuth}
-                  className="bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
-                >
-                  <UserIcon className="w-4 h-4" />
-                  <span>{t("login_register", language)}</span>
-                </button>
-              )}
-
-              {/* User Account Menu */}
-              {!isGuest && (
-                <div className="relative" ref={userDropdownRef}>
-                  <button
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 transition-colors"
-                  >
-                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-[11px]">
-                      {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
-                    </div>
-                    <span className="text-xs font-bold hidden sm:inline">{currentUser.name.split(" ")[0]}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-                  </button>
-
-                  {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 z-50 text-xs">
-                      <div className="px-4 py-2 border-b border-slate-100">
-                        <p className="font-extrabold text-slate-900 truncate">{currentUser.name}</p>
-                        <p className="text-[11px] text-indigo-600 font-semibold">{activeRole}</p>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setStoreView("profile");
-                          setUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold"
-                      >
-                        <UserIcon className="w-4 h-4 text-slate-500" />
-                        <span>{t("my_account", language)}</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setStoreView("orders");
-                          setUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold"
-                      >
-                        <ShoppingBag className="w-4 h-4 text-slate-500" />
-                        <span>{t("my_orders", language)}</span>
-                      </button>
-
-                      {isAdminRole && (
-                        <button
-                          onClick={() => {
-                            setMode("admin");
-                            setUserDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-indigo-50 flex items-center gap-2 text-indigo-700 font-bold border-t border-slate-100"
-                        >
-                          <LayoutDashboard className="w-4 h-4 text-indigo-600" />
-                          <span>{t("admin_center", language)}</span>
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => {
-                          logoutUser();
-                          setUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-rose-50 flex items-center gap-2 text-rose-600 font-bold border-t border-slate-100"
-                      >
-                        <LogOut className="w-4 h-4 text-rose-500" />
-                        <span>{t("sign_out", language)}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </>
+          )}
+
+          {/* User Account / Profile Button (Always Active across storefront and admin) */}
+          {!isGuest ? (
+            <button
+              onClick={() => {
+                if (onOpenUserProfile) {
+                  onOpenUserProfile();
+                } else {
+                  setUserDropdownOpen(!userDropdownOpen);
+                }
+              }}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 transition-colors cursor-pointer"
+              title="ব্যবহারকারী প্রোফাইল ও সেটিংস খুলুন"
+            >
+              <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-[11px] shadow-2xs">
+                {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+              </div>
+              <span className="text-xs font-bold hidden sm:inline">
+                {currentUser.name.split(" ")[0]}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <UserIcon className="w-4 h-4" />
+              <span>{t("login_register", language)}</span>
+            </button>
           )}
 
           {/* Mobile Hamburger Toggle */}
@@ -966,20 +926,20 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Unified Android Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-1 py-1 flex items-center justify-around shadow-2xl text-[10px] font-bold text-slate-400 pb-[env(safe-area-inset-bottom,4px)]">
+      {/* Unified Android Mobile Bottom Navigation Bar (Updated v2.5.0) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-1 py-1 grid grid-cols-6 items-center shadow-2xl text-[9px] font-bold text-slate-400 pb-[env(safe-area-inset-bottom,4px)]">
         {/* 1. Home */}
         <button
           onClick={() => {
             setMode("storefront");
             setStoreView("home");
           }}
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-colors ${
+          className={`flex flex-col items-center justify-center py-1 transition-colors ${
             mode === "storefront" && storeView === "home" ? "text-indigo-400 font-black" : "hover:text-slate-200"
           }`}
         >
-          <HomeIcon className="w-5 h-5" />
-          <span>হোম</span>
+          <HomeIcon className="w-4 h-4" />
+          <span className="mt-0.5">হোম</span>
         </button>
 
         {/* 2. Shop / Deals */}
@@ -988,12 +948,12 @@ export const Header: React.FC<HeaderProps> = ({
             setMode("storefront");
             setStoreView("products");
           }}
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-colors ${
+          className={`flex flex-col items-center justify-center py-1 transition-colors ${
             mode === "storefront" && storeView === "products" ? "text-indigo-400 font-black" : "hover:text-slate-200"
           }`}
         >
-          <ShoppingBag className="w-5 h-5" />
-          <span>শপ</span>
+          <ShoppingBag className="w-4 h-4" />
+          <span className="mt-0.5">শপ</span>
         </button>
 
         {/* 3. AI Business Agent (Centerpiece) */}
@@ -1002,20 +962,20 @@ export const Header: React.FC<HeaderProps> = ({
             setMode("admin");
             setAdminView("ai-agent");
           }}
-          className="flex flex-col items-center -mt-3 relative group"
+          className="flex flex-col items-center justify-center -mt-3 relative group"
         >
           <div
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
               mode === "admin" && adminView === "ai-agent"
                 ? "bg-gradient-to-tr from-emerald-500 to-indigo-600 text-white ring-2 ring-emerald-400/60 shadow-emerald-500/30"
                 : "bg-gradient-to-tr from-indigo-600 via-indigo-700 to-slate-900 text-white shadow-indigo-500/30"
             }`}
           >
-            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border border-slate-950 animate-ping" />
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border border-slate-950 animate-ping" />
           </div>
           <span
-            className={`text-[9px] mt-0.5 font-bold ${
+            className={`text-[8.5px] mt-0.5 font-bold ${
               mode === "admin" && adminView === "ai-agent" ? "text-emerald-400 font-black" : "text-slate-300"
             }`}
           >
@@ -1023,31 +983,67 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </button>
 
-        {/* 4. Cart */}
+        {/* 4. Storefront: Wishlist (পছন্দ) | Admin: Orders (অর্ডার) */}
+        {mode === "admin" ? (
+          <button
+            onClick={() => setAdminView("orders")}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              adminView === "orders" ? "text-indigo-400 font-black" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span className="mt-0.5 font-bold">অর্ডার</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setStoreView("wishlist")}
+            className={`flex flex-col items-center justify-center py-1 relative transition-colors ${
+              storeView === "wishlist" ? "text-rose-400 font-bold" : "text-slate-400 hover:text-rose-300"
+            }`}
+          >
+            <div className="relative">
+              <Heart className="w-4 h-4" />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[8px] font-black px-1 rounded-full font-mono min-w-[14px] h-[14px] flex items-center justify-center border border-slate-950">
+                  {wishlist.length}
+                </span>
+              )}
+            </div>
+            <span className="mt-0.5">পছন্দ</span>
+          </button>
+        )}
+
+        {/* 5. Cart */}
         <button
           onClick={onOpenCart}
-          className="flex flex-col items-center gap-0.5 p-1 rounded-xl relative hover:text-slate-200 transition-colors"
+          className="flex flex-col items-center justify-center py-1 relative hover:text-slate-200 transition-colors"
         >
           <div className="relative">
-            <ShoppingBag className="w-5 h-5" />
+            <ShoppingBag className="w-4 h-4" />
             {totalCartItems > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[9px] font-black px-1 rounded-full font-mono min-w-[16px] h-[16px] flex items-center justify-center border border-slate-950">
+              <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[8px] font-black px-1 rounded-full font-mono min-w-[14px] h-[14px] flex items-center justify-center border border-slate-950">
                 {totalCartItems}
               </span>
             )}
           </div>
-          <span>কার্ট</span>
+          <span className="mt-0.5">কার্ট</span>
         </button>
 
-        {/* 5. Android App */}
+        {/* 6. Profile / Account */}
         <button
-          onClick={onOpenAndroidAppModal}
-          className="flex flex-col items-center gap-0.5 p-1 rounded-xl text-emerald-400 hover:text-emerald-300 transition-colors"
+          onClick={() => {
+            if (onOpenUserProfile) {
+              onOpenUserProfile();
+            } else {
+              setStoreView("profile");
+            }
+          }}
+          className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-white transition-colors"
         >
-          <div className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <Smartphone className="w-4 h-4" />
+          <div className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] font-black flex items-center justify-center">
+            {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
           </div>
-          <span className="text-emerald-400 font-bold">অ্যাপ</span>
+          <span className="mt-0.5 font-bold text-indigo-300">প্রোফাইল</span>
         </button>
       </nav>
     </header>

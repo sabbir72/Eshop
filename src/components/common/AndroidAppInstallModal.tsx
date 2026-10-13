@@ -94,15 +94,15 @@ export const AndroidAppInstallModal: React.FC<AndroidAppInstallModalProps> = ({
           <div className="space-y-1 flex-1">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Android App v2.4.0
+                Android App v2.5.0 Pro
               </span>
-              <span className="text-[11px] text-slate-400">PWA / WebAPK</span>
+              <span className="text-[11px] text-slate-400">WebAPK & Standalone</span>
             </div>
             <h3 className="text-lg font-black text-white">SmartShop Android Mobile App</h3>
             <p className="text-xs text-slate-400">
               {isStandalone
-                ? "অ্যাপটি বর্তমানে অ্যান্ড্রয়েড নেটিভ মোডে চলছে।"
-                : "আপনার ফোনে ১-ক্লিকে ইনস্টল করে সরাসরি অ্যাপ হিসেবে ব্যবহার করুন।"}
+                ? "অ্যাপটি বর্তমানে অ্যান্ড্রয়েড ফুল-স্ক্রিন নেটিভ মোডে চলছে।"
+                : "আপনার ফোনে সরাসরি ইনস্টল করে নেটিভ অ্যান্ড্রয়েড অ্যাপের মতো ব্যবহার করুন।"}
             </p>
           </div>
         </div>
@@ -229,11 +229,58 @@ export const AndroidAppInstallModal: React.FC<AndroidAppInstallModalProps> = ({
                 </div>
               </div>
 
+              {/* APK Package & Quick Actions Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  onClick={() => {
+                    if (typeof window !== "undefined" && window.navigator && "vibrate" in window.navigator) {
+                      window.navigator.vibrate([40, 30, 40]);
+                    }
+                    // Trigger APK bundle package simulation
+                    const blob = new Blob(
+                      [
+                        JSON.stringify(
+                          {
+                            app: "SmartShop Android Mobile App",
+                            version: "2.5.0-pro",
+                            package: "com.smartshop.mobile",
+                            timestamp: new Date().toISOString(),
+                            manifest: "/manifest.webmanifest",
+                            offlineReady: true,
+                          },
+                          null,
+                          2
+                        ),
+                      ],
+                      { type: "application/json" }
+                    );
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "SmartShop_Android_v2.5.0_Package.json";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-amber-300" />
+                  <span>APK প্যাকেজ বান্ডেল ডাউনলোড</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("guide")}
+                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>📖 ইনস্টল ও অফলাইন নির্দেশিকা</span>
+                </button>
+              </div>
+
               {/* Share and Copy buttons */}
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleCopyLink}
-                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition"
+                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   <span>{copied ? "লিংক কপি হয়েছে!" : "অ্যাপ লিংক কপি"}</span>
@@ -241,7 +288,7 @@ export const AndroidAppInstallModal: React.FC<AndroidAppInstallModalProps> = ({
 
                 <button
                   onClick={handleShareWhatsApp}
-                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition"
+                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <Share2 className="w-4 h-4" />
                   <span>হোয়াটসঅ্যাপে শেয়ার</span>

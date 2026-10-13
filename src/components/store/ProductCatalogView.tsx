@@ -857,9 +857,25 @@ export const ProductCatalogView: React.FC<ProductCatalogViewProps> = ({ onQuickV
             </div>
           )}
 
-          {/* Pagination Controls */}
+          {/* Pagination & View More Controls */}
           {filteredProducts.length > 0 && (
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-600">
+            <div className="space-y-3">
+              {currentPage < totalPages && (
+                <div className="flex justify-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPageSize((prev) => Math.min(prev + 12, 48));
+                    }}
+                    className="px-6 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200 transition shadow-2xs flex items-center gap-2 cursor-pointer active:scale-98"
+                  >
+                    <span>আরও ১২টি পণ্য দেখুন (Load More Products)</span>
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </button>
+                </div>
+              )}
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-600">
               <div>
                 Showing <strong className="text-slate-900">{Math.min((currentPage - 1) * pageSize + 1, filteredProducts.length)}</strong> to{" "}
                 <strong className="text-slate-900">{Math.min(currentPage * pageSize, filteredProducts.length)}</strong> of{" "}
@@ -900,6 +916,7 @@ export const ProductCatalogView: React.FC<ProductCatalogViewProps> = ({ onQuickV
                 </button>
               </div>
             </div>
+          </div>
           )}
         </main>
       </div>

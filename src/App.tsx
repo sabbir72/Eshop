@@ -8,6 +8,8 @@ import { AdminPanel } from "./components/admin/AdminPanel";
 import { CartDrawer } from "./components/store/CartDrawer";
 import { AuthModal } from "./components/store/AuthModal";
 import { AndroidAppInstallModal } from "./components/common/AndroidAppInstallModal";
+import { UserProfilePopup } from "./components/common/UserProfilePopup";
+import { ExcelDataSyncModal } from "./components/common/ExcelDataSyncModal";
 import { OfflineIndicator } from "./components/common/OfflineIndicator";
 
 const MainContent: React.FC = () => {
@@ -15,6 +17,8 @@ const MainContent: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
+  const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
   // Handle Android App launcher shortcuts & deep links
   useEffect(() => {
@@ -23,6 +27,7 @@ const MainContent: React.FC = () => {
       const tab = params.get("tab");
       const view = params.get("view");
       const appInstall = params.get("install");
+      const excel = params.get("excel");
 
       if (tab === "ai-agent") {
         setMode("admin");
@@ -37,13 +42,26 @@ const MainContent: React.FC = () => {
       if (appInstall === "android") {
         setIsAndroidModalOpen(true);
       }
+      if (excel === "true") {
+        setIsExcelModalOpen(true);
+      }
     } catch {
       // ignore
     }
 
     const handleOpenAndroid = () => setIsAndroidModalOpen(true);
+    const handleOpenProfile = () => setIsProfilePopupOpen(true);
+    const handleOpenExcel = () => setIsExcelModalOpen(true);
+
     window.addEventListener("open-android-install", handleOpenAndroid);
-    return () => window.removeEventListener("open-android-install", handleOpenAndroid);
+    window.addEventListener("open-user-profile", handleOpenProfile);
+    window.addEventListener("open-excel-sync", handleOpenExcel);
+
+    return () => {
+      window.removeEventListener("open-android-install", handleOpenAndroid);
+      window.removeEventListener("open-user-profile", handleOpenProfile);
+      window.removeEventListener("open-excel-sync", handleOpenExcel);
+    };
   }, [setMode, setStoreView, setAdminView]);
 
   return (
@@ -52,6 +70,7 @@ const MainContent: React.FC = () => {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenAndroidAppModal={() => setIsAndroidModalOpen(true)}
+        onOpenUserProfile={() => setIsProfilePopupOpen(true)}
       />
 
       <main className="flex-1 pb-24 md:pb-8">
@@ -65,6 +84,20 @@ const MainContent: React.FC = () => {
 
       {/* Auth Modal */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+
+      {/* User Profile Popup with Auto-hide on outside click */}
+      <UserProfilePopup
+        isOpen={isProfilePopupOpen}
+        onClose={() => setIsProfilePopupOpen(false)}
+        onOpenExcelModal={() => setIsExcelModalOpen(true)}
+        onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+      />
+
+      {/* Universal Excel System Modal (Template Download, Bulk Upload, Export All) */}
+      <ExcelDataSyncModal
+        isOpen={isExcelModalOpen}
+        onClose={() => setIsExcelModalOpen(false)}
+      />
 
       {/* Android Mobile App Install & Hub Modal */}
       <AndroidAppInstallModal
