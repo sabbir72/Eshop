@@ -48,7 +48,10 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
     orders,
     wishlist,
     cart,
+    language,
   } = useStore();
+
+  const isBN = language === "BN";
 
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +159,7 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                   {activeRole}
                 </span>
                 <span className="flex items-center gap-1 text-[11px] text-slate-300">
-                  <CheckCircle className="w-3 h-3 text-emerald-400" /> ভেরিফাইড
+                  <CheckCircle className="w-3 h-3 text-emerald-400" /> {isBN ? "ভেরিফাইড" : "Verified"}
                 </span>
               </div>
               <h3 className="text-base font-black text-white truncate">
@@ -178,16 +181,16 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
           {/* User Fast Stats */}
           <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/10 text-center">
             <div className="bg-white/5 p-2 rounded-xl">
-              <span className="text-[10px] text-slate-400 uppercase font-bold block">মোট অর্ডার</span>
-              <span className="text-sm font-black text-white">{userOrdersCount}টি</span>
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">{isBN ? "মোট অর্ডার" : "Total Orders"}</span>
+              <span className="text-sm font-black text-white">{userOrdersCount}{isBN ? "টি" : ""}</span>
             </div>
             <div className="bg-white/5 p-2 rounded-xl">
-              <span className="text-[10px] text-slate-400 uppercase font-bold block">পছন্দের তালিকা</span>
-              <span className="text-sm font-black text-rose-400">{wishlist.length}টি</span>
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">{isBN ? "পছন্দের তালিকা" : "Wishlist"}</span>
+              <span className="text-sm font-black text-rose-400">{wishlist.length}{isBN ? "টি" : ""}</span>
             </div>
             <div className="bg-white/5 p-2 rounded-xl">
-              <span className="text-[10px] text-slate-400 uppercase font-bold block">কার্ট আইটেম</span>
-              <span className="text-sm font-black text-amber-400">{cart.length}টি</span>
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">{isBN ? "কার্ট আইটেম" : "Cart Items"}</span>
+              <span className="text-sm font-black text-amber-400">{cart.length}{isBN ? "টি" : ""}</span>
             </div>
           </div>
         </div>
@@ -255,8 +258,12 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                   <Smartphone className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <p className="font-extrabold text-xs text-teal-950">অ্যান্ড্রয়েড মোবাইল অ্যাপ (v2.5.0)</p>
-                  <p className="text-[10px] text-teal-700 font-medium">১-ক্লিক অ্যান্ড্রয়েড ইনস্টল, PWA ও অফলাইন সুবিধা</p>
+                  <p className="font-extrabold text-xs text-teal-950">
+                    {isBN ? "অ্যান্ড্রয়েড মোবাইল অ্যাপ (v2.5.0)" : "Android Mobile App (v2.5.0)"}
+                  </p>
+                  <p className="text-[10px] text-teal-700 font-medium">
+                    {isBN ? "১-ক্লিক অ্যান্ড্রয়েড ইনস্টল, PWA ও অফলাইন সুবিধা" : "1-Click install, WebAPK & offline mode"}
+                  </p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-teal-600 group-hover:translate-x-0.5 transition-transform" />
@@ -270,11 +277,17 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                     if (mode === "storefront") {
                       setMode("admin");
                       setAdminView("dashboard");
-                      addToast("অ্যাডমিন কমান্ড সেন্টারে প্রবেশ করা হয়েছে", "success");
+                      addToast(
+                        isBN ? "অ্যাডমিন কমান্ড সেন্টারে প্রবেশ করা হয়েছে" : "Entered Admin Command Center",
+                        "success"
+                      );
                     } else {
                       setMode("storefront");
                       setStoreView("home");
-                      addToast("কাস্টমার স্টোরফ্রন্টে ফিরে এসেছেন", "info");
+                      addToast(
+                        isBN ? "কাস্টমার স্টোরফ্রন্টে ফিরে এসেছেন" : "Switched to Storefront View",
+                        "info"
+                      );
                     }
                   })
                 }
@@ -290,10 +303,22 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                   </div>
                   <div className="text-left">
                     <p className="font-extrabold text-xs text-indigo-950">
-                      {mode === "storefront" ? "অ্যাডমিন কমান্ড সেন্টার (Admin Portal)" : "কাস্টমার স্টোরফ্রন্ট ভিউ (Storefront)"}
+                      {mode === "storefront"
+                        ? isBN
+                          ? "অ্যাডমিন কমান্ড সেন্টার (Admin Portal)"
+                          : "Admin Command Center (Portal)"
+                        : isBN
+                        ? "কাস্টমার স্টোরফ্রন্ট ভিউ (Storefront)"
+                        : "Customer Storefront View"}
                     </p>
                     <p className="text-[10px] text-indigo-700 font-medium">
-                      {mode === "storefront" ? "পণ্য, ইনভেন্টরি, অর্ডার ও এআই অপারেটর" : "সাধারণ ক্রেতা হিসেবে ওয়েবসাইট ব্রাউজ করুন"}
+                      {mode === "storefront"
+                        ? isBN
+                          ? "পণ্য, ইনভেন্টরি, অর্ডার ও এআই অপারেটর"
+                          : "Manage products, inventory, orders & AI"
+                        : isBN
+                        ? "সাধারণ ক্রেতা হিসেবে ওয়েবসাইট ব্রাউজ করুন"
+                        : "Browse website as regular customer"}
                     </p>
                   </div>
                 </div>
@@ -316,10 +341,18 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                 </div>
                 <div className="text-left">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-xs text-indigo-950">পূর্ণাঙ্গ ইউজার ভিউ ও প্রোফাইল</span>
-                    <span className="text-[9px] font-black bg-indigo-200 text-indigo-800 px-1.5 py-0.2 rounded">আপডেট</span>
+                    <span className="font-extrabold text-xs text-indigo-950">
+                      {isBN ? "পূর্ণাঙ্গ ইউজার ভিউ ও প্রোফাইল" : "Full User Account Profile"}
+                    </span>
+                    <span className="text-[9px] font-black bg-indigo-200 text-indigo-800 px-1.5 py-0.2 rounded">
+                      {isBN ? "আপডেট" : "PRO"}
+                    </span>
                   </div>
-                  <p className="text-[10px] text-indigo-700 font-medium">অর্ডার ড্যাশবোর্ড, লয়ালটি পয়েন্ট, ঠিকানা বই ও নিরাপত্তা</p>
+                  <p className="text-[10px] text-indigo-700 font-medium">
+                    {isBN
+                      ? "অর্ডার ড্যাশবোর্ড, লয়ালটি পয়েন্ট, ঠিকানা বই ও নিরাপত্তা"
+                      : "Orders dashboard, points, address book & security"}
+                  </p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
@@ -339,8 +372,14 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                   <ShoppingBag className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <span className="font-bold text-xs block">আমার সকল অর্ডার ও ট্র্যাকিং</span>
-                  <span className="text-[10px] text-slate-500 font-medium">অর্ডার স্টেটাস, রিসিট ও ডেলিভারি হিস্ট্রি</span>
+                  <span className="font-bold text-xs block">
+                    {isBN ? "আমার সকল অর্ডার ও ট্র্যাকিং" : "My Orders & Tracking"}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {isBN
+                      ? "অর্ডার স্টেটাস, রিসিট ও ডেলিভারি হিস্ট্রি"
+                      : "Order status, receipts & tracking"}
+                  </span>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -354,19 +393,19 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
             onClick={() => {
               onClose();
               logoutUser();
-              addToast("সফলভাবে লগআউট করা হয়েছে", "info");
+              addToast(isBN ? "সফলভাবে লগআউট করা হয়েছে" : "Logged out successfully", "info");
             }}
-            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer border border-rose-200"
+            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer border border-rose-200 active:scale-95"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>লগআউট (Sign Out)</span>
+            <span>{isBN ? "লগআউট (Sign Out)" : "Sign Out"}</span>
           </button>
 
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer active:scale-95"
           >
-            বন্ধ করুন (Close)
+            {isBN ? "বন্ধ করুন (Close)" : "Close"}
           </button>
         </div>
       </div>

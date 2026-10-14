@@ -312,23 +312,31 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2">
-                <h4 className="text-sm font-black text-white">SmartShop Android Mobile App</h4>
+                <h4 className="text-sm font-black text-white">
+                  {language === "BN" ? "স্মার্টশপ অ্যান্ড্রয়েড মোবাইল অ্যাপ" : "SmartShop Android Mobile App"}
+                </h4>
                 <span className="px-2 py-0.2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold rounded-md">
-                  v2.4.0 Live
+                  v2.5.0 Pro
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                আপনার অ্যান্ড্রয়েড ফোনে সরাসরি অ্যাপ হিসেবে ইনস্টল করুন — কোনো স্টোর ঝামেলা ছাড়া ১-ক্লিকে ইনস্টল ও অফলাইন সুবিধা।
+                {language === "BN"
+                  ? "আপনার অ্যান্ড্রয়েড ফোনে সরাসরি অ্যাপ হিসেবে ইনস্টল করুন — ১-ক্লিকে ইনস্টল ও দ্রুত অফলাইন সুবিধা।"
+                  : "Install directly on your Android phone as a standalone app — 1-click install, blazing speed & offline mode."}
               </p>
             </div>
           </div>
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("open-android-install"))}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition shrink-0"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition shrink-0 active:scale-95"
           >
             <Download className="w-4 h-4 text-slate-950" />
-            <span>অ্যান্ড্রয়েড অ্যাপ ইনস্টল (Install App)</span>
+            <span>
+              {language === "BN"
+                ? "অ্যান্ড্রয়েড অ্যাপ ইনস্টল করুন"
+                : "Install Android App"}
+            </span>
           </button>
         </div>
       </div>

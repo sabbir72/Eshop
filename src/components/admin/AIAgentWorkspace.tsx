@@ -2560,29 +2560,50 @@ export const AIAgentWorkspace: React.FC = () => {
             </div>
 
             {/* Presets */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Common Presets</span>
-              <div className="flex flex-col gap-1.5">
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Common Bangladeshi E-Commerce Scenarios</span>
+              <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto no-scrollbar">
                 <button
                   type="button"
                   onClick={() => setCustomerMsg("দাম একটু কমানো যাবে কি? অন্য দোকানে তো কমে পাওয়া যাচ্ছে।")}
-                  className="text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[11px] text-slate-700 transition"
+                  className="text-left p-2.5 bg-slate-50 hover:bg-cyan-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-700 transition"
                 >
                   💵 "দাম একটু কমানো যাবে কি? অন্য দোকানে কমে পাওয়া যাচ্ছে।"
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCustomerMsg("পণ্যটি কি আসল? কোনো ওয়ারেন্টি পাবো কি না?")}
-                  className="text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[11px] text-slate-700 transition"
+                  onClick={() => setCustomerMsg("পণ্যটি কি ১০০% আসল? কোনো অফিসিয়াল ওয়ারেন্টি পাবো কি না?")}
+                  className="text-left p-2.5 bg-slate-50 hover:bg-cyan-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-700 transition"
                 >
-                  🛡️ "পণ্যটি কি আসল? কোনো ওয়ারেন্টি পাবো কি না?"
+                  🛡️ "পণ্যটি কি আসল? কোনো ওয়ারেন্টি পাবো কি না?"
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCustomerMsg("ডেলিভারি কবে পাবো? আমার আগামীকাল সন্ধ্যার মধ্যে দরকার।")}
-                  className="text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[11px] text-slate-700 transition"
+                  onClick={() => setCustomerMsg("৩ দিন হয়ে গেছে আমার অর্ডার ORD-8942 এখনো পাইনি, কুরিয়ার ট্র্যাকিং স্ট্যাটাস কী?")}
+                  className="text-left p-2.5 bg-slate-50 hover:bg-cyan-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-700 transition"
                 >
-                  ⚡ "ডেলিভারি কবে পাবো? আগামীকাল দরকার।"
+                  📦 "৩ দিন হয়ে গেছে অর্ডার ORD-8942 পাইনি, ডেলিভারি কবে?"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomerMsg("বিকাশে পেমেন্ট করেছি কিন্তু অর্ডারে ফেইল্ড দেখাচ্ছে, TrxID: 9X7B21Q")}
+                  className="text-left p-2.5 bg-slate-50 hover:bg-cyan-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-700 transition"
+                >
+                  💳 "বিকাশ টাকা কেটেছে অর্ডারে ফেইল্ড দেখাচ্ছে (TrxID: 9X7B21Q)"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomerMsg("প্যাকেট খুলে দেখি প্রোডাক্টের ডিসপ্লে ক্র্যাক, আমি কি ফ্রি রিপ্লেসমেন্ট পাবো?")}
+                  className="text-left p-2.5 bg-slate-50 hover:bg-cyan-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-700 transition"
+                >
+                  💔 "পণ্য ভাঙা পেয়েছি, ফ্রি রিপ্লেসমেন্ট পলিসি কী?"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomerMsg("আমার অর্ডারটি এখনো রাইডারকে দেওয়া হয়নি, আমি বাতিল করতে চাই।")}
+                  className="text-left p-2.5 bg-slate-50 hover:bg-cyan-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-700 transition"
+                >
+                  ❌ "অর্ডারটি এখনও পাঠানো হয়নি, আমি ক্যানসেল করতে চাই"
                 </button>
               </div>
             </div>
@@ -2593,12 +2614,22 @@ export const AIAgentWorkspace: React.FC = () => {
               className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50"
             >
               <Sparkles className={`w-4 h-4 ${cLoading ? "animate-spin" : ""}`} />
-              <span>{cLoading ? "Formulating Response..." : "Formulate Winning Reply"}</span>
+              <span>{cLoading ? "Formulating Realistic Response..." : "Formulate Winning Reply"}</span>
             </button>
           </div>
 
           <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-            <h3 className="font-black text-slate-900 text-sm border-b border-slate-100 pb-3">AI Response & Objection Handling Strategy</h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-black text-slate-900 text-sm">AI Response & Objection Handling Strategy</h3>
+                <p className="text-[11px] text-slate-400">Contextual, culturally authentic, & conversion-oriented</p>
+              </div>
+              {cResult?.detectedSentiment && (
+                <span className="px-2.5 py-1 bg-cyan-50 text-cyan-800 border border-cyan-200 rounded-lg text-[10px] font-bold">
+                  {cResult.detectedSentiment}
+                </span>
+              )}
+            </div>
 
             {cResult ? (
               <div className="space-y-4 text-xs">
@@ -2606,14 +2637,25 @@ export const AIAgentWorkspace: React.FC = () => {
                 <div className="p-4 bg-cyan-50/70 border border-cyan-100 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-cyan-800 tracking-wider">Suggested Reply (Bengali)</span>
-                    <button
-                      onClick={() => copyToClipboard(cResult.suggestedResponseBengali, "Bengali reply copied!")}
-                      className="px-2.5 py-1 bg-white border border-cyan-200 rounded-lg font-bold text-cyan-700 flex items-center gap-1 shadow-2xs hover:bg-cyan-50 transition"
-                    >
-                      <Copy className="w-3 h-3" /> Copy
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => copyToClipboard(cResult.suggestedResponseBengali, "Bengali reply copied!")}
+                        className="px-2.5 py-1 bg-white border border-cyan-200 rounded-lg font-bold text-cyan-700 flex items-center gap-1 shadow-2xs hover:bg-cyan-50 transition"
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(cResult.suggestedResponseBengali)}`;
+                          window.open(url, "_blank");
+                        }}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 shadow-2xs transition"
+                      >
+                        WhatsApp
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-slate-800 leading-relaxed font-medium text-xs">{cResult.suggestedResponseBengali}</p>
+                  <p className="text-slate-800 leading-relaxed font-medium text-xs whitespace-pre-line">{cResult.suggestedResponseBengali}</p>
                 </div>
 
                 {/* English Response */}
@@ -2627,7 +2669,7 @@ export const AIAgentWorkspace: React.FC = () => {
                       <Copy className="w-3 h-3" /> Copy
                     </button>
                   </div>
-                  <p className="text-slate-700 leading-relaxed text-xs">{cResult.suggestedResponseEnglish}</p>
+                  <p className="text-slate-700 leading-relaxed text-xs whitespace-pre-line">{cResult.suggestedResponseEnglish}</p>
                 </div>
 
                 {/* Tactical metadata */}
@@ -2637,7 +2679,7 @@ export const AIAgentWorkspace: React.FC = () => {
                     <p className="font-semibold text-slate-800">{cResult.negotiationTactic || "Value Guarantee over Price"}</p>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Recommended Action</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Recommended Staff Action</span>
                     <p className="font-semibold text-indigo-700">{cResult.recommendedAction || "Provide 5% welcome code"}</p>
                   </div>
                 </div>
@@ -2691,8 +2733,44 @@ export const AIAgentWorkspace: React.FC = () => {
                 rows={3}
                 value={serviceComplaint}
                 onChange={(e) => setServiceComplaint(e.target.value)}
+                placeholder="Enter customer issue details or select a preset below..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800"
               />
+            </div>
+
+            {/* Service Desk Dispute Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Common Dispute Presets</span>
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setServiceComplaint("আমার অর্ডারটি ৩ দিন আগে আসার কথা ছিল কিন্তু এখনও পাইনি। কুরিয়ার ট্র্যাক করে দ্রুত ডেলিভারি নিশ্চিত করুন।")}
+                  className="text-left p-2 bg-slate-50 hover:bg-purple-50/70 border border-slate-200/60 rounded-lg text-[11px] text-slate-700 transition"
+                >
+                  🚚 "পার্সেল কুরিয়ার হাবে আটকে আছে, ডেলিভারি বিলম্ব"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiceComplaint("প্যাকেট খুলে দেখি পণ্যটি ভাঙা ও স্ক্র্যাচ পড়েছে। অবিলম্বে ফ্রি রিপ্লেসমেন্ট পার্সেল পাঠান।")}
+                  className="text-left p-2 bg-slate-50 hover:bg-purple-50/70 border border-slate-200/60 rounded-lg text-[11px] text-slate-700 transition"
+                >
+                  📦 "ভাঙা/ত্রুটিযুক্ত পণ্য পেয়েছি (বিনামূল্যে RMA পিকআপ)"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiceComplaint("বিকাশে টাকা কেটে নিয়েছে কিন্তু অর্ডারে ইনভয়েস আনপেইড দেখাচ্ছে। ট্রানজেকশন ভেরিফাই করুন।")}
+                  className="text-left p-2 bg-slate-50 hover:bg-purple-50/70 border border-slate-200/60 rounded-lg text-[11px] text-slate-700 transition"
+                >
+                  💳 "বিকাশ টাকা কেটেছে, ইনভয়েস আনপেইড"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiceComplaint("ভুল সাইজ পাঠানো হয়েছে, আমি এক্সচেঞ্জ করে সঠিক সাইজ নিতে চাই।")}
+                  className="text-left p-2 bg-slate-50 hover:bg-purple-50/70 border border-slate-200/60 rounded-lg text-[11px] text-slate-700 transition"
+                >
+                  🔄 "ভুল সাইজ পাঠানো হয়েছে (এক্সচেঞ্জ রিকোয়েস্ট)"
+                </button>
+              </div>
             </div>
 
             <button
@@ -2701,7 +2779,7 @@ export const AIAgentWorkspace: React.FC = () => {
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50"
             >
               <Sparkles className={`w-4 h-4 ${sLoading ? "animate-spin" : ""}`} />
-              <span>{sLoading ? "Resolving with AI..." : "Draft Policy Resolution"}</span>
+              <span>{sLoading ? "Resolving with Realistic AI..." : "Draft Policy Resolution"}</span>
             </button>
           </div>
 
@@ -2726,16 +2804,43 @@ export const AIAgentWorkspace: React.FC = () => {
                 {/* Resolution Message Bengali */}
                 <div className="p-4 bg-purple-50/70 border border-purple-100 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-purple-800 tracking-wider">Official Resolution Reply</span>
-                    <button
-                      onClick={() => copyToClipboard(sResult.officialReplyBengali, "Service reply copied!")}
-                      className="px-2.5 py-1 bg-white border border-purple-200 rounded-lg font-bold text-purple-700 flex items-center gap-1 shadow-2xs hover:bg-purple-50 transition"
-                    >
-                      <Copy className="w-3 h-3" /> Copy
-                    </button>
+                    <span className="text-[10px] font-black uppercase text-purple-800 tracking-wider">Official Resolution Reply (Bengali)</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => copyToClipboard(sResult.officialReplyBengali, "Service reply copied!")}
+                        className="px-2.5 py-1 bg-white border border-purple-200 rounded-lg font-bold text-purple-700 flex items-center gap-1 shadow-2xs hover:bg-purple-50 transition"
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(sResult.officialReplyBengali)}`;
+                          window.open(url, "_blank");
+                        }}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 shadow-2xs transition"
+                      >
+                        WhatsApp
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-slate-800 leading-relaxed font-medium text-xs">{sResult.officialReplyBengali}</p>
+                  <p className="text-slate-800 leading-relaxed font-medium text-xs whitespace-pre-line">{sResult.officialReplyBengali}</p>
                 </div>
+
+                {/* Resolution Message English */}
+                {sResult.officialReplyEnglish && (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Official Resolution Reply (English)</span>
+                      <button
+                        onClick={() => copyToClipboard(sResult.officialReplyEnglish, "English reply copied!")}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 flex items-center gap-1 shadow-2xs hover:bg-slate-100 transition"
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                    </div>
+                    <p className="text-slate-700 leading-relaxed text-xs whitespace-pre-line">{sResult.officialReplyEnglish}</p>
+                  </div>
+                )}
 
                 {/* Policy check & voucher */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

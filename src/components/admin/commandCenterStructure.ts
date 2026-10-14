@@ -23,6 +23,8 @@ import {
   Globe,
   Bot,
   FileSpreadsheet,
+  Wallet,
+  DollarSign,
 } from "lucide-react";
 import { AdminView } from "../../context/StoreContext";
 import { ModuleName } from "../../types";
@@ -110,12 +112,30 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
             isPopular: true,
           },
           {
+            id: "dashboard",
+            name: "Live Traffic & Load Tracker",
+            description: "Real-time active visitors, requests per second (RPS), server latency & stress monitoring",
+            icon: Activity,
+            module: "Reports",
+            tag: "Live Traffic",
+            isPopular: true,
+          },
+          {
             id: "excel-hub",
             name: "Excel Data Hub",
             description: "Universal Excel & CSV data sync, bulk product upload & multi-sheet master backup",
             icon: FileSpreadsheet,
             module: "Product",
             tag: "Excel System",
+            isPopular: true,
+          },
+          {
+            id: "cash-calculation",
+            name: "Cash Calculation & Reconciliation Log",
+            description: "Real-time COD cash-in-hand, courier remittance, cash drawer denomination tally & daily financial balance",
+            icon: Wallet,
+            module: "Reports",
+            tag: "Cash Audit",
             isPopular: true,
           },
         ],
@@ -252,6 +272,20 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
             icon: Tag,
             module: "Coupon",
             tag: "Multi-Scope Engine",
+      },
+      {
+        id: "cash-reconciliation-ops",
+        name: "Cash Reconciliation & Ledger",
+        description: "COD settlement, cashier drawer denomination audit & courier balance",
+        features: [
+          {
+            id: "cash-calculation",
+            name: "Cash Calculation & Reconciliation Log",
+            description: "Real-time COD cash-in-hand, courier remittance, cash drawer denomination tally & daily financial balance",
+            icon: Wallet,
+            module: "Reports",
+            tag: "Cash Audit",
+            isPopular: true,
           },
         ],
       },

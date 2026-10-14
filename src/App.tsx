@@ -8,6 +8,7 @@ import { AdminPanel } from "./components/admin/AdminPanel";
 import { CartDrawer } from "./components/store/CartDrawer";
 import { AuthModal } from "./components/store/AuthModal";
 import { AndroidAppInstallModal } from "./components/common/AndroidAppInstallModal";
+import { AndroidBottomNav } from "./components/common/AndroidBottomNav";
 import { UserProfilePopup } from "./components/common/UserProfilePopup";
 import { ExcelDataSyncModal } from "./components/common/ExcelDataSyncModal";
 import { OfflineIndicator } from "./components/common/OfflineIndicator";
@@ -107,6 +108,12 @@ const MainContent: React.FC = () => {
 
       {/* Offline Status Connectivity Indicator */}
       <OfflineIndicator />
+
+      {/* Android Native Smart Bottom Navigation */}
+      <AndroidBottomNav
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenAndroidAppModal={() => setIsAndroidModalOpen(true)}
+      />
 
       {/* Toast Notifications */}
       <NotificationToast />

@@ -8,6 +8,10 @@ import {
   exportToExcel,
 } from "../../utils/exportUtils";
 import {
+  generateRealisticCustomerReply,
+  generateRealisticServiceResolution,
+} from "../../services/aiRealisticReplyService";
+import {
   Headphones,
   RotateCcw,
   MessageSquare,
@@ -280,40 +284,29 @@ export const CustomerSupportManagement: React.FC = () => {
       // offline rule-based fallback
     }
 
-    // High quality contextual fallback
+    // Dynamic, realistic service resolution generator
     setTimeout(() => {
-      let bReply = "";
-      let eReply = "";
-      let action = "Investigate within 24 hours";
-      let voucher = "CARE50";
-
-      if (cat === "Shipping") {
-        bReply = `প্রিয় ${selectedTicket.customerName},\nআপনার অর্ডার (#${selectedTicket.orderNumber || "ORD-RECENT"}) বিলম্বিত হওয়ায় আমরা আন্তরিকভাবে দুঃখিত। আমাদের লজিস্টিকস পার্টনার (Steadfast/Paperfly) এর সাথে যোগাযোগ করা হয়েছে এবং পার্সেলটি দ্রুততম সময়ে আপনার ঠিকানায় পৌঁছে দেওয়ার জন্য অগ্রাধিকার দেওয়া হয়েছে। সাময়িক এই সমস্যার জন্য আমরা ক্ষমাপ্রার্থী।`;
-        eReply = `Dear ${selectedTicket.customerName},\nWe sincerely apologize for the delivery delay on your order (${selectedTicket.orderNumber || "N/A"}). We have expedited dispatch with our courier partner for priority delivery today.`;
-        action = "Courier tracking flag sent to warehouse";
-      } else if (cat === "Payment") {
-        bReply = `প্রিয় ${selectedTicket.customerName},\nআপনার পেমেন্ট সংক্রান্ত বার্তাটি পেয়েছি। ট্রানজেকশনটি ভেরিফিকেশন করা হয়েছে। অতিরিক্ত কোনো চার্জ কর্তন হয়ে থাকলে তা স্বয়ংক্রিয়ভাবে পরবর্তী ২৪-৪৮ কর্মঘণ্টার মধ্যে আপনার মূল বিকাশ/নগদ/কার্ডে রিফান্ড হয়ে যাবে। অর্ডার স্ট্যাটাস কনফার্ম করা হয়েছে।`;
-        eReply = `Dear ${selectedTicket.customerName},\nWe have verified your payment transaction. Any excess debit will be refunded back to your account within 24-48 business hours. Your order is confirmed.`;
-        action = "SSLCommerz payment gateway reconciliation";
-      } else if (cat === "Returns") {
-        bReply = `প্রিয় ${selectedTicket.customerName},\nআপনার রিটার্ন/রিপ্লেসমেন্ট অনুরোধটি আমাদের সার্ভিস টিম পর্যালোচনা করেছে। আমাদের ৭ দিনের সহজ রিটার্ন পলিসি অনুযায়ী আমরা একটি ফ্রি পিকআপ শিডিউল করেছি। কুরিয়ার প্রতিনিধি আপনার থেকে পণ্যটি সংগ্রহ করবেন এবং অবিলম্বে নতুন পণ্য বা ফুল রিফান্ড দেওয়া হবে।`;
-        eReply = `Dear ${selectedTicket.customerName},\nUnder our 7-day hassle-free return guarantee, we have scheduled a free courier pickup for the defective item. A full replacement or refund will be issued promptly.`;
-        action = "RMA pickup scheduled with 0 pickup fee";
-        voucher = "SORRY100";
-      } else {
-        bReply = `প্রিয় ${selectedTicket.customerName},\nআমাদের সাথে যোগাযোগ করার জন্য ধন্যবাদ। আপনার সমস্যাটি আমাদের সর্বোচ্চ গুরুত্ব দেওয়া হয়েছে। আমাদের সার্ভিস টিম শীঘ্রই চূড়ান্ত সমাধান প্রদান করবে। প্রয়োজনে হটলাইনে কল করুন: 09612-888999।`;
-        eReply = `Dear ${selectedTicket.customerName},\nThank you for reaching out. We have logged your concern and our senior service desk is actively resolving it.`;
-      }
+      const realisticRes = generateRealisticServiceResolution({
+        ticketId: selectedTicket.ticketNumber || selectedTicket.id,
+        issueType: selectedTicket.category || "General Support",
+        customerName: selectedTicket.customerName,
+        orderId: selectedTicket.orderNumber || "ORD-RECENT",
+        complaintDetails: `${selectedTicket.subject} - ${firstMsg}`,
+        storeContext: {
+          productsCount: products.length,
+          returnDays: 7,
+        },
+      });
 
       setAiDraftResolution({
-        bengali: bReply,
-        english: eReply,
-        suggestedAction: action,
-        suggestedVoucher: voucher,
+        bengali: realisticRes.officialReplyBengali,
+        english: realisticRes.officialReplyEnglish,
+        suggestedAction: realisticRes.policyCheck,
+        suggestedVoucher: realisticRes.suggestedCompensation,
       });
       setIsAiDrafting(false);
-      addToast("Dynamic AI Resolution generated successfully!", "success");
-    }, 700);
+      addToast("Dynamic Realistic AI Resolution generated!", "success");
+    }, 600);
   };
 
   // Run Customer Objection Simulator
@@ -362,48 +355,32 @@ export const CustomerSupportManagement: React.FC = () => {
       // offline heuristic
     }
 
-    // Dynamic heuristic simulation
+    // Dynamic realistic customer handling simulation
     setTimeout(() => {
-      const q = textToProcess.toLowerCase();
-      let ben = "";
-      let eng = "";
-      let tactic = "Value Affirmation & Assurance";
-      let perk = "Free Gift Wrap & ৳50 Discount Coupon";
-      let coupon = "VALUE50";
-
-      if (q.includes("দাম") || q.includes("discount") || q.includes("কমানো") || q.includes("price")) {
-        ben = "সম্মানিত ক্রেতা, আমাদের পণ্যগুলো ১০০% খাঁটি এবং অফিসিয়াল ওয়ারেন্টিযুক্ত। সরাসরি অথরাইজড চ্যানেল থেকে আনা হওয়ায় গুণগত মানে আমরা কোনো আপস করি না। আপনার বিশেষ সুবিধার জন্য আজকের অর্ডারে 'VALUE50' কুপনটি ব্যবহার করে ৫০ টাকা অতিরিক্ত ছাড় এবং ফ্রি গিফট উপভোগ করতে পারেন! 😊";
-        eng = "Dear valued shopper, all our items are 100% genuine with official brand warranty. While other stores may offer replicas, we never compromise on quality. You can use coupon 'VALUE50' right now for an exclusive ৳50 discount and complimentary gift wrap!";
-        tactic = "Quality Differentiation over Price Racing";
-        perk = "Instant ৳50 voucher + Free Gift Packing";
-      } else if (q.includes("কবে") || q.includes("delivery") || q.includes("ডেলিভারি") || q.includes("late")) {
-        ben = "ঢাকা সিটির ভেতর আমরা ২৪-৪৮ ঘণ্টায় এবং ঢাকার বাইরে ২-৩ কর্মদিবসে পণ্য পৌঁছে দিই। আপনার বিশেষ প্রয়োজনে আমরা এক্সপ্রেস কুরিয়ারে আজই পার্সেল বুকিং করে ট্র্যাকিং আইডি এসএমএস করে দিচ্ছি। নিশ্চিন্তে অর্ডার সম্পন্ন করতে পারেন। 🚚";
-        eng = "We offer 24-48 hour delivery inside Dhaka and 2-3 days outside Dhaka via express courier. We can prioritize your parcel dispatch today with real-time SMS tracking.";
-        tactic = "Urgency Relief & Real-Time Tracking Assurance";
-        perk = "Priority Fast-Track Dispatch";
-        coupon = "EXPRESS";
-      } else if (q.includes("আসল") || q.includes("original") || q.includes("ওয়ারেন্টি") || q.includes("fake")) {
-        ben = "আমাদের স্টোরের প্রতিটি পণ্য ১০০% অরিজিনাল এবং ব্র্যান্ডের অফিসিয়াল হোলোগ্রামযুক্ত। পণ্য হাতে পেয়ে চেক করে নেওয়ার সুযোগ রয়েছে এবং ৭ দিনের ফুল মানিব্যাক গ্যারান্টি প্রদান করা হয়। 🛡️";
-        eng = "Every product in our store is 100% authentic with genuine manufacturer seal and warranty card. You are entitled to inspect upon delivery plus enjoy our 7-day money-back guarantee.";
-        tactic = "Risk Reversal (Money-back + Inspection Guarantee)";
-        perk = "7-Day No-Questions-Asked Return Protection";
-        coupon = "SAFEBUY";
-      } else {
-        ben = "ধন্যবাদ আমাদের সাথে যোগাযোগ করার জন্য! আপনার সুবিধার জন্য আমাদের হটলাইন ও লাইভ সাপোর্ট ২৪/৭ সক্রিয় রয়েছে। আপনার যেকোনো মতামত বা প্রয়োজনে আমরা সর্বদা প্রস্তুত।";
-        eng = "Thank you for reaching out to us! Our dedicated customer service team is here to assist you with any questions or order requests.";
-        tactic = "Empathy & High-Touch Service";
-        perk = "Priority Customer VIP Hotline";
-      }
+      const dynamicCust = generateRealisticCustomerReply({
+        customerMessage: textToProcess,
+        storeContext: {
+          productsCount: products.length,
+          sampleProducts: products.slice(0, 5).map((p) => ({
+            name: p.name,
+            price: p.price,
+            category: p.categoryName,
+          })),
+          deliveryChargeDhaka: 60,
+          deliveryChargeOutside: 120,
+          returnDays: 7,
+        },
+      });
 
       setHandlerResult({
-        bengaliReply: ben,
-        englishReply: eng,
-        psychologicalTactic: tactic,
-        recommendedPerk: perk,
-        suggestedCoupon: coupon,
+        bengaliReply: dynamicCust.suggestedResponseBengali,
+        englishReply: dynamicCust.suggestedResponseEnglish,
+        psychologicalTactic: dynamicCust.negotiationTactic,
+        recommendedPerk: dynamicCust.recommendedAction,
+        suggestedCoupon: dynamicCust.quickAction?.type === "coupon" ? dynamicCust.quickAction.value : "WELCOME5",
       });
       setIsHandlerProcessing(false);
-      addToast("Dynamic response formulated successfully!", "success");
+      addToast("Dynamic realistic response formulated!", "success");
     }, 600);
   };
 

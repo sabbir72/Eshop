@@ -8,6 +8,11 @@ import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import { getPrismaClient } from "./src/lib/prisma";
 import { imageSuggestionService } from "./src/services/imageSuggestion";
+import {
+  generateRealisticCustomerReply,
+  generateRealisticServiceResolution,
+  generateRealisticAdminChatReply,
+} from "./src/services/aiRealisticReplyService";
 
 const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
 
@@ -26,8 +31,8 @@ export function createExpressApp() {
   function handleAiError(err: any) {
     const msg = String(err?.message || err);
     if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota") || msg.includes("exceeded")) {
-      // Cooldown for 2 hours to avoid hammering API and logging quota errors
-      geminiQuotaExhaustedUntil = Date.now() + 1000 * 60 * 120;
+      // Cooldown for 25 seconds to gracefully handle temporary rate bursts without locking out
+      geminiQuotaExhaustedUntil = Date.now() + 1000 * 25;
     }
   }
 
@@ -42,12 +47,12 @@ export function createExpressApp() {
     return new GoogleGenAI({ apiKey });
   }
 
-  async function callGeminiWithTimeout(ai: GoogleGenAI, prompt: string, timeoutMs = 3500): Promise<string> {
+  async function callGeminiWithTimeout(ai: GoogleGenAI, prompt: string, timeoutMs = 12000): Promise<string> {
     const timeoutPromise = new Promise<string>((_, reject) =>
       setTimeout(() => reject(new Error("AI call timed out")), timeoutMs)
     );
     try {
-      // Use gemini-2.5-flash which has higher rate limits and lower quota usage
+      // Use gemini-2.5-flash for high throughput and rich generation
       const aiPromise = ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
@@ -1194,56 +1199,70 @@ Return STRICT valid JSON format with keys:
         });
       }
 
-      // 4. CUSTOMER HANDLING AGENT TASK
+      // 4. CUSTOMER HANDLING AGENT TASK (Realistic, Dynamic & Culturally Authentic)
       if (task === "customer_handling") {
         const {
           customerMessage = "দাম একটু কমানো যাবে কি? অন্য দোকানে তো কমে পাওয়া যাচ্ছে।",
           customerType = "Hesitant Bargain Hunter / Price Sensitive",
           sentiment = "Hesitant",
           channel = "Live Chat / Messenger",
+          customerName = "সম্মানিত ক্রেতা",
         } = payload;
 
-        if (!ai) {
-          return res.json({
-            success: true,
-            provider: "Fallback Engine",
-            detectedSentiment: "Price Sensitive & Bargaining",
-            urgencyLevel: "Medium",
-            suggestedResponseBengali: `ধন্যবাদ আপনার বার্তার জন্য! 😊 আমাদের প্রতিটি পণ্য ১০০% অথেনটিক এবং অফিশিয়াল ব্র্যান্ড ওয়ারেন্টি সহ আসে। এছাড়া দ্রুত ডেলিভারি ও ৭ দিনের রিপ্লেসমেন্ট গ্যারান্টি তো থাকছেই। আপনার প্রথম অর্ডারের জন্য আমরা স্পেশাল ৫% লয়্যালটি ডিসকাউন্ট কোড 'WELCOME5' অফার করছি। আপনি কি এখনই অর্ডারটি কনফার্ম করতে চান?`,
-            suggestedResponseEnglish: `Thank you for your message! Our products are 100% authentic with official warranty, doorstep delivery, and 7-day hassle-free replacement. To welcome you, here is a special 5% discount code 'WELCOME5'. May I help you confirm your order?`,
-            negotiationTactic: "মূল্যের চেয়ে গুণমান, অফিশিয়াল ওয়ারেন্টি ও আফটার-সেলস সাপোর্টের সুবিধা বেশি তুলে ধরুন। সামান্য ডিসকাউন্ট দিয়ে ক্লোজ করুন।",
-            recommendedAction: "Offer 5% Voucher (WELCOME5) and offer Free Cash on Delivery",
-            objectionHandled: "Competitor Price Match via Value Guarantee",
-          });
-        }
+        // Generate baseline dynamic realistic response
+        const smartBaseReply = generateRealisticCustomerReply({
+          customerMessage,
+          customerType,
+          sentiment,
+          channel,
+          customerName,
+          storeContext: {
+            productsCount,
+            ordersCount,
+            totalRevenue,
+            sampleProducts,
+            deliveryChargeDhaka: 60,
+            deliveryChargeOutside: 120,
+            returnDays: 7,
+          },
+        });
 
-        const prompt = `You are a world-class Customer Relationship Specialist & AI Customer Handling Agent for an online store in Bangladesh.
+        if (ai) {
+          try {
+            const prompt = `You are a world-class, empathetic, and culturally authentic E-Commerce Customer Care Executive and Negotiation Specialist for SmartShop in Bangladesh.
 Customer Message: "${customerMessage}"
 Customer Persona: ${customerType}
 Detected Sentiment: ${sentiment}
 Channel: ${channel}
 Available Store Context:
 - Products in catalog: ${productsCount}
-- Standard Policy: 7 days easy return, Cash on delivery available across Bangladesh, Dhaka 24-48 hrs, Outside 2-4 days.
+- Sample Products: ${JSON.stringify(sampleProducts.slice(0, 4))}
+- Policy: 7 days easy return with 0 pickup charge, Cash on delivery in all 64 districts, Dhaka 24-48 hrs (৳60), Outside 2-4 days (৳120) via Steadfast/Pathao.
+- Authentic brand warranty, official invoice.
 
-Provide a polite, persuasive, culturally empathetic response in Bengali and English that wins the customer's trust and converts them into a buyer.
+Generate a highly natural, culturally authentic, courteous response tailored specifically to the customer's exact words.
+Tone: Warm, respectful, professional Bangladeshi Bengali and crisp professional English.
+Do not use boilerplate or generic clichés. Address their exact question or emotion directly.
 Return STRICT valid JSON format with keys:
 {
-  "detectedSentiment": "Sentiment analysis",
-  "urgencyLevel": "High | Medium | Low",
-  "suggestedResponseBengali": "Polite persuasive message in fluent Bengali",
-  "suggestedResponseEnglish": "Message in professional English",
-  "negotiationTactic": "Psychological/sales tactic used",
-  "recommendedAction": "Specific action for staff/agent",
-  "objectionHandled": "Core objection resolved"
+  "detectedSentiment": "${smartBaseReply.detectedSentiment}",
+  "urgencyLevel": "${smartBaseReply.urgencyLevel}",
+  "suggestedResponseBengali": "Personalized, polite, convincing message in natural Bengali",
+  "suggestedResponseEnglish": "Personalized, polite message in standard English",
+  "negotiationTactic": "${smartBaseReply.negotiationTactic}",
+  "recommendedAction": "${smartBaseReply.recommendedAction}",
+  "objectionHandled": "${smartBaseReply.objectionHandled}"
 }`;
 
-        if (ai) {
-          try {
-            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            let text = await callGeminiWithTimeout(ai, prompt, 12000);
             text = text.replace(/```json/g, "").replace(/```/g, "").trim();
             const parsed = JSON.parse(text);
-            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+            return res.json({
+              success: true,
+              provider: "Gemini 3.8 Flash (Dynamic Realistic)",
+              ...smartBaseReply,
+              ...parsed,
+            });
           } catch (e) {
             handleAiError(e);
           }
@@ -1251,18 +1270,12 @@ Return STRICT valid JSON format with keys:
 
         return res.json({
           success: true,
-          provider: "Fallback Engine",
-          detectedSentiment: "Price Sensitive & Bargaining",
-          urgencyLevel: "Medium",
-          suggestedResponseBengali: `ধন্যবাদ আপনার বার্তার জন্য! 😊 আমাদের প্রতিটি পণ্য ১০০% অথেনটিক এবং অফিশিয়াল ব্র্যান্ড ওয়ারেন্টি সহ আসে। এছাড়া দ্রুত ডেলিভারি ও ৭ দিনের রিপ্লেসমেন্ট গ্যারান্টি তো থাকছেই। আপনার প্রথম অর্ডারের জন্য আমরা স্পেশাল ৫% লয়্যালটি ডিসকাউন্ট কোড 'WELCOME5' অফার করছি। আপনি কি এখনই অর্ডারটি কনফার্ম করতে চান?`,
-          suggestedResponseEnglish: `Thank you for your message! Our products are 100% authentic with official warranty, doorstep delivery, and 7-day hassle-free replacement. To welcome you, here is a special 5% discount code 'WELCOME5'. May I help you confirm your order?`,
-          negotiationTactic: "মূল্যের চেয়ে গুণমান, অফিশিয়াল ওয়ারেন্টি ও আফটার-সেলস সাপোর্টের সুবিধা বেশি তুলে ধরুন। সামান্য ডিসকাউন্ট দিয়ে ক্লোজ করুন।",
-          recommendedAction: "Offer 5% Voucher (WELCOME5) and offer Free Cash on Delivery",
-          objectionHandled: "Competitor Price Match via Value Guarantee",
+          provider: "Dynamic Realistic Intelligence Engine",
+          ...smartBaseReply,
         });
       }
 
-      // 5. CUSTOMER SERVICE & SUPPORT DESK TASK
+      // 5. CUSTOMER SERVICE & SUPPORT DESK TASK (Dynamic & Realistic Service Protocol)
       if (task === "customer_service") {
         const {
           ticketId = "TICK-1024",
@@ -1272,26 +1285,19 @@ Return STRICT valid JSON format with keys:
           complaintDetails = "আমার অর্ডারটি ৩ দিন আগে আসার কথা ছিল কিন্তু এখনও পাইনি। কবে পাবো?",
         } = payload;
 
-        if (!ai) {
-          return res.json({
-            success: true,
-            provider: "Fallback Engine",
-            ticketId,
-            empathyRating: "5/5 Star Service Protocol",
-            resolutionStatus: "Action Required / In Transit",
-            officialReplyBengali: `প্রিয় ${customerName}, আপনার অর্ডারটি (#${orderId}) পৌঁছাতে অপ্রত্যাশিত বিলম্বের জন্য আমরা আন্তরিকভাবে দুঃখিত। 🙏 আমাদের লজিস্টিকস টিম আপনার পার্সেলটি ট্র্যাক করে জানিয়েছে এটি কুরিয়ার হাব থেকে আপনার এরিয়া ডেলিভারিতে বের হয়েছে এবং ইনশাআল্লাহ আগামী ২৪ ঘণ্টার মধ্যে আপনার হাতে পৌঁছে যাবে। আপনার সাময়িক অসুবিধার ক্ষতিপূরণস্বরূপ আপনার পরবর্তী অর্ডারে ৳১০০ ফ্ল্যাট ডিসকাউন্ট কোড 'CARE100' ব্যবহার করতে পারবেন। যেকোনো প্রয়োজনে আমরা সার্বক্ষণিক আপনার পাশে আছি।`,
-            officialReplyEnglish: `Dear ${customerName}, we sincerely apologize for the delay regarding order #${orderId}. Our logistics team has verified your parcel is out for final local delivery and should reach you within the next 24 hours. As a token of our appreciation for your patience, please enjoy coupon code 'CARE100' for ৳100 off your next order. Thank you for your continued trust in SmartShop!`,
-            policyCheck: "Eligible for expedited dispatch & courtesy discount under Store Delivery SLA",
-            suggestedCompensation: "৳100 Courtesy Voucher (CARE100)",
-            actionSteps: [
-              "Mark ticket as In Progress and notify delivery rider for priority dispatch",
-              "Send SMS notification with live courier tracking link",
-              "Follow up with customer post-delivery to ensure full satisfaction",
-            ],
-          });
-        }
+        // Generate baseline dynamic realistic resolution
+        const smartBaseResolution = generateRealisticServiceResolution({
+          ticketId,
+          issueType,
+          customerName,
+          orderId,
+          complaintDetails,
+          storeContext,
+        });
 
-        const prompt = `You are a Senior Customer Service Director & AI Service Resolution Agent for SmartShop E-Commerce.
+        if (ai) {
+          try {
+            const prompt = `You are a Senior Customer Service Director & AI Service Resolution Specialist for SmartShop E-Commerce.
 Customer Support Case:
 - Ticket ID: ${ticketId}
 - Issue Category: ${issueType}
@@ -1300,29 +1306,32 @@ Customer Support Case:
 - Complaint / Issue Description: "${complaintDetails}"
 
 Store Policies:
-- 7-Day Hassle-Free Return Policy for defective or wrong items.
-- Standard Delivery SLA: Dhaka 24-48 hrs, Outside Dhaka 2-4 business days.
-- Compensation allowed: Courtesy discount vouchers, free replacements.
+- 7-Day Hassle-Free Doorstep Return & Replacement Policy for defective/wrong items.
+- Standard Delivery SLA: Dhaka 24-48 hrs, Outside Dhaka 2-4 business days via Steadfast/Pathao.
+- Compensation allowed: Courtesy discount vouchers (CARE100 / SORRY150), free expedited dispatch.
 
 Provide an empathetic, professional, solution-oriented resolution that de-escalates anger and retains customer loyalty.
 Return STRICT valid JSON format with keys:
 {
   "ticketId": "${ticketId}",
-  "empathyRating": "High | Exceptional",
-  "resolutionStatus": "Resolution Proposed",
-  "officialReplyBengali": "Courteous, reassuring message in Bengali",
-  "officialReplyEnglish": "Courteous, reassuring message in English",
-  "policyCheck": "Policy rule verification",
-  "suggestedCompensation": "Voucher or action",
+  "empathyRating": "${smartBaseResolution.empathyRating}",
+  "resolutionStatus": "${smartBaseResolution.resolutionStatus}",
+  "officialReplyBengali": "Courteous, reassuring message in Bengali addressing customer by name",
+  "officialReplyEnglish": "Courteous, reassuring message in English addressing customer by name",
+  "policyCheck": "${smartBaseResolution.policyCheck}",
+  "suggestedCompensation": "${smartBaseResolution.suggestedCompensation}",
   "actionSteps": ["Step 1", "Step 2", "Step 3"]
 }`;
 
-        if (ai) {
-          try {
-            let text = await callGeminiWithTimeout(ai, prompt, 3500);
+            let text = await callGeminiWithTimeout(ai, prompt, 12000);
             text = text.replace(/```json/g, "").replace(/```/g, "").trim();
             const parsed = JSON.parse(text);
-            return res.json({ success: true, provider: "Gemini 3.8 Flash", ...parsed });
+            return res.json({
+              success: true,
+              provider: "Gemini 3.8 Flash (Dynamic Realistic)",
+              ...smartBaseResolution,
+              ...parsed,
+            });
           } catch (e) {
             handleAiError(e);
           }
@@ -1330,19 +1339,8 @@ Return STRICT valid JSON format with keys:
 
         return res.json({
           success: true,
-          provider: "Fallback Engine",
-          ticketId,
-          empathyRating: "5/5 Star Service Protocol",
-          resolutionStatus: "Action Required / In Transit",
-          officialReplyBengali: `প্রিয় ${customerName}, আপনার অর্ডারটি (#${orderId}) পৌঁছাতে অপ্রত্যাশিত বিলম্বের জন্য আমরা আন্তরিকভাবে দুঃখিত। 🙏 আমাদের লজিস্টিকস টিম আপনার পার্সেলটি ট্র্যাক করে জানিয়েছে এটি কুরিয়ার হাব থেকে আপনার এরিয়া ডেলিভারিতে বের হয়েছে এবং ইনশাআল্লাহ আগামী ২৪ ঘণ্টার মধ্যে আপনার হাতে পৌঁছে যাবে। আপনার সাময়িক অসুবিধার ক্ষতিপূরণস্বরূপ আপনার পরবর্তী অর্ডারে ৳১০০ ফ্ল্যাট ডিসকাউন্ট কোড 'CARE100' ব্যবহার করতে পারবেন। যেকোনো প্রয়োজনে আমরা সার্বক্ষণিক আপনার পাশে আছি।`,
-          officialReplyEnglish: `Dear ${customerName}, we sincerely apologize for the delay regarding order #${orderId}. Our logistics team has verified your parcel is out for final local delivery and should reach you within the next 24 hours. As a token of our appreciation for your patience, please enjoy coupon code 'CARE100' for ৳100 off your next order. Thank you for your continued trust in SmartShop!`,
-          policyCheck: "Eligible for expedited dispatch & courtesy discount under Store Delivery SLA",
-          suggestedCompensation: "৳100 Courtesy Voucher (CARE100)",
-          actionSteps: [
-            "Mark ticket as In Progress and notify delivery rider for priority dispatch",
-            "Send SMS notification with live courier tracking link",
-            "Follow up with customer post-delivery to ensure full satisfaction",
-          ],
+          provider: "Dynamic Realistic Service Protocol",
+          ...smartBaseResolution,
         });
       }
 
@@ -1958,7 +1956,7 @@ Return STRICT valid JSON format with keys matching:
 
       if (ai) {
         try {
-          const prompt = `You are "SmartOmni AI", the Master Autonomous Business Agent & Copilot for an E-Commerce enterprise.
+          const prompt = `You are "SmartOmni AI", the Master Autonomous Business Agent & Copilot for an E-Commerce enterprise in Bangladesh.
 You specialize in 8 core enterprise pillars:
 1. Marketing (Omnichannel campaigns, copywriting, promotions)
 2. Lead Generation (Targeting B2B/B2C buyers, outreach pitches)
@@ -1980,14 +1978,14 @@ ${history.map((h: any) => `${h.role}: ${h.text}`).slice(-6).join("\n")}
 
 User Query: "${message}"
 
-Give a comprehensive, highly actionable, well-structured response with bullet points. Support Bengali and English fluently. Be energetic, strategic, professional, and directly useful to the business owner.`;
+Give a comprehensive, highly actionable, well-structured response with bullet points. Support natural Bengali and crisp English. Be energetic, strategic, professional, and directly useful to the business owner.`;
 
-          const text = await callGeminiWithTimeout(ai, prompt, 3500);
+          const text = await callGeminiWithTimeout(ai, prompt, 12000);
 
           if (text) {
             return res.json({
               reply: text,
-              provider: "Gemini 3.8 Flash",
+              provider: "Gemini 3.8 Flash (Dynamic Real-time)",
             });
           }
         } catch (aiErr) {
@@ -1995,10 +1993,21 @@ Give a comprehensive, highly actionable, well-structured response with bullet po
         }
       }
 
-      // Intelligent Fallback Chat Response
+      // Dynamic Intelligent Copilot Response
+      const dynamicReply = generateRealisticAdminChatReply({
+        message,
+        history,
+        storeContext: {
+          productsCount,
+          ordersCount,
+          totalRevenue,
+          sampleProducts,
+        },
+      });
+
       return res.json({
-        reply: `আসসালামু আলাইকুম! আমি আপনার **SmartOmni AI Business Agent**। 🤖\n\nআপনার প্রশ্নের পরিপ্রেক্ষিতে:\n\n• 📢 **মার্কেটিং:** সীমিত সময়ের ফ্ল্যাশ সেল ও বান্ডেল ডিসকাউন্টের মাধ্যমে গ্রাহকদের আকৃষ্ট করুন।\n• 🎯 **লিড জেনারেশন:** কর্পোরেট এবং পাইকারি ক্লায়েন্টদের জন্য কাস্টমাইজড ডিসকাউন্ট শীট তৈরি করুন।\n• 📊 **সেলস ট্র্যাকিং:** কার্ট ত্যাগ করা গ্রাহকদের স্বয়ংক্রিয় ডিসকাউন্ট কোড (RECOVER10) পাঠিয়ে অর্ডার রিকভার করুন।\n• 💬 **কাস্টমার সার্ভিস:** ৭ দিনের রিপ্লেসমেন্ট গ্যারান্টি এবং দ্রুত হোম ডেলিভারির সুবিধা তুলে ধরুন।\n\nআপনি উপরের যেকোনো ট্যাব (মার্কেটিং, লিড, সেলস, সার্ভিস) থেকে নির্দিষ্ট কাজ চালাতে পারেন!`,
-        provider: "Autonomous Fallback Agent",
+        reply: dynamicReply,
+        provider: "Dynamic Realistic Copilot Engine",
       });
     } catch (err: any) {
       console.error("[AI Agent Chat Error]:", err);
@@ -2009,37 +2018,46 @@ Give a comprehensive, highly actionable, well-structured response with bullet po
   // AI Shopping Assistant Chatbot API
   app.post("/api/ai/chat", async (req, res) => {
     try {
-      const { message, context } = req.body;
+      const { message, context = {} } = req.body;
       const ai = getGeminiClient();
 
-      if (!ai) {
-        return res.json({
-          reply: `I am your AI Shopping Assistant! (Gemini API key not provided in env, running in offline fallback mode). How can I assist you with product specs, recommendations, or order tracking today?`,
-        });
-      }
-
-      const prompt = `You are an expert, helpful AI E-Commerce Shopping & Customer Service Assistant for Smart E-Commerce.
+      if (ai) {
+        try {
+          const prompt = `You are an expert, courteous, and culturally authentic AI E-Commerce Shopping & Customer Care Assistant for SmartShop in Bangladesh.
 Context of products in stock or user cart: ${JSON.stringify(context || {})}
-User Query: "${message}"
+Customer Message: "${message}"
 
-Give a friendly, helpful, concise answer with bullet points if recommending products or explaining store policies. Keep tone professional and encouraging.`;
+Give a friendly, helpful, concise answer in natural conversational Bengali (or English if customer speaks English).
+Provide product recommendations with price, store policies (7-day returns, Dhaka 24-48 hrs, cash on delivery), and discount codes if applicable.`;
 
-      let replyText = "";
-      try {
-        replyText = await callGeminiWithTimeout(ai, prompt, 3500);
-      } catch (err: any) {
-        handleAiError(err);
+          const replyText = await callGeminiWithTimeout(ai, prompt, 12000);
+          if (replyText) {
+            return res.json({
+              reply: replyText,
+              provider: "Gemini 3.8 Flash (Live Assistant)",
+            });
+          }
+        } catch (err: any) {
+          handleAiError(err);
+        }
       }
+
+      // Dynamic Realistic Customer Reply Fallback
+      const dynamicCustomerReply = generateRealisticCustomerReply({
+        customerMessage: message,
+        storeContext: context,
+      });
 
       res.json({
-        reply:
-          replyText ||
-          "আসসালামু আলাইকুম! স্মার্টশপে আপনাকে স্বাগতম। আপনি যেকোনো পণ্যের ফিচার, অফার ও ডেলিভারি তথ্য জানতে পারেন। আমি আপনাকে কীভাবে সহায়তা করতে পারি?",
+        reply: dynamicCustomerReply.suggestedResponseBengali,
+        provider: "Dynamic Realistic Assistant Engine",
+        quickAction: dynamicCustomerReply.quickAction,
       });
     } catch (error: any) {
       handleAiError(error);
       res.json({
-        reply: "Welcome to SmartShop! How may I assist you with your shopping or order today?",
+        reply: "আসসালামু আলাইকুম! স্মার্টশপে আপনাকে স্বাগতম। আপনি যেকোনো পণ্যের তথ্য, অর্ডার ট্র্যাকিং কিংবা ডেলিভারি চার্জ জানতে পারেন। আমি আপনাকে কীভাবে সহায়তা করতে পারি?",
+        provider: "Dynamic Fallback",
       });
     }
   });

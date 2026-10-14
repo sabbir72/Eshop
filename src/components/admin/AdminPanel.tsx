@@ -24,6 +24,7 @@ import { MarketingManagement } from "./MarketingManagement";
 import { WarehouseMovementManagement } from "./WarehouseMovementManagement";
 import { SEOMarketingManagement } from "./SEOMarketingManagement";
 import { ExcelHubManagement } from "./ExcelHubManagement";
+import { CashCalculationLog } from "./CashCalculationLog";
 import {
   COMMAND_CENTER_CATEGORIES,
   findBreadcrumbsForView,
@@ -61,6 +62,7 @@ import {
   ArrowLeft,
   LogOut,
   FileSpreadsheet,
+  Wallet,
 } from "lucide-react";
 
 export const AdminPanel: React.FC = () => {
@@ -199,6 +201,17 @@ export const AdminPanel: React.FC = () => {
             </button>
           )}
 
+          {/* Live Traffic Load Quick Pill */}
+          <button
+            onClick={() => setAdminView("dashboard")}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer bg-slate-900 text-emerald-400 border border-slate-700 shadow-2xs hover:bg-slate-800 active:scale-95"
+            title="Live Traffic Load Tracker"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline">Traffic Live</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          </button>
+
           <button
             onClick={() => setMode("storefront")}
             className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -206,6 +219,20 @@ export const AdminPanel: React.FC = () => {
           >
             <Store className="w-3.5 h-3.5 text-indigo-600" />
             <span className="hidden sm:inline">Storefront</span>
+          </button>
+
+          {/* Cash Calculation & Financial Log Button */}
+          <button
+            onClick={() => setAdminView("cash-calculation")}
+            className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+              adminView === "cash-calculation"
+                ? "bg-emerald-600 text-white shadow-emerald-500/20"
+                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+            }`}
+            title="ক্যাশ ক্যালকুলেশন ও রিকনসিলিয়েশন লগ"
+          >
+            <Wallet className={`w-3.5 h-3.5 ${adminView === "cash-calculation" ? "text-white" : "text-emerald-600"}`} />
+            <span className="hidden sm:inline">Cash Log (৳)</span>
           </button>
 
           {/* Excel Data Hub Button */}
@@ -538,6 +565,7 @@ export const AdminPanel: React.FC = () => {
           {adminView === "marketing" && <MarketingManagement />}
           {adminView === "seo-marketing" && <SEOMarketingManagement />}
           {adminView === "reports" && <ReportsAnalytics />}
+          {adminView === "cash-calculation" && <CashCalculationLog />}
           {adminView === "excel-hub" && <ExcelHubManagement />}
           {adminView === "supplier-management" && <SupplierManagement />}
           {adminView === "company-cms" && <CompanyCMSManagement />}
