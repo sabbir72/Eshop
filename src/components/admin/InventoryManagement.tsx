@@ -5,6 +5,7 @@ import { PrintableDocumentData } from "../../types/print";
 import { buildBarcodeLabelsData, buildReportPrintData } from "../../utils/printDocumentBuilder";
 import { parseSafeNumber, formatNumber } from "../../utils/exportUtils";
 import { EnterprisePrintModal } from "../common/EnterprisePrintModal";
+import { RefillStockCenterModal } from "./RefillStockCenterModal";
 import {
   Package,
   TrendingUp,
@@ -42,6 +43,8 @@ import {
   Warehouse as WarehouseIcon,
   BarChart3,
   ShieldCheck,
+  Wallet,
+  ShoppingBag,
 } from "lucide-react";
 
 export const InventoryManagement: React.FC = () => {
@@ -62,6 +65,7 @@ export const InventoryManagement: React.FC = () => {
     hasPermission,
     addToast,
     addAuditLog,
+    setAdminView,
   } = useStore();
 
   const [activePrintData, setActivePrintData] = useState<PrintableDocumentData | null>(null);
@@ -72,8 +76,8 @@ export const InventoryManagement: React.FC = () => {
     setIsPrintModalOpen(true);
   };
 
-  // Active Tab
   const [activeSubTab, setActiveSubTab] = useState<"master" | "low-stock" | "transfers" | "barcodes" | "reports">("master");
+  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
@@ -499,6 +503,41 @@ export const InventoryManagement: React.FC = () => {
 
         {/* Action Controls & Subtabs */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Dedicated Refill Center Button */}
+          <button
+            onClick={() => setIsRefillModalOpen(true)}
+            className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            title="Open Interactive A-to-Z Stock Refill & Case Replenishment Engine"
+          >
+            <Boxes className="w-4 h-4 text-slate-950" />
+            <span>📦 কোনগুলি রিফিল হবে (A-Z)</span>
+            {lowStockCount + outOfStockCount > 0 && (
+              <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full animate-pulse">
+                {lowStockCount + outOfStockCount}
+              </span>
+            )}
+          </button>
+
+          {/* Jump to Cash Calculation Log */}
+          <button
+            onClick={() => setAdminView("cash-calculation")}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Reconcile Cash Disbursements for Stock Purchasing & Refills"
+          >
+            <Wallet className="w-4 h-4 text-emerald-400" />
+            <span>ক্যাশ হিসাব লগ</span>
+          </button>
+
+          {/* Jump to Orders Hub */}
+          <button
+            onClick={() => setAdminView("orders")}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="View Pipeline Customer Orders"
+          >
+            <ShoppingBag className="w-4 h-4 text-indigo-400" />
+            <span>অর্ডার তালিকা</span>
+          </button>
+
           {hasPermission("Inventory", "import") && (
             <button
               onClick={() => setShowImportModal(true)}
@@ -602,6 +641,21 @@ export const InventoryManagement: React.FC = () => {
         >
           <BarChart3 className="w-4 h-4 text-purple-400" />
           <span>Inventory Reports</span>
+        </button>
+
+        {/* Dedicated Refill Center Quick Launcher */}
+        <button
+          onClick={() => setIsRefillModalOpen(true)}
+          className="px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-400 to-rose-500 hover:from-amber-500 hover:to-rose-600 text-slate-950 transition-all flex items-center gap-2 whitespace-nowrap shadow-sm cursor-pointer ml-auto"
+          title="Open A-to-Z Refill Center & Case Calculation Hub"
+        >
+          <Boxes className="w-4 h-4 text-slate-950" />
+          <span>📦 কোনগুলি রিফিল হবে (A-Z)</span>
+          {lowStockCount + outOfStockCount > 0 && (
+            <span className="bg-slate-950 text-amber-300 px-1.5 py-0.2 rounded-full text-[10px] font-mono">
+              {lowStockCount + outOfStockCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1142,19 +1196,30 @@ export const InventoryManagement: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                // Reorder all low stock items by adding +50 units
-                const lowStockProds = products.filter((p) => p.totalStock <= (p.lowStockThreshold || lowStockThresholdDefault));
-                lowStockProds.forEach((p) => {
-                  updateProduct(p.id, { totalStock: p.totalStock + 50, isLowStock: false });
-                });
-                addToast(`Batch reordered +50 units for ${lowStockProds.length} items!`, "success");
-              }}
-              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition-colors"
-            >
-              Batch Reorder All (+50 Units)
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setIsRefillModalOpen(true)}
+                className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-amber-300 font-black text-xs rounded-2xl shadow-md transition-all flex items-center gap-1.5 border border-amber-400/50 cursor-pointer"
+                title="A-to-Z Item Inspection & Total Case Engine"
+              >
+                <Boxes className="w-4 h-4 text-amber-400" />
+                <span>📦 কোনগুলি রিফিল হবে (A-Z ও কেস হিসাব)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  // Reorder all low stock items by adding +50 units
+                  const lowStockProds = products.filter((p) => p.totalStock <= (p.lowStockThreshold || lowStockThresholdDefault));
+                  lowStockProds.forEach((p) => {
+                    updateProduct(p.id, { totalStock: p.totalStock + 50, isLowStock: false });
+                  });
+                  addToast(`Batch reordered +50 units for ${lowStockProds.length} items!`, "success");
+                }}
+                className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition-colors"
+              >
+                Batch Reorder All (+50 Units)
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1931,6 +1996,12 @@ export const InventoryManagement: React.FC = () => {
           onClose={() => setIsPrintModalOpen(false)}
         />
       )}
+
+      {/* A-to-Z Refill Center Modal */}
+      <RefillStockCenterModal
+        isOpen={isRefillModalOpen}
+        onClose={() => setIsRefillModalOpen(false)}
+      />
     </div>
   );
 };

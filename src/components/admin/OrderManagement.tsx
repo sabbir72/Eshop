@@ -20,12 +20,17 @@ import {
   FileText,
   FileSpreadsheet,
   Layers,
+  Wallet,
+  Boxes,
+  ArrowUpRight,
 } from "lucide-react";
+import { RefillStockCenterModal } from "./RefillStockCenterModal";
 
 export const OrderManagement: React.FC = () => {
-  const { orders, updateOrderStatus, settings, addToast } = useStore();
+  const { orders, updateOrderStatus, settings, addToast, setAdminView } = useStore();
   const [activeTab, setActiveTab] = useState<string>("All");
   const [search, setSearch] = useState<string>("");
+  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
 
   const [activePrintData, setActivePrintData] = useState<PrintableDocumentData | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
@@ -96,8 +101,28 @@ export const OrderManagement: React.FC = () => {
           <p className="text-xs text-slate-300">Manage pipeline order states, dispatch tracking & print invoices, packing slips, shipping labels</p>
         </div>
 
-        {/* Export Data Action Buttons */}
+        {/* Export Data & Connected Operations */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Jump to Cash Calculation */}
+          <button
+            onClick={() => setAdminView("cash-calculation")}
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 text-xs transition-colors shadow-xs active:scale-95 cursor-pointer"
+            title="Reconcile Cash & COD for Orders"
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span>Cash Calculation Log</span>
+          </button>
+
+          {/* Jump to Refill Hub */}
+          <button
+            onClick={() => setIsRefillModalOpen(true)}
+            className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold px-3.5 py-2 rounded-xl border border-slate-700 inline-flex items-center gap-1.5 text-xs transition-colors shadow-xs active:scale-95 cursor-pointer"
+            title="Inspect Stock Refill Requirements"
+          >
+            <Boxes className="w-3.5 h-3.5 text-amber-400" />
+            <span>Refill Center (A-Z)</span>
+          </button>
+
           <button
             onClick={handleExportCSV}
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3.5 py-2 rounded-xl border border-slate-700 inline-flex items-center gap-2 text-xs transition-colors shadow-xs"
@@ -113,7 +138,7 @@ export const OrderManagement: React.FC = () => {
             title="Export Orders to Microsoft Excel (.xlsx) with Formatted Currency"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Export Excel (.xlsx)</span>
+            <span>Export Excel</span>
           </button>
         </div>
       </div>
@@ -252,11 +277,19 @@ export const OrderManagement: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={() => openPrintModal(buildShippingLabelData(o))}
-                      className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-lg border border-slate-200 inline-flex items-center gap-1 text-[11px]"
-                      title="Print Courier Shipping Label"
+                      onClick={() => setAdminView("cash-calculation")}
+                      className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg border border-emerald-200 inline-flex items-center gap-1 text-[11px] cursor-pointer"
+                      title="View Transaction in Cash Calculation Log"
                     >
-                      <Tag className="w-3.5 h-3.5 text-emerald-600" /> Label
+                      <Wallet className="w-3.5 h-3.5 text-emerald-600" /> Cash Log
+                    </button>
+
+                    <button
+                      onClick={() => setIsRefillModalOpen(true)}
+                      className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-lg border border-amber-200 inline-flex items-center gap-1 text-[11px] cursor-pointer"
+                      title="Inspect Stock for Ordered Items"
+                    >
+                      <Boxes className="w-3.5 h-3.5 text-amber-600" /> Stock
                     </button>
                   </div>
                 </td>
@@ -273,6 +306,12 @@ export const OrderManagement: React.FC = () => {
           onClose={() => setIsPrintModalOpen(false)}
         />
       )}
+
+      {/* Stock Refill Center Modal */}
+      <RefillStockCenterModal
+        isOpen={isRefillModalOpen}
+        onClose={() => setIsRefillModalOpen(false)}
+      />
     </div>
   );
 };

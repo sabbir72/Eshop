@@ -28,8 +28,18 @@ import {
   RefreshCw,
   Sliders,
   ChevronDown,
+  Boxes,
+  ShoppingBag,
+  BarChart3,
+  Trash2,
+  Archive,
+  CheckCheck,
+  Sparkles,
+  Undo2,
+  ArrowRight,
 } from "lucide-react";
 import { exportToCSV } from "../../utils/exportUtils";
+import { RefillStockCenterModal } from "./RefillStockCenterModal";
 
 export interface CashEntry {
   id: string;
@@ -50,7 +60,10 @@ export interface CashEntry {
     | "Supplier Payment"
     | "Office Petty Cash"
     | "Packaging Materials"
-    | "Bank Deposit";
+    | "Bank Deposit"
+    | "POS Retail Sale"
+    | "Refund"
+    | "Day-End Cash Settle";
   channel: "Cash On Delivery" | "bKash" | "Nagad" | "Rocket" | "SSLCommerz" | "Cash Drawer" | "Bank Transfer";
   amount: number;
   customerOrBeneficiary: string;
@@ -62,9 +75,58 @@ export interface CashEntry {
 }
 
 export const CashCalculationLog: React.FC = () => {
-  const { orders, settings, language, activeRole, currentUser, addToast } = useStore();
+  const {
+    orders,
+    products,
+    updateProduct,
+    executeInventoryTransaction,
+    settings,
+    language,
+    activeRole,
+    currentUser,
+    addToast,
+    setAdminView,
+    addAuditLog,
+  } = useStore();
   const isBN = language === "BN";
   const isSuperAdmin = activeRole === "Super Admin";
+  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
+
+  // Set of cleared entry IDs (persisted in localStorage)
+  const [clearedEntryIds, setClearedEntryIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("smartshop_cleared_cash_entries");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Dynamic Day Opening Cash Float
+  const [openingBalance, setOpeningBalance] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("smartshop_cash_opening_balance");
+      return saved ? Number(saved) : 15000;
+    } catch {
+      return 15000;
+    }
+  });
+
+  // State for Clear & Settle Modal
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [clearMode, setClearMode] = useState<"reconciled" | "day-end-bank" | "reset-all">("reconciled");
+  const [newOpeningFloatInput, setNewOpeningFloatInput] = useState<number>(15000);
+
+  // Quick Retail POS Cash Sale State
+  const [isPosSaleModalOpen, setIsPosSaleModalOpen] = useState(false);
+  const [posSale, setPosSale] = useState({
+    itemDesc: "",
+    customer: "",
+    phone: "",
+    amount: "",
+    channel: "Cash Drawer",
+    notes: "",
+  });
 
   // State for manual cash entries added in session
   const [manualEntries, setManualEntries] = useState<CashEntry[]>([
@@ -179,9 +241,11 @@ export const CashCalculationLog: React.FC = () => {
     notes: "",
   });
 
-  // Derive initial cash entries from the StoreContext orders list
+  // Derive cash entries from the StoreContext orders list (Auto-posts every sale and reversal)
   const orderDerivedEntries: CashEntry[] = useMemo(() => {
-    return orders.map((o) => {
+    const list: CashEntry[] = [];
+
+    orders.forEach((o) => {
       const isCod = o.paymentMethod === "Cash On Delivery";
       const isDelivered = o.orderStatus === "Delivered";
       const isCancelled = o.orderStatus === "Cancelled";
@@ -196,7 +260,7 @@ export const CashCalculationLog: React.FC = () => {
           status = "Pending Courier";
         }
       } else {
-        status = "Reconciled";
+        status = isCancelled ? "Disputed" : "Reconciled";
       }
 
       const category: CashEntry["category"] =
@@ -210,7 +274,8 @@ export const CashCalculationLog: React.FC = () => {
           ? "SSLCommerz Card"
           : "COD Collection";
 
-      return {
+      // Inflow order sale entry
+      list.push({
         id: `order-cash-${o.id}`,
         voucherNo: `VCH-${o.orderNumber.replace(/[^0-9]/g, "").slice(-4) || "001"}`,
         orderNumber: o.orderNumber,
@@ -225,17 +290,40 @@ export const CashCalculationLog: React.FC = () => {
         courierTrackingNo: isCod ? `ST-${o.orderNumber.replace(/[^0-9]/g, "")}` : undefined,
         reconciliationStatus: status,
         recordedBy: "Automated Gateway",
-        notes: `Order items: ${o.items.length} sku(s). Payment: ${o.paymentMethod}.`,
-      };
+        notes: `Order items: ${o.items.length} sku(s). Payment: ${o.paymentMethod}. Status: ${o.orderStatus}.`,
+      });
+
+      // Automatic reversal outflow if order is cancelled
+      if (isCancelled) {
+        list.push({
+          id: `order-cancel-reversal-${o.id}`,
+          voucherNo: `REV-${o.orderNumber.replace(/[^0-9]/g, "").slice(-4) || "001"}`,
+          orderNumber: o.orderNumber,
+          date: o.updatedAt ? o.updatedAt.split(" ")[0] : new Date().toISOString().split("T")[0],
+          time: o.updatedAt ? o.updatedAt.split(" ")[1] : "12:00 PM",
+          type: "outflow",
+          category: "Refund",
+          channel: o.paymentMethod as any,
+          amount: o.total,
+          customerOrBeneficiary: `Cancellation Reversal (${o.customerName})`,
+          reconciliationStatus: "Reconciled",
+          recordedBy: "Automated Ledger Reversal",
+          notes: `Automatic refund/reversal entry for cancelled order #${o.orderNumber}.`,
+        });
+      }
     });
+
+    return list;
   }, [orders]);
 
-  // All combined transactions
+  // All combined transactions excluding cleared ones
   const allTransactions: CashEntry[] = useMemo(() => {
-    const list = [...manualEntries, ...orderDerivedEntries];
+    const list = [...manualEntries, ...orderDerivedEntries].filter(
+      (tx) => !clearedEntryIds.includes(tx.id)
+    );
     // Sort newest first
     return list.sort((a, b) => b.id.localeCompare(a.id));
-  }, [manualEntries, orderDerivedEntries]);
+  }, [manualEntries, orderDerivedEntries, clearedEntryIds]);
 
   // Filtered transactions
   const filteredTransactions = useMemo(() => {
@@ -302,7 +390,6 @@ export const CashCalculationLog: React.FC = () => {
       }
     });
 
-    const openingBalance = 15000; // Standard day opening cash float
     const netCashPosition = openingBalance + totalInflow - totalOutflow;
 
     return {
@@ -314,12 +401,12 @@ export const CashCalculationLog: React.FC = () => {
       courierPendingTotal,
       netCashPosition,
     };
-  }, [allTransactions]);
+  }, [allTransactions, openingBalance]);
 
   // Denominations Total Calculation
   const denominationTotal = useMemo(() => {
     return Object.entries(denominations).reduce((sum, [note, count]) => {
-      return sum + Number(note) * count;
+      return sum + Number(note) * Number(count);
     }, 0);
   }, [denominations]);
 
@@ -399,6 +486,180 @@ export const CashCalculationLog: React.FC = () => {
     addToast(isBN ? "ক্যাশ ক্যালকুলেশন এক্সেল সিএসভি ডাউনলোড হয়েছে!" : "Cash ledger exported to CSV!", "success");
   };
 
+  // Clear single entry
+  const handleClearSingle = (id: string) => {
+    setClearedEntryIds((prev) => {
+      const next = [...prev, id];
+      try {
+        localStorage.setItem("smartshop_cleared_cash_entries", JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+    addToast(isBN ? "ভাউচারটি লেজার থেকে ক্লিয়ার / আর্কাইভে নেওয়া হয়েছে" : "Voucher cleared from active calculation", "info");
+  };
+
+  // Restore all cleared entries
+  const handleRestoreAllCleared = () => {
+    setClearedEntryIds([]);
+    try {
+      localStorage.removeItem("smartshop_cleared_cash_entries");
+    } catch (err) {
+      console.error(err);
+    }
+    addToast(isBN ? "সকল ক্লিয়ার করা ভাউচার সফলভাবে রিস্টোর হয়েছে!" : "All cleared entries restored to active calculation!", "success");
+  };
+
+  // Execute batch clear / settlement
+  const handleExecuteClear = (mode: "reconciled" | "day-end-bank" | "reset-all") => {
+    if (mode === "reconciled") {
+      const reconciledIds = allTransactions
+        .filter((t) => t.reconciliationStatus === "Reconciled" || t.reconciliationStatus === "Deposited to Bank")
+        .map((t) => t.id);
+      setClearedEntryIds((prev) => {
+        const combined = Array.from(new Set([...prev, ...reconciledIds]));
+        try {
+          localStorage.setItem("smartshop_cleared_cash_entries", JSON.stringify(combined));
+        } catch (err) {
+          console.error(err);
+        }
+        return combined;
+      });
+      addToast(
+        isBN
+          ? `${reconciledIds.length}টি সেটেল্ড ও রিকনসাইল্ড হিসাব সফলভাবে ক্লিয়ার হয়েছে!`
+          : `Cleared ${reconciledIds.length} reconciled & settled entries!`,
+        "success"
+      );
+    } else if (mode === "day-end-bank") {
+      const netDeposit = Math.max(0, metrics.netCashPosition - newOpeningFloatInput);
+      if (netDeposit > 0) {
+        const depositEntry: CashEntry = {
+          id: `manual-cash-dayend-${Date.now()}`,
+          voucherNo: `VCH-${new Date().getFullYear()}-SETTLE-${Math.floor(100 + Math.random() * 900)}`,
+          date: new Date().toISOString().split("T")[0],
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          type: "outflow",
+          category: "Day-End Cash Settle",
+          channel: "Bank Transfer",
+          amount: netDeposit,
+          customerOrBeneficiary: "Day-End Cash Drawer Settle & Bank Vault Transfer",
+          reconciliationStatus: "Deposited to Bank",
+          recordedBy: currentUser.name || "Shift Supervisor",
+          notes: `Day-end excess cash transferred to bank. Retained float: ${settings.currencySymbol}${newOpeningFloatInput}.`,
+        };
+        setManualEntries((prev) => [depositEntry, ...prev]);
+      }
+      setOpeningBalance(newOpeningFloatInput);
+      try {
+        localStorage.setItem("smartshop_cash_opening_balance", String(newOpeningFloatInput));
+      } catch (err) {
+        console.error(err);
+      }
+
+      const allIds = allTransactions.map((t) => t.id);
+      setClearedEntryIds((prev) => {
+        const combined = Array.from(new Set([...prev, ...allIds]));
+        try {
+          localStorage.setItem("smartshop_cleared_cash_entries", JSON.stringify(combined));
+        } catch (err) {
+          console.error(err);
+        }
+        return combined;
+      });
+      addToast(
+        isBN
+          ? `ডে-এন্ড সেটেলমেন্ট সম্পন্ন! নতুন ওপেনিং ক্যাশ: ${settings.currencySymbol}${newOpeningFloatInput}`
+          : `Day-end settlement completed! New opening float: ${settings.currencySymbol}${newOpeningFloatInput}`,
+        "success"
+      );
+    } else if (mode === "reset-all") {
+      const allIds = allTransactions.map((t) => t.id);
+      setClearedEntryIds((prev) => {
+        const combined = Array.from(new Set([...prev, ...allIds]));
+        try {
+          localStorage.setItem("smartshop_cleared_cash_entries", JSON.stringify(combined));
+        } catch (err) {
+          console.error(err);
+        }
+        return combined;
+      });
+      setOpeningBalance(newOpeningFloatInput);
+      try {
+        localStorage.setItem("smartshop_cash_opening_balance", String(newOpeningFloatInput));
+      } catch (err) {
+        console.error(err);
+      }
+      addToast(isBN ? "সম্পূর্ণ ক্যাশ লেজার রিসেট ও ক্লিয়ার করা হয়েছে!" : "Entire cash calculation log reset & cleared!", "success");
+    }
+
+    setIsClearModalOpen(false);
+  };
+
+  // Quick Retail POS Sale Save
+  const handleSavePosSale = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(posSale.amount);
+    if (!amt || amt <= 0) {
+      addToast(isBN ? "সঠিক টাকার পরিমাণ দিন!" : "Please provide a valid sale amount!", "error");
+      return;
+    }
+
+    const matchedProd = products.find((p) => p.name.toLowerCase() === posSale.itemDesc.toLowerCase() || p.sku.toLowerCase() === posSale.itemDesc.toLowerCase());
+    if (matchedProd) {
+      const updatedStock = Math.max(0, matchedProd.totalStock - 1);
+      updateProduct(matchedProd.id, {
+        totalStock: updatedStock,
+        isLowStock: updatedStock <= (matchedProd.lowStockThreshold || 10),
+      });
+      executeInventoryTransaction({
+        productId: matchedProd.id,
+        sku: matchedProd.sku,
+        productName: matchedProd.name,
+        type: "Stock Out",
+        quantity: 1,
+        warehouseId: matchedProd.warehouseLocation || "WH-MAIN-DHAKA",
+        notes: `POS Direct Counter Cash Sale (${posSale.customer || "Walk-in"})`,
+        referenceNo: `POS-${Date.now()}`,
+      });
+    }
+
+    const vchNum = `VCH-${new Date().getFullYear()}-POS-${Math.floor(100 + Math.random() * 900)}`;
+    const entry: CashEntry = {
+      id: `manual-pos-${Date.now()}`,
+      voucherNo: vchNum,
+      date: new Date().toISOString().split("T")[0],
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      type: "inflow",
+      category: "POS Retail Sale",
+      channel: posSale.channel as any,
+      amount: amt,
+      customerOrBeneficiary: `${posSale.customer || (isBN ? "কাউন্টার ক্রেতা" : "Walk-in Customer")} ${posSale.phone ? `(${posSale.phone})` : ""}`,
+      reconciliationStatus: "Reconciled",
+      recordedBy: currentUser.name || "Cashier POS",
+      notes: `Counter Cash Sale: ${posSale.itemDesc || "Retail Goods"}. ${posSale.notes || ""}`,
+    };
+
+    setManualEntries((prev) => [entry, ...prev]);
+    setIsPosSaleModalOpen(false);
+    setPosSale({
+      itemDesc: "",
+      customer: "",
+      phone: "",
+      amount: "",
+      channel: "Cash Drawer",
+      notes: "",
+    });
+
+    addToast(
+      isBN
+        ? `কাউন্টার ক্যাশ সেল (${settings.currencySymbol}${amt.toLocaleString()}) লেজারে যুক্ত হয়েছে!`
+        : `POS Retail Cash Sale (${settings.currencySymbol}${amt.toLocaleString()}) recorded to ledger!`,
+      "success"
+    );
+  };
+
   // Toggle status of an entry
   const handleToggleStatus = (id: string) => {
     setManualEntries((prev) =>
@@ -456,24 +717,21 @@ export const CashCalculationLog: React.FC = () => {
 
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               {isBN
-                ? "ক্যাশ অন ডেলিভারি (সিওডি), বিকাশ/নগদ গেটওয়ে সেটেলমেন্ট, কুরিয়ার রিকনসিলিয়েশন ও ক্যাশ ড্রয়ার নোট ব্যালান্সিং।"
-                : "Real-time COD cash-in-hand, bKash & Nagad gateway settlement, courier remittance tracking & physical cash drawer notes tally."}
+                ? "ক্যাশ অন ডেলিভারি (সিওডি), বিকাশ/নগদ গেটওয়ে সেটেলমেন্ট, কুরিয়ার রিকনসিলিয়েশন, ক্যাশ ড্রয়ার নোট ব্যালান্সিং ও লেজার সেটেলমেন্ট।"
+                : "Real-time COD cash-in-hand, bKash & Nagad gateway settlement, courier remittance tracking, drawer tally & ledger clearing."}
             </p>
           </div>
 
           {/* Action Button Suite */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-            {/* Denomination Calculator Toggle */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {/* Quick Retail POS Cash Sale Button */}
             <button
-              onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
-              className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md border ${
-                isCalculatorOpen
-                  ? "bg-indigo-600 text-white border-indigo-500 shadow-indigo-600/30"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
-              }`}
+              onClick={() => setIsPosSaleModalOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              title="Record instant direct retail cash sale"
             >
-              <Calculator className="w-4 h-4 text-amber-400" />
-              <span>{isBN ? "নোট গণনা ক্যালকুলেটর" : "Cash Note Calculator"}</span>
+              <ShoppingBag className="w-4 h-4 text-amber-300" />
+              <span>{isBN ? "+ কাউন্টার সেল (POS)" : "+ Quick POS Sale"}</span>
             </button>
 
             {/* Manual Cash In / Out Entry Button */}
@@ -482,7 +740,30 @@ export const CashCalculationLog: React.FC = () => {
               className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>{isBN ? "+ নতুন ক্যাশ এন্ট্রি" : "+ Record Cash Entry"}</span>
+              <span>{isBN ? "+ ক্যাশ এন্ট্রি" : "+ Cash Entry"}</span>
+            </button>
+
+            {/* Denomination Calculator Toggle */}
+            <button
+              onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
+              className={`text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md border ${
+                isCalculatorOpen
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-indigo-600/30"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+              }`}
+            >
+              <Calculator className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">{isBN ? "নোট গণনা" : "Tally Notes"}</span>
+            </button>
+
+            {/* Clear & Settle Log Button */}
+            <button
+              onClick={() => setIsClearModalOpen(true)}
+              className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer border border-rose-500/50"
+              title="Clear reconciled calculation or perform Day-End cash settlement"
+            >
+              <Trash2 className="w-4 h-4 text-rose-200" />
+              <span>{isBN ? "হিসাব ক্লিয়ার / সেটেল" : "Clear / Settle Log"}</span>
             </button>
 
             {/* Export CSV */}
@@ -497,6 +778,95 @@ export const CashCalculationLog: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Interconnected Console Quick Bar */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-extrabold text-white">
+            {isBN ? "কানেক্টেড কনসোল হাব:" : "Connected Operations Hub:"}
+          </span>
+          <span className="text-[11px] text-slate-400 hidden md:inline">
+            {isBN ? "ক্যাশ হিসাব থেকে ১-ক্লিকে সংশ্লিষ্ট মডিউলে প্রবেশ করুন" : "1-click switch between related business consoles"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Jump to Orders */}
+          <button
+            onClick={() => setAdminView("orders")}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-500/30 font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Go to Orders Processing"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{isBN ? "অর্ডার ম্যানেজমেন্ট" : "Orders Hub"}</span>
+          </button>
+
+          {/* Jump to Refill Hub */}
+          <button
+            onClick={() => setIsRefillModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-amber-900/60 text-amber-300 border border-amber-500/30 font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Open Stock Refill & Replenishment Center"
+          >
+            <Boxes className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isBN ? "📦 রিফিল সেন্টার (A-Z)" : "📦 Refill Hub (A-Z)"}</span>
+          </button>
+
+          {/* Jump to Inventory */}
+          <button
+            onClick={() => setAdminView("inventory")}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Master Stock & Inventory"
+          >
+            <Boxes className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{isBN ? "ইনভেন্টরি কন্ট্রোল" : "Inventory"}</span>
+          </button>
+
+          {/* Jump to Excel Hub */}
+          <button
+            onClick={() => setAdminView("excel-hub")}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-teal-900/60 text-teal-300 border border-teal-500/30 font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Excel Hub"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-teal-400" />
+            <span>{isBN ? "এক্সেল হাব" : "Excel Hub"}</span>
+          </button>
+
+          {/* Jump to Reports */}
+          <button
+            onClick={() => setAdminView("reports")}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-purple-900/60 text-purple-300 border border-purple-500/30 font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Financial Reports"
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
+            <span>{isBN ? "আর্থিক রিপোর্ট" : "Reports"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Cleared Entries Notification & Restore Ribbon */}
+      {clearedEntryIds.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-300 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Archive className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              {isBN
+                ? `${clearedEntryIds.length}টি এন্ট্রি ক্লিয়ার/আর্কাইভে সংরক্ষিত রয়েছে (সক্রিয় হিসাব থেকে বাদ দেওয়া হয়েছে)`
+                : `${clearedEntryIds.length} entries are cleared & archived from active ledger view`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRestoreAllCleared}
+              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              title="Restore all cleared entries to active ledger"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              <span>{isBN ? "পূর্বাবস্থায় ফেরান (Restore All)" : "Restore All"}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 5 Executive Balance Pillar Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
@@ -879,9 +1249,14 @@ export const CashCalculationLog: React.FC = () => {
                       {/* Order / Source */}
                       <td className="py-3 px-3.5">
                         {tx.orderNumber ? (
-                          <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 font-mono text-[11px]">
-                            {tx.orderNumber}
-                          </span>
+                          <button
+                            onClick={() => setAdminView("orders")}
+                            className="font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md border border-indigo-200 font-mono text-[11px] inline-flex items-center gap-1 cursor-pointer transition-colors"
+                            title={isBN ? "অর্ডার ডিটেইলস দেখুন" : "View Order Details"}
+                          >
+                            <span>{tx.orderNumber}</span>
+                            <ArrowUpRight className="w-3 h-3 text-indigo-500" />
+                          </button>
                         ) : (
                           <span className="font-semibold text-slate-600 text-[11px]">{tx.category}</span>
                         )}
@@ -961,13 +1336,23 @@ export const CashCalculationLog: React.FC = () => {
 
                       {/* Action */}
                       <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => handleToggleStatus(tx.id)}
-                          className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 font-bold text-[10.5px] transition"
-                          title="Toggle Status (Reconciled / Bank Settled / Disputed)"
-                        >
-                          {isBN ? "স্ট্যাটাস" : "Toggle"}
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleToggleStatus(tx.id)}
+                            className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 font-bold text-[10.5px] transition cursor-pointer"
+                            title="Toggle Status (Reconciled / Bank Settled / Disputed)"
+                          >
+                            {isBN ? "স্ট্যাটাস" : "Toggle"}
+                          </button>
+
+                          <button
+                            onClick={() => handleClearSingle(tx.id)}
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                            title={isBN ? "হিসাব থেকে এই ভাউচার ক্লিয়ার করুন" : "Clear this voucher from calculation"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1207,6 +1592,351 @@ export const CashCalculationLog: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Retail POS Cash Sale Modal */}
+      {isPosSaleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    {isBN ? "কাউন্টার সেল ও ক্যাশ রসিদ (POS)" : "Quick POS Retail Sale"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {isBN ? "তাৎক্ষণিক ক্যাশ সেল রেকর্ড করুন এবং ড্রয়ারে টাকা যুক্ত করুন" : "Record walk-in retail sales directly into cash drawer"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPosSaleModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePosSale} className="space-y-4 text-xs">
+              {/* Product item selection or manual description */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  {isBN ? "বিক্রিত পণ্য বা আইটেমের বিবরণ" : "Product / Item Description"} *
+                </label>
+                <input
+                  type="text"
+                  required
+                  list="posProductSuggestions"
+                  value={posSale.itemDesc}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const matched = products.find((p) => p.name === val || p.sku === val);
+                    setPosSale((prev) => ({
+                      ...prev,
+                      itemDesc: val,
+                      amount: matched ? String(matched.sellingPrice) : prev.amount,
+                    }));
+                  }}
+                  placeholder={isBN ? "পণ্য সার্চ করুন বা নাম লিখুন..." : "Select or type product name / SKU..."}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:border-indigo-500"
+                />
+                <datalist id="posProductSuggestions">
+                  {products.map((p) => (
+                    <option key={p.id} value={p.name}>
+                      {p.sku} - Stock: {p.totalStock} - {settings.currencySymbol}{p.sellingPrice}
+                    </option>
+                  ))}
+                </datalist>
+              </div>
+
+              {/* Amount and Payment Channel */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    {isBN ? "বিক্রয়মূল্য (৳)" : "Sale Amount (BDT)"} *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 font-bold text-slate-400 font-mono">
+                      {settings.currencySymbol}
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="any"
+                      required
+                      value={posSale.amount}
+                      onChange={(e) => setPosSale({ ...posSale, amount: e.target.value })}
+                      placeholder="e.g. 1500"
+                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    {isBN ? "পেমেন্ট গ্রহণ মাধ্যম" : "Payment Channel"}
+                  </label>
+                  <select
+                    value={posSale.channel}
+                    onChange={(e) => setPosSale({ ...posSale, channel: e.target.value })}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:outline-none"
+                  >
+                    <option value="Cash Drawer">Physical Cash Drawer</option>
+                    <option value="bKash">bKash Personal / Merchant</option>
+                    <option value="Nagad">Nagad Personal / Merchant</option>
+                    <option value="Bank Transfer">Bank Card / Transfer</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    {isBN ? "কাস্টমার নাম (ঐচ্ছিক)" : "Customer Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={posSale.customer}
+                    onChange={(e) => setPosSale({ ...posSale, customer: e.target.value })}
+                    placeholder={isBN ? "কাউন্টার ক্রেতা" : "Walk-in Buyer"}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    {isBN ? "মোবাইল নম্বর (ঐচ্ছিক)" : "Phone # (Optional)"}
+                  </label>
+                  <input
+                    type="text"
+                    value={posSale.phone}
+                    onChange={(e) => setPosSale({ ...posSale, phone: e.target.value })}
+                    placeholder="017XXXXXXXX"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-900 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">{isBN ? "মন্তব্য" : "Remarks"}</label>
+                <input
+                  type="text"
+                  value={posSale.notes}
+                  onChange={(e) => setPosSale({ ...posSale, notes: e.target.value })}
+                  placeholder={isBN ? "কাউন্টার ক্যাশ সেল মেমো..." : "Direct store counter checkout..."}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsPosSaleModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+                >
+                  {isBN ? "বাতিল" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isBN ? "সেল সম্পন্ন ও ক্যাশে জমা" : "Record Sale & Post Inflow"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Clear & Settle Ledger Calculation Modal */}
+      {isClearModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    {isBN ? "হিসাব ক্লিয়ার ও ক্যাশ সেটেলমেন্ট" : "Clear & Settle Ledger Calculation"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {isBN ? "রিকনসাইল্ড হিসাব ক্লিয়ার করুন বা ডে-এন্ড ব্যাংক ডিপোজিট ট্রান্সফার করুন" : "Clear settled entries or execute day-end bank vault transfer"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsClearModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode selection cards */}
+            <div className="space-y-2.5">
+              <label className="font-bold text-slate-700 block text-xs">
+                {isBN ? "ক্লিয়ার করার পদ্ধতি নির্বাচন করুন:" : "Select Clearing Operation Mode:"}
+              </label>
+
+              {/* Mode 1 */}
+              <div
+                onClick={() => setClearMode("reconciled")}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  clearMode === "reconciled"
+                    ? "bg-indigo-50/80 border-indigo-500 shadow-xs"
+                    : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center justify-between font-bold text-xs text-slate-900">
+                  <span className="flex items-center gap-2">
+                    <CheckCheck className="w-4 h-4 text-indigo-600" />
+                    <span>{isBN ? "১. রিকনসাইল্ড ও পেইড এন্ট্রি ক্লিয়ার (Reconciled Only)" : "1. Clear Reconciled / Delivered Entries"}</span>
+                  </span>
+                  <input
+                    type="radio"
+                    checked={clearMode === "reconciled"}
+                    onChange={() => setClearMode("reconciled")}
+                    className="text-indigo-600"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 pl-6">
+                  {isBN
+                    ? "ইতিমধ্যে ডেলিভার্ড, সংগৃহীত সিওডি এবং ব্যাংক জমা হওয়া ভাউচারগুলো ক্লিয়ার করে শুধুমাত্র চলমান/পেন্ডিং হিসাব রাখবে।"
+                    : "Archives delivered & collected COD entries. Leaves only active and pending courier shipments in view."}
+                </p>
+              </div>
+
+              {/* Mode 2 */}
+              <div
+                onClick={() => setClearMode("day-end-bank")}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  clearMode === "day-end-bank"
+                    ? "bg-indigo-50/80 border-indigo-500 shadow-xs"
+                    : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center justify-between font-bold text-xs text-slate-900">
+                  <span className="flex items-center gap-2">
+                    <Building className="w-4 h-4 text-emerald-600" />
+                    <span>{isBN ? "২. ডে-এন্ড ব্যাংক ডিপোজিট ও শিফট ক্লোজ (Day-End Settle)" : "2. Day-End Cash Settle & Bank Transfer"}</span>
+                  </span>
+                  <input
+                    type="radio"
+                    checked={clearMode === "day-end-bank"}
+                    onChange={() => setClearMode("day-end-bank")}
+                    className="text-indigo-600"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 pl-6">
+                  {isBN
+                    ? "অতিরিক্ত ক্যাশ ব্যাংকে জমা হিসেবে এন্ট্রি করবে, ওপেনিং ক্যাশ ফ্লট রিসেট করবে এবং আজকের লেজার ক্লিয়ার করবে।"
+                    : "Transfers excess drawer cash to bank, sets next day opening float, and clears today's settled journal."}
+                </p>
+              </div>
+
+              {/* Mode 3 */}
+              <div
+                onClick={() => setClearMode("reset-all")}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  clearMode === "reset-all"
+                    ? "bg-rose-50/80 border-rose-500 shadow-xs"
+                    : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center justify-between font-bold text-xs text-rose-900">
+                  <span className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 text-rose-600" />
+                    <span>{isBN ? "৩. সম্পূর্ণ ক্যাশ লেজার ক্লিয়ার ও ফ্রেশ রিসেট (Full Reset)" : "3. Reset & Clear All Calculation"}</span>
+                  </span>
+                  <input
+                    type="radio"
+                    checked={clearMode === "reset-all"}
+                    onChange={() => setClearMode("reset-all")}
+                    className="text-rose-600"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 pl-6">
+                  {isBN
+                    ? "সকল হিস্ট্রি ক্লিয়ার/আর্কাইভ করবে এবং নতুন ওপেনিং ক্যাশ দিয়ে ফ্রেশভাবে শুরু করবে।"
+                    : "Clears all vouchers and starts fresh calculation with your specified opening float."}
+                </p>
+              </div>
+            </div>
+
+            {/* Float Input (Applicable for day-end or reset-all) */}
+            {(clearMode === "day-end-bank" || clearMode === "reset-all") && (
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                <label className="font-bold text-slate-800 block">
+                  {isBN ? "ড্রয়ারে অবশিষ্ট রাখার ওপেনিং ক্যাশ (Opening Float):" : "Next Shift Opening Cash Float:"}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 font-bold text-slate-400 font-mono">
+                    {settings.currencySymbol}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newOpeningFloatInput}
+                    onChange={(e) => setNewOpeningFloatInput(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                {clearMode === "day-end-bank" && (
+                  <div className="flex items-center justify-between text-[11px] text-emerald-700 font-bold pt-1">
+                    <span>{isBN ? "ব্যাংকে ট্রান্সফার হবে:" : "Excess Transferred to Bank:"}</span>
+                    <span className="font-mono">
+                      {settings.currencySymbol}
+                      {Math.max(0, metrics.netCashPosition - newOpeningFloatInput).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Warning Note */}
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">
+                {isBN
+                  ? "ক্লিয়ার করা হিসাব সুরক্ষিত থাকবে। আপনি যেকোনো সময় 'পূর্বাবস্থায় ফেরান (Restore All)' বাটনে ক্লিক করে সব রিস্টোর করতে পারবেন।"
+                  : "Cleared records remain safely archived in local memory and can be restored anytime using 'Restore All'."}
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsClearModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+              >
+                {isBN ? "বাতিল" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExecuteClear(clearMode)}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isBN ? "নিশ্চিতভাবে ক্লিয়ার করুন" : "Confirm & Clear"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Stock Refill Center Modal */}
+      <RefillStockCenterModal
+        isOpen={isRefillModalOpen}
+        onClose={() => setIsRefillModalOpen(false)}
+      />
     </div>
   );
 };

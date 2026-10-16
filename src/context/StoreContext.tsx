@@ -1028,6 +1028,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders((prev) => [newOrder, ...prev]);
     clearCart();
 
+    // Deduct stock for ordered items and post Inventory Ledger Transactions
+    orderData.items.forEach((item) => {
+      const prod = products.find((p) => p.id === item.product.id || p.sku === item.product.sku);
+      if (prod) {
+        const updatedStock = Math.max(0, prod.totalStock - item.quantity);
+        setProducts((prevProds) =>
+          prevProds.map((p) =>
+            p.id === prod.id
+              ? { ...p, totalStock: updatedStock, isLowStock: updatedStock <= (p.lowStockThreshold || 10) }
+              : p
+          )
+        );
+        const invTx: InventoryTransaction = {
+          id: `inv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          productId: prod.id,
+          sku: prod.sku,
+          productName: prod.name,
+          type: "Stock Out",
+          quantity: item.quantity,
+          warehouseId: prod.warehouseLocation || "WH-MAIN-DHAKA",
+          notes: `Order Sale #${ordNum} (${orderData.customerName})`,
+          referenceNo: ordNum,
+          createdAt: now,
+          performedBy: currentUser.name || "Customer Checkout",
+        };
+        setInventoryTransactions((prevInv) => [invTx, ...prevInv]);
+      }
+    });
+
     // Audit log
     const auditExtra = [
       `Total: ${settings.currencySymbol}${newOrder.total}`,
@@ -1075,6 +1104,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus, trackingNo?: string) => {
+    const existing = orders.find((o) => o.id === orderId);
+    if (existing && existing.orderStatus !== "Cancelled" && newStatus === "Cancelled") {
+      // Restock products on order cancellation
+      existing.items.forEach((item) => {
+        const prod = products.find((p) => p.id === item.product.id || p.sku === item.product.sku);
+        if (prod) {
+          const restoredStock = prod.totalStock + item.quantity;
+          setProducts((prevProds) =>
+            prevProds.map((p) =>
+              p.id === prod.id
+                ? { ...p, totalStock: restoredStock, isLowStock: restoredStock <= (p.lowStockThreshold || 10) }
+                : p
+            )
+          );
+          const invTx: InventoryTransaction = {
+            id: `inv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            productId: prod.id,
+            sku: prod.sku,
+            productName: prod.name,
+            type: "Stock In",
+            quantity: item.quantity,
+            warehouseId: prod.warehouseLocation || "WH-MAIN-DHAKA",
+            notes: `Restock Cancelled Order #${existing.orderNumber}`,
+            referenceNo: existing.orderNumber,
+            createdAt: new Date().toISOString().replace("T", " ").substring(0, 19),
+            performedBy: currentUser.name || "Admin Order Desk",
+          };
+          setInventoryTransactions((prevInv) => [invTx, ...prevInv]);
+        }
+      });
+    }
+
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id === orderId) {

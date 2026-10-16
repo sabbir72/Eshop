@@ -28,7 +28,9 @@ import {
   Package,
   ShoppingBag,
   TrendingUp,
+  Boxes,
 } from "lucide-react";
+import { RefillStockCenterModal } from "./RefillStockCenterModal";
 
 interface CommandCenterDirectoryProps {
   onSelectFeature?: (view: AdminView) => void;
@@ -41,6 +43,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
+  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
   
   // State for expanded/collapsed categories (default all open)
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
@@ -185,8 +188,16 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
     }
     if (featureId === "inventory" && lowStockCount > 0) {
       return (
-        <span className="text-[10px] font-mono font-black text-rose-800 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-300 flex items-center gap-1">
-          <span>⚠️ {lowStockCount} {isBN ? "স্টক এলার্ট" : "Low Stock"}</span>
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsRefillModalOpen(true);
+          }}
+          className="text-[10px] font-mono font-black text-rose-800 bg-rose-100 hover:bg-rose-200 px-2 py-0.5 rounded-md border border-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
+          title={isBN ? "ক্লিক করে রিফিল তালিকা দেখুন" : "Click to view refill list"}
+        >
+          <Boxes className="w-3 h-3 text-rose-600" />
+          <span>⚠️ {lowStockCount} {isBN ? "রিফিল প্রয়োজন" : "Refill Needed"}</span>
         </span>
       );
     }
@@ -239,6 +250,21 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
 
         {/* Quick Launch Pills */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Refill Hub 1-Click */}
+          <button
+            onClick={() => setIsRefillModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+            title={isBN ? "কোন পণ্যগুলো রিফিল করতে হবে দেখুন (A-Z)" : "Check which items need refill (A-Z)"}
+          >
+            <Boxes className="w-3.5 h-3.5" />
+            <span>{isBN ? "📦 রিফিল হাব (A-Z)" : "📦 Refill Hub (A-Z)"}</span>
+            {lowStockCount > 0 && (
+              <span className="bg-slate-950 text-amber-300 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold">
+                {lowStockCount}
+              </span>
+            )}
+          </button>
+
           {/* Cash Calculation 1-Click */}
           <button
             onClick={() => handleSelect("cash-calculation")}
@@ -623,6 +649,12 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
           })
         )}
       </div>
+
+      {/* Stock Refill Center Modal */}
+      <RefillStockCenterModal
+        isOpen={isRefillModalOpen}
+        onClose={() => setIsRefillModalOpen(false)}
+      />
     </div>
   );
 };

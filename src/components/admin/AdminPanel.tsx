@@ -63,14 +63,31 @@ import {
   LogOut,
   FileSpreadsheet,
   Wallet,
+  Boxes,
 } from "lucide-react";
+import { RefillStockCenterModal } from "./RefillStockCenterModal";
 
 export const AdminPanel: React.FC = () => {
-  const { adminView, setAdminView, activeRole, hasPermission, setMode, currentUser, logoutUser } = useStore();
+  const {
+    adminView,
+    setAdminView,
+    activeRole,
+    hasPermission,
+    setMode,
+    currentUser,
+    logoutUser,
+    orders,
+    products,
+    language,
+  } = useStore();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [quickSearchQuery, setQuickSearchQuery] = useState("");
+  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
+
+  const pendingOrdersCount = useMemo(() => orders.filter((o) => o.orderStatus === "Pending").length, [orders]);
+  const lowStockCount = useMemo(() => products.filter((p) => p.totalStock <= 5).length, [products]);
 
   const toggleCategory = (catId: string) => {
     setCollapsedCategories((prev) => ({
@@ -219,6 +236,21 @@ export const AdminPanel: React.FC = () => {
           >
             <Store className="w-3.5 h-3.5 text-indigo-600" />
             <span className="hidden sm:inline">Storefront</span>
+          </button>
+
+          {/* Refill Needed Hub Button (Interactive from anywhere) */}
+          <button
+            onClick={() => setIsRefillModalOpen(true)}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 active:scale-95"
+            title={language === "BN" ? "রিফিল কেন্দ্র: কোন পণ্যগুলো রিফিল হবে দেখুন (A-Z)" : "Refill Center: Inspect which items need refill (A-Z)"}
+          >
+            <Boxes className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden sm:inline">{language === "BN" ? "রিফিল হাব (A-Z)" : "Refill Hub"}</span>
+            {lowStockCount > 0 && (
+              <span className="bg-rose-500 text-white px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold animate-pulse">
+                {lowStockCount}
+              </span>
+            )}
           </button>
 
           {/* Cash Calculation & Financial Log Button */}
@@ -371,14 +403,31 @@ export const AdminPanel: React.FC = () => {
                                 setAdminView(feat.id);
                                 setMobileNavOpen(false);
                               }}
-                              className={`flex items-center text-left transition-colors rounded-xl px-3 py-2 text-xs font-semibold ${
+                              className={`flex items-center justify-between text-left transition-colors rounded-xl px-3 py-2 text-xs font-semibold ${
                                 isActive
                                   ? "bg-indigo-600 text-white font-black shadow-xs"
                                   : "text-slate-300 hover:bg-slate-800"
                               }`}
                             >
-                              <FeatIcon className="w-4 h-4 mr-2 shrink-0" />
-                              <span className="truncate">{feat.name}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FeatIcon className="w-4 h-4 shrink-0" />
+                                <span className="truncate">{feat.name}</span>
+                              </div>
+                              {feat.id === "orders" && pendingOrdersCount > 0 && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-slate-950 shrink-0">
+                                  {pendingOrdersCount}
+                                </span>
+                              )}
+                              {feat.id === "cash-calculation" && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 shrink-0">
+                                  ৳ Cash
+                                </span>
+                              )}
+                              {feat.id === "inventory" && lowStockCount > 0 && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-500 text-white shrink-0">
+                                  !{lowStockCount}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
@@ -492,29 +541,53 @@ export const AdminPanel: React.FC = () => {
                                       key={feat.id}
                                       onClick={() => setAdminView(feat.id)}
                                       title={feat.name}
-                                      className={`w-full flex items-center text-left transition-all duration-150 rounded-lg px-2.5 py-1.5 min-h-[32px] group ${
+                                      className={`w-full flex items-center justify-between text-left transition-all duration-150 rounded-lg px-2.5 py-1.5 min-h-[32px] group ${
                                         isActive
                                           ? "bg-indigo-600 text-white font-bold shadow-xs shadow-indigo-600/30"
                                           : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 font-medium"
                                       }`}
                                     >
-                                      <span
-                                        className={`w-1.5 h-1.5 rounded-full mr-2 shrink-0 transition-colors ${
-                                          isActive
-                                            ? "bg-white"
-                                            : "bg-slate-600 group-hover:bg-slate-400"
-                                        }`}
-                                      />
-                                      <FeatIcon
-                                        className={`w-3.5 h-3.5 mr-2 shrink-0 transition-colors ${
-                                          isActive
-                                            ? "text-white"
-                                            : "text-slate-400 group-hover:text-slate-200"
-                                        }`}
-                                      />
-                                      <span className="text-[12px] truncate leading-none">
-                                        {feat.name}
-                                      </span>
+                                      <div className="flex items-center min-w-0 mr-1.5">
+                                        <span
+                                          className={`w-1.5 h-1.5 rounded-full mr-2 shrink-0 transition-colors ${
+                                            isActive
+                                              ? "bg-white"
+                                              : "bg-slate-600 group-hover:bg-slate-400"
+                                          }`}
+                                        />
+                                        <FeatIcon
+                                          className={`w-3.5 h-3.5 mr-2 shrink-0 transition-colors ${
+                                            isActive
+                                              ? "text-white"
+                                              : "text-slate-400 group-hover:text-slate-200"
+                                          }`}
+                                        />
+                                        <span className="text-[12px] truncate leading-none">
+                                          {feat.name}
+                                        </span>
+                                      </div>
+
+                                      {/* Smart Badge Indicator */}
+                                      {feat.id === "orders" && pendingOrdersCount > 0 && (
+                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500 text-slate-950 shrink-0">
+                                          {pendingOrdersCount}
+                                        </span>
+                                      )}
+                                      {feat.id === "cash-calculation" && (
+                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                                          ৳ Cash
+                                        </span>
+                                      )}
+                                      {feat.id === "inventory" && lowStockCount > 0 && (
+                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white shrink-0">
+                                          !{lowStockCount}
+                                        </span>
+                                      )}
+                                      {feat.id === "ai-agent" && (
+                                        <span className="px-1 py-0.2 rounded text-[8.5px] font-bold bg-purple-500/30 text-purple-300 border border-purple-500/40 shrink-0">
+                                          AI
+                                        </span>
+                                      )}
                                     </button>
                                   );
                                 })}
@@ -587,6 +660,12 @@ export const AdminPanel: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* Global Interactive Refill Center Modal */}
+      <RefillStockCenterModal
+        isOpen={isRefillModalOpen}
+        onClose={() => setIsRefillModalOpen(false)}
+      />
     </div>
   );
 };

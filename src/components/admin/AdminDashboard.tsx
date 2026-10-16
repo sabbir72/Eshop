@@ -31,15 +31,21 @@ import {
   Lock,
   Globe,
   Wallet,
+  Boxes,
+  ArrowUpRight,
+  ExternalLink,
 } from "lucide-react";
 import { CommandCenterDirectory } from "./CommandCenterDirectory";
 import { TrafficLoadTracker } from "./TrafficLoadTracker";
 import { CashCalculationLog } from "./CashCalculationLog";
+import { RefillStockCenterModal } from "./RefillStockCenterModal";
 
 export const AdminDashboard: React.FC = () => {
-  const { products, orders, users, auditLogs, settings, setAdminView, activeRole, language, addToast } =
+  const { products, orders, users, auditLogs, settings, setAdminView, activeRole, language, addToast, updateProduct } =
     useStore();
   const [dashboardMode, setDashboardMode] = useState<"all" | "traffic" | "cash" | "kpis" | "directory">("all");
+  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
+  const [refillInitialFilter, setRefillInitialFilter] = useState<"deficit" | "all" | "out-of-stock">("deficit");
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -118,6 +124,22 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Quick Action Button Hub */}
           <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+            {/* Dedicated Refill Center Button */}
+            <button
+              onClick={() => {
+                setRefillInitialFilter("deficit");
+                setIsRefillModalOpen(true);
+              }}
+              className="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer border border-amber-300"
+              title={isBN ? "কোন পণ্যগুলো রিফিল করতে হবে দেখুন (A to Z)" : "Check which items need refill (A to Z)"}
+            >
+              <Boxes className="w-4 h-4 text-slate-950" />
+              <span>{isBN ? "📦 কোনগুলি রিফিল হবে (A-Z)" : "📦 Refill Center (A-Z)"}</span>
+              <span className="bg-slate-950 text-amber-300 px-1.5 py-0.2 rounded-full text-[10px] font-mono">
+                {lowStockProducts.length + outOfStockProducts.length}
+              </span>
+            </button>
+
             {/* Real-time Traffic load quick button */}
             <button
               onClick={() => setDashboardMode(dashboardMode === "traffic" ? "all" : "traffic")}
@@ -267,16 +289,20 @@ export const AdminDashboard: React.FC = () => {
       {/* Primary Financial & Operational KPI Cards Grid */}
       {(dashboardMode === "all" || dashboardMode === "kpis") && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1. Total Revenue */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-indigo-300 transition-all space-y-2">
+          {/* 1. Total Revenue -> Click to view Cash Calculation Log */}
+          <button
+            onClick={() => setDashboardMode("cash")}
+            className="text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all space-y-2 group cursor-pointer"
+            title={isBN ? "ক্যাশ ক্যালকুলেশন ও হিসাব দেখতে ক্লিক করুন" : "Click to view Cash Calculation Ledger"}
+          >
             <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-              <span>{isBN ? "মোট বিক্রয় ও আয়" : "Total Revenue"}</span>
-              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+              <span className="group-hover:text-emerald-700 transition-colors">{isBN ? "মোট বিক্রয় ও আয়" : "Total Revenue"}</span>
+              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <DollarSign className="w-4 h-4" />
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <h3 className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-black font-mono text-slate-900 tracking-tight group-hover:text-emerald-700 transition-colors">
                 {settings.currencySymbol}
                 {totalRevenue.toLocaleString()}
               </h3>
@@ -284,58 +310,93 @@ export const AdminDashboard: React.FC = () => {
                 +14.8% ↑
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              {isBN ? "বিকাশ, নগদ ও সিওডি মিলিয়ে" : "Combined online & COD gross"}
-            </p>
-          </div>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-[10px] text-slate-400">
+                {isBN ? "বিকাশ, নগদ ও সিওডি মিলিয়ে" : "Combined online & COD gross"}
+              </p>
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 opacity-80 group-hover:opacity-100">
+                <span>{isBN ? "ক্যাশ লগ" : "Cash Log"}</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </span>
+            </div>
+          </button>
 
-          {/* 2. Pending Orders */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-300 transition-all space-y-2">
+          {/* 2. Pending Orders -> Click to jump to Orders view */}
+          <button
+            onClick={() => setAdminView("orders")}
+            className="text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400 hover:shadow-md transition-all space-y-2 group cursor-pointer"
+            title={isBN ? "পেন্ডিং অর্ডার প্রসেস করতে ক্লিক করুন" : "Click to process pending orders"}
+          >
             <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-              <span>{isBN ? "পেন্ডিং অর্ডারসমূহ" : "Pending Orders"}</span>
-              <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+              <span className="group-hover:text-amber-700 transition-colors">{isBN ? "পেন্ডিং অর্ডারসমূহ" : "Pending Orders"}</span>
+              <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-colors">
                 <Clock className="w-4 h-4" />
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <h3 className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-black font-mono text-slate-900 tracking-tight group-hover:text-amber-700 transition-colors">
                 {pendingOrders}
               </h3>
               <span className="text-amber-700 text-xs font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
                 {pendingOrders} {isBN ? "অ্যাকশন প্রয়োজন" : "actions due"}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              {isBN ? "প্যাকিং ও কুরিয়ার হ্যান্ডওভার" : "Awaiting courier handover"}
-            </p>
-          </div>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-[10px] text-slate-400">
+                {isBN ? "প্যাকিং ও কুরিয়ার হ্যান্ডওভার" : "Awaiting courier handover"}
+              </p>
+              <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5 opacity-80 group-hover:opacity-100">
+                <span>{isBN ? "অর্ডারে যান" : "Go to Orders"}</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </span>
+            </div>
+          </button>
 
-          {/* 3. Delivered Orders */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-all space-y-2">
+          {/* 3. Delivered Orders -> Click to jump to Orders */}
+          <button
+            onClick={() => setAdminView("orders")}
+            className="text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all space-y-2 group cursor-pointer"
+            title={isBN ? "ডেলিভার্ড অর্ডার ইতিহাস দেখতে ক্লিক করুন" : "Click to view delivered orders history"}
+          >
             <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-              <span>{isBN ? "সফলভাবে ডেলিভার্ড" : "Delivered Orders"}</span>
-              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+              <span className="group-hover:text-emerald-700 transition-colors">{isBN ? "সফলভাবে ডেলিভার্ড" : "Delivered Orders"}</span>
+              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <CheckCircle className="w-4 h-4" />
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <h3 className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-black font-mono text-slate-900 tracking-tight group-hover:text-emerald-700 transition-colors">
                 {deliveredOrders}
               </h3>
               <span className="text-emerald-700 text-xs font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                 98.2% SLA
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              {isBN ? "সফল কুরিয়ার ক্লোজার" : "Steadfast & RedX delivered"}
-            </p>
-          </div>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-[10px] text-slate-400">
+                {isBN ? "সফল কুরিয়ার ক্লোজার" : "Steadfast & RedX delivered"}
+              </p>
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 opacity-80 group-hover:opacity-100">
+                <span>{isBN ? "হিস্ট্রি দেখুন" : "View History"}</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </span>
+            </div>
+          </button>
 
-          {/* 4. Stock Warnings */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-rose-300 transition-all space-y-2">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-              <span>{isBN ? "লো স্টক সতর্কতা" : "Low Stock Items"}</span>
-              <span className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+          {/* 4. Stock Warnings -> Click to open Refill Center Modal */}
+          <button
+            onClick={() => {
+              setRefillInitialFilter("deficit");
+              setIsRefillModalOpen(true);
+            }}
+            className="text-left bg-gradient-to-br from-white to-rose-50/50 p-5 rounded-2xl border-2 border-rose-200 shadow-xs hover:border-rose-500 hover:shadow-md transition-all space-y-2 group cursor-pointer relative overflow-hidden"
+            title={isBN ? "কোনগুলো রিফিল করতে হবে দেখতে ক্লিক করুন (A to Z)" : "Click to see which items need refill (A to Z)"}
+          >
+            <div className="flex items-center justify-between text-slate-700 text-xs font-bold">
+              <span className="text-rose-900 font-extrabold flex items-center gap-1">
+                <span>{isBN ? "লো স্টক সতর্কতা" : "Low Stock Items"}</span>
+              </span>
+              <span className="p-1.5 rounded-lg bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                 <AlertTriangle className="w-4 h-4" />
               </span>
             </div>
@@ -343,14 +404,20 @@ export const AdminDashboard: React.FC = () => {
               <h3 className="text-2xl font-black font-mono text-rose-600 tracking-tight">
                 {lowStockProducts.length + outOfStockProducts.length}
               </h3>
-              <span className="text-rose-700 text-xs font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+              <span className="text-rose-800 text-xs font-black bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 animate-pulse">
                 {isBN ? "রি-স্টক প্রয়োজন" : "Refill needed"}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              {isBN ? "৫ টির কম ইনভেন্টরি স্টক" : "Less than 5 items left"}
-            </p>
-          </div>
+            <div className="flex items-center justify-between pt-1 border-t border-rose-100">
+              <p className="text-[10px] text-slate-500">
+                {isBN ? "৫ টির কম ইনভেন্টরি স্টক" : "Less than 5 items left"}
+              </p>
+              <span className="text-[11px] font-extrabold text-rose-600 flex items-center gap-0.5 group-hover:underline">
+                <span>{isBN ? "রিফিল দেখুন (A-Z)" : "Refill (A-Z)"}</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </button>
         </div>
       )}
 
@@ -536,47 +603,110 @@ export const AdminDashboard: React.FC = () => {
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
                 <span>{isBN ? "ইনভেন্টরি স্টক সতর্কতা" : "Inventory Stock Warnings"}</span>
               </h3>
-              <button
-                onClick={() => setAdminView("inventory")}
-                className="text-xs text-indigo-600 font-semibold hover:underline cursor-pointer"
-              >
-                {isBN ? "ইনভেন্টরি দেখুন" : "Inventory"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setRefillInitialFilter("deficit");
+                    setIsRefillModalOpen(true);
+                  }}
+                  className="text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Open A-to-Z Refill Center"
+                >
+                  <Boxes className="w-3 h-3 text-amber-600" />
+                  <span>{isBN ? "রিফিল তালিকা" : "Refill Hub"}</span>
+                </button>
+                <button
+                  onClick={() => setAdminView("inventory")}
+                  className="text-xs text-indigo-600 font-semibold hover:underline cursor-pointer"
+                >
+                  {isBN ? "ইনভেন্টরি" : "Inventory"}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2.5">
               {lowStockProducts.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-4 text-center">
-                  {isBN ? "সকল ইনভেন্টরি স্টক লেভেল নিরাপদ।" : "All inventory stock levels are healthy."}
-                </p>
+                <div className="text-center py-6 space-y-2">
+                  <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto" />
+                  <p className="text-xs text-slate-600 font-medium">
+                    {isBN ? "সকল ইনভেন্টরি স্টক লেভেল নিরাপদ।" : "All inventory stock levels are healthy."}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setRefillInitialFilter("all");
+                      setIsRefillModalOpen(true);
+                    }}
+                    className="text-xs text-indigo-600 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <span>{isBN ? "সকল পণ্যের স্টক দেখুন (A to Z) →" : "View All Stock Levels (A-Z) →"}</span>
+                  </button>
+                </div>
               ) : (
                 lowStockProducts.map((prod) => (
                   <div
                     key={prod.id}
-                    className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs"
+                    className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition-colors text-xs group"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      onClick={() => {
+                        setRefillInitialFilter("deficit");
+                        setIsRefillModalOpen(true);
+                      }}
+                      className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                    >
                       <img
                         src={prod.mainImage}
                         alt={prod.name}
                         className="w-8 h-8 rounded-lg object-contain bg-white p-1 border border-slate-200 shrink-0"
                       />
                       <div className="min-w-0">
-                        <span className="font-bold text-slate-900 block line-clamp-1">{prod.name}</span>
+                        <span className="font-bold text-slate-900 block line-clamp-1 group-hover:text-amber-800">{prod.name}</span>
                         <span className="text-[10px] text-slate-400 font-mono">SKU: {prod.sku}</span>
                       </div>
                     </div>
 
-                    <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px] font-mono shrink-0">
-                      {prod.totalStock} {isBN ? "বাকি" : "left"}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px] font-mono">
+                        {prod.totalStock} {isBN ? "বাকি" : "left"}
+                      </span>
+                      <button
+                        onClick={() => {
+                          updateProduct(prod.id, { totalStock: prod.totalStock + 10, isLowStock: false });
+                          addToast(isBN ? `${prod.name} এ +১০ টি স্টক যুক্ত হয়েছে!` : `Added +10 stock to ${prod.name}!`, "success");
+                        }}
+                        className="p-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[10px] transition cursor-pointer"
+                        title={isBN ? "+১০ টি স্টক রিফিল করুন" : "Quick Refill +10"}
+                      >
+                        +10
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
             </div>
+
+            {/* Quick Action Footer in Low Stock Widget */}
+            <button
+              onClick={() => {
+                setRefillInitialFilter("deficit");
+                setIsRefillModalOpen(true);
+              }}
+              className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Boxes className="w-3.5 h-3.5" />
+              <span>{isBN ? "কোনগুলো রিফিল করতে হবে দেখুন (A-Z)" : "Check Which Items Need Refill (A-Z)"}</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
+
+      {/* Interactive Stock Refill Center Modal */}
+      <RefillStockCenterModal
+        isOpen={isRefillModalOpen}
+        onClose={() => setIsRefillModalOpen(false)}
+        initialFilter={refillInitialFilter}
+      />
     </div>
   );
 };

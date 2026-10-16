@@ -272,6 +272,8 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
             icon: Tag,
             module: "Coupon",
             tag: "Multi-Scope Engine",
+          },
+        ],
       },
       {
         id: "cash-reconciliation-ops",
