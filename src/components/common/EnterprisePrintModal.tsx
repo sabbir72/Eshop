@@ -38,14 +38,24 @@ interface EnterprisePrintModalProps {
   data: PrintableDocumentData;
   isOpen: boolean;
   onClose: () => void;
+  /** Force customer-only read-only view regardless of activeRole (use in OrderHistoryView) */
+  forceCustomerView?: boolean;
 }
 
 export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
   data,
   isOpen,
   onClose,
+  forceCustomerView = false,
 }) => {
   const { currentUser, activeRole, addAuditLog } = useStore();
+
+  // Check if user is customer (read-only mode)
+  // forceCustomerView=true is passed by OrderHistoryView to ALWAYS show read-only invoice
+  const isCustomerView =
+    forceCustomerView ||
+    activeRole === "Customer" ||
+    activeRole === "Guest";
 
   const [activeCopy, setActiveCopy] = useState<DocumentCopyType>(data.copyType || "customer");
 
@@ -378,50 +388,59 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-black tracking-tight text-white uppercase">{activeDocumentData.documentTitle}</h2>
+              <h2 className="text-sm font-black tracking-tight text-white uppercase">
+                {isCustomerView ? "Invoice" : activeDocumentData.documentTitle}
+              </h2>
               <span className="text-[10px] font-bold bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-md font-mono">
                 #{activeDocumentData.documentNumber}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">Enterprise Print & Export Engine</p>
+            <p className="text-[11px] text-slate-400">
+              {isCustomerView ? "Your Order Invoice" : "Enterprise Print & Export Engine"}
+            </p>
           </div>
         </div>
 
         {/* Toolbar Quick Controls */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPreviewTheme(previewTheme === "dark" ? "light" : "dark")}
-            className="p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
-            title="Toggle Preview Canvas Background"
-          >
-            {previewTheme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
-            <span className="hidden sm:inline">{previewTheme === "dark" ? "Light BG" : "Dark BG"}</span>
-          </button>
+          {/* Zoom & theme controls - ADMIN ONLY */}
+          {!isCustomerView && (
+            <>
+              <button
+                onClick={() => setPreviewTheme(previewTheme === "dark" ? "light" : "dark")}
+                className="p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                title="Toggle Preview Canvas Background"
+              >
+                {previewTheme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
+                <span className="hidden sm:inline">{previewTheme === "dark" ? "Light BG" : "Dark BG"}</span>
+              </button>
 
-          <div className="hidden md:flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700 text-xs">
-            <button
-              onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
-              className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300"
-              title="Zoom Out"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <span className="px-2 font-mono font-bold text-[11px] text-indigo-300">{zoomLevel}%</span>
-            <button
-              onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
-              className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300"
-              title="Zoom In"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setZoomLevel(100)}
-              className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300"
-              title="Fit Page"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              <div className="hidden md:flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700 text-xs">
+                <button
+                  onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
+                  className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <span className="px-2 font-mono font-bold text-[11px] text-indigo-300">{zoomLevel}%</span>
+                <button
+                  onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
+                  className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setZoomLevel(100)}
+                  className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300"
+                  title="Fit Page"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </>
+          )}
 
           <button
             onClick={onClose}
@@ -432,8 +451,8 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
         </div>
       </div>
 
-      {/* Copy Type Selection Toolbar for Invoices / Challans */}
-      {isInvoiceDoc && (
+      {/* Copy Type Selection Toolbar for Invoices / Challans - HIDDEN FOR CUSTOMERS */}
+      {isInvoiceDoc && !isCustomerView && (
         <div className="bg-[#111827] border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center flex-wrap gap-1.5 font-bold">
             <span className="text-[11px] text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">
@@ -498,9 +517,18 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
         </div>
       )}
 
+      {/* Customer View - Simple Header */}
+      {isCustomerView && (
+        <div className="bg-[#111827] border-b border-slate-800 px-4 py-3 text-center">
+          <p className="text-sm font-bold text-white">Your Invoice</p>
+          <p className="text-[11px] text-slate-400 mt-1">View and download your order invoice below</p>
+        </div>
+      )}
+
       {/* Center Body Grid: Sidebar Config + Scrollable Document Canvas */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
-        {/* Left Control Sidebar */}
+        {/* Left Control Sidebar - HIDDEN FOR CUSTOMERS */}
+        {!isCustomerView && (
         <div className="lg:col-span-4 xl:col-span-3 bg-[#0F172A] border-r border-slate-800 p-4 overflow-y-auto custom-scrollbar text-white space-y-5 shrink-0">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
@@ -696,13 +724,33 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
             </div>
           </div>
         </div>
+        )} {/* End of !isCustomerView sidebar */}
 
         {/* Right Scrollable Document Canvas */}
         <div
-          className={`lg:col-span-8 xl:col-span-9 p-4 sm:p-8 overflow-y-auto custom-scrollbar flex items-start justify-center transition-colors ${
+          className={`${isCustomerView ? "col-span-12" : "lg:col-span-8 xl:col-span-9"} p-4 sm:p-8 overflow-y-auto custom-scrollbar flex flex-col items-center transition-colors ${
             previewTheme === "dark" ? "bg-slate-950" : "bg-slate-200"
           }`}
         >
+          {/* Customer-only: Download PDF button at the top */}
+          {isCustomerView && (
+            <div className="w-full max-w-3xl mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-white">
+                <FileText className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-bold text-slate-300">
+                  Invoice #{data.documentNumber}
+                </span>
+              </div>
+              <button
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </button>
+            </div>
+          )}
+
           <div
             style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: "top center" }}
             className="transition-transform duration-200 my-4 w-full flex flex-col items-center gap-8"
@@ -779,6 +827,29 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
                 Confirm & Print
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer View: Fixed Bottom Action Bar */}
+      {isCustomerView && (
+        <div className="bg-[#0F172A] border-t border-slate-800 px-4 py-3 shrink-0 flex items-center justify-between gap-3">
+          <p className="text-[11px] text-slate-400 font-medium">
+            📄 Invoice #{data.documentNumber} — {data.generatedDate}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 py-2 rounded-xl border border-slate-700 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" /> Close
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2 rounded-xl shadow-lg transition-all active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </button>
           </div>
         </div>
       )}

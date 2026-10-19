@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabic Alphabet Learning - Alif to Ya</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Poppins:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #video-container {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        /* Animated Background Pattern */
+        .bg-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image:
+                repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.05) 35px, rgba(255,255,255,.05) 70px);
+        }
+
+        /* Main Content Area */
+        .content-wrapper {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 100px;
+        }
+
+        /* Title Section */
+        .title-section {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .main-title {
+            font-size: 96px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 42px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 400;
+        }
+
+        /* Letter Display Area */
+        .letter-container {
+            background: white;
+            border-radius: 40px;
+            padding: 80px 120px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            min-width: 800px;
+            text-align: center;
+            animation: scaleIn 0.6s ease;
+        }
+
+        .arabic-letter {
+            font-family: 'Amiri', serif;
+            font-size: 280px;
+            font-weight: 700;
+            color: #667eea;
+            line-height: 1;
+            margin-bottom: 30px;
+            animation: letterPulse 1.5s ease-in-out infinite;
+        }
+
+        .letter-name {
+            font-size: 64px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .letter-pronunciation {
+            font-size: 48px;
+            color: #666;
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        .letter-number {
+            position: absolute;
+            top: 40px;
+            right: 60px;
+            font-size: 72px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        /* Sound Wave Animation */
+        .sound-wave {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .wave-bar {
+            width: 6px;
+            background: #667eea;
+            border-radius: 3px;
+            animation: wave 1.2s ease-in-out infinite;
+        }
+
+        .wave-bar:nth-child(1) { height: 20px; animation-delay: 0s; }
+        .wave-bar:nth-child(2) { height: 30px; animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { height: 40px; animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { height: 50px; animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { height: 40px; animation-delay: 0.4s; }
+        .wave-bar:nth-child(6) { height: 30px; animation-delay: 0.5s; }
+        .wave-bar:nth-child(7) { height: 20px; animation-delay: 0.6s; }
+
+        /* Completion Screen */
+        .completion-screen {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            animation: fadeIn 1s ease;
+        }
+
+        .completion-screen.active {
+            display: flex;
+        }
+
+        .completion-icon {
+            font-size: 200px;
+            margin-bottom: 40px;
+            animation: bounceIn 1s ease;
+        }
+
+        .completion-text {
+            font-size: 96px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .completion-subtext {
+            font-size: 48px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            padding: 20px 40px;
+            border-radius: 50px;
+            z-index: 1000;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+            background: #667eea;
+            color: white;
+        }
+
+        .timer {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes letterPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes wave {
+            0%, 100% {
+                transform: scaleY(0.5);
+            }
+            50% {
+                transform: scaleY(1);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Gradient Animation */
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        #video-container {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <div class="bg-pattern"></div>
+
+        <!-- Main Content -->
+        <div class="content-wrapper" id="mainContent">
+            <div class="title-section">
+                <div class="main-title">Arabic Alphabet</div>
+                <div class="subtitle">আরবি বর্ণমালা শিখুন</div>
+            </div>
+
+            <div class="letter-container">
+                <div class="arabic-letter" id="arabicLetter">ا</div>
+                <div class="letter-name" id="letterName">Alif</div>
+                <div class="letter-pronunciation" id="pronunciation">আলিফ</div>
+                <div class="sound-wave">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+            </div>
+
+            <div class="letter-number" id="letterNumber">1 / 28</div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+
+        <!-- Completion Screen -->
+        <div class="completion-screen" id="completionScreen">
+            <div class="completion-icon">🎉</div>
+            <div class="completion-text">সম্পূর্ণ হয়েছে!</div>
+            <div class="completion-subtext">আপনি 28টি আরবি অক্ষর শিখেছেন</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="control-btn" onclick="restart()">⟲ আবার শুরু করুন</button>
+        <button class="control-btn" onclick="togglePlay()" id="playBtn">⏸ বিরতি</button>
+        <button class="control-btn" onclick="nextLetter()">⏭ পরবর্তী</button>
+        <span class="timer" id="timer">অক্ষর: 1/28</span>
+    </div>
+
+    <script>
+        // Arabic Alphabet Data (28 letters)
+        const arabicLetters = [
+            { arabic: 'ا', name: 'Alif', bangla: 'আলিফ' },
+            { arabic: 'ب', name: 'Ba', bangla: 'বা' },
+            { arabic: 'ت', name: 'Ta', bangla: 'তা' },
+            { arabic: 'ث', name: 'Tha', bangla: 'সা' },
+            { arabic: 'ج', name: 'Jim', bangla: 'জিম' },
+            { arabic: 'ح', name: 'Ha', bangla: 'হা' },
+            { arabic: 'خ', name: 'Kha', bangla: 'খা' },
+            { arabic: 'د', name: 'Dal', bangla: 'দাল' },
+            { arabic: 'ذ', name: 'Dhal', bangla: 'যাল' },
+            { arabic: 'ر', name: 'Ra', bangla: 'রা' },
+            { arabic: 'ز', name: 'Zay', bangla: 'যে' },
+            { arabic: 'س', name: 'Sin', bangla: 'সিন' },
+            { arabic: 'ش', name: 'Shin', bangla: 'শিন' },
+            { arabic: 'ص', name: 'Sad', bangla: 'সোয়াদ' },
+            { arabic: 'ض', name: 'Dad', bangla: 'দোয়াদ' },
+            { arabic: 'ط', name: 'Ta', bangla: 'ত্বোয়া' },
+            { arabic: 'ظ', name: 'Za', bangla: 'যোয়া' },
+            { arabic: 'ع', name: 'Ain', bangla: 'আইন' },
+            { arabic: 'غ', name: 'Ghain', bangla: 'গাইন' },
+            { arabic: 'ف', name: 'Fa', bangla: 'ফা' },
+            { arabic: 'ق', name: 'Qaf', bangla: 'ক্বাফ' },
+            { arabic: 'ك', name: 'Kaf', bangla: 'কাফ' },
+            { arabic: 'ل', name: 'Lam', bangla: 'লাম' },
+            { arabic: 'م', name: 'Mim', bangla: 'মিম' },
+            { arabic: 'ن', name: 'Nun', bangla: 'নুন' },
+            { arabic: 'ه', name: 'Ha', bangla: 'হা' },
+            { arabic: 'و', name: 'Waw', bangla: 'ওয়াও' },
+            { arabic: 'ي', name: 'Ya', bangla: 'ইয়া' }
+        ];
+
+        let currentIndex = 0;
+        let isPlaying = true;
+        let intervalId;
+
+        // Initialize
+        function init() {
+            updateLetter();
+            startAutoPlay();
+        }
+
+        // Update current letter display
+        function updateLetter() {
+            const letter = arabicLetters[currentIndex];
+            document.getElementById('arabicLetter').textContent = letter.arabic;
+            document.getElementById('letterName').textContent = letter.name;
+            document.getElementById('pronunciation').textContent = letter.bangla;
+            document.getElementById('letterNumber').textContent = `${currentIndex + 1} / ${arabicLetters.length}`;
+            document.getElementById('timer').textContent = `অক্ষর: ${currentIndex + 1}/${arabicLetters.length}`;
+
+            // Update progress
+            const progress = ((currentIndex + 1) / arabicLetters.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            // Reset animation
+            const letterElement = document.getElementById('arabicLetter');
+            letterElement.style.animation = 'none';
+            setTimeout(() => {
+                letterElement.style.animation = 'letterPulse 1.5s ease-in-out infinite';
+            }, 10);
+
+            // Check if completed
+            if (currentIndex === arabicLetters.length - 1) {
+                setTimeout(() => {
+                    showCompletion();
+                }, 3000);
+            }
+        }
+
+        // Show completion screen
+        function showCompletion() {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('completionScreen').classList.add('active');
+            stopAutoPlay();
+        }
+
+        // Auto-play functionality
+        function startAutoPlay() {
+            stopAutoPlay(); // Clear any existing interval
+            intervalId = setInterval(() => {
+                if (isPlaying && currentIndex < arabicLetters.length - 1) {
+                    currentIndex++;
+                    updateLetter();
+                }
+            }, 3000); // 3 seconds per letter
+        }
+
+        function stopAutoPlay() {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        }
+
+        // Next letter
+        function nextLetter() {
+            if (currentIndex < arabicLetters.length - 1) {
+                currentIndex++;
+                updateLetter();
+            }
+        }
+
+        // Restart
+        function restart() {
+            currentIndex = 0;
+            isPlaying = true;
+            document.getElementById('mainContent').style.display = 'flex';
+            document.getElementById('completionScreen').classList.remove('active');
+            document.getElementById('playBtn').textContent = '⏸ বিরতি';
+            updateLetter();
+            startAutoPlay();
+        }
+
+        // Toggle play/pause
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn');
+            if (isPlaying) {
+                btn.textContent = '⏸ বিরতি';
+                startAutoPlay();
+            } else {
+                btn.textContent = '▶ চালু করুন';
+                stopAutoPlay();
+            }
+        }
+
+        // Start on load
+        init();
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextLetter();
+            if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                currentIndex--;
+                updateLetter();
+            }
+            if (e.key === ' ') togglePlay();
+        });
+    </script>
+</body>
+</html>

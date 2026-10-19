@@ -239,7 +239,7 @@ export const OrderHistoryView: React.FC = () => {
                       onClick={() => openPrintModal(buildOrderInvoiceData(order, settings.currencySymbol, "customer"))}
                       className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl border border-indigo-200 transition-colors"
                     >
-                      <Printer className="w-3.5 h-3.5 text-indigo-600" /> Print Invoice
+                      <FileText className="w-3.5 h-3.5 text-indigo-600" /> View Invoice
                     </button>
 
                     <button
@@ -505,6 +505,7 @@ export const OrderHistoryView: React.FC = () => {
           data={activePrintData}
           isOpen={isPrintModalOpen}
           onClose={() => setIsPrintModalOpen(false)}
+          forceCustomerView={true}
         />
       )}
     </div>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Shop - 30s Product Ad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #video-container {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        /* Animated Background Particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-1080px) translateX(100px); opacity: 0; }
+        }
+
+        /* Scene Container */
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .scene.active {
+            opacity: 1;
+        }
+
+        /* Scene 1: Logo Intro */
+        #scene1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .logo-container {
+            text-align: center;
+            animation: zoomIn 1.5s ease;
+        }
+
+        .logo-text {
+            font-size: 120px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            letter-spacing: -2px;
+        }
+
+        .tagline {
+            font-size: 36px;
+            color: rgba(255,255,255,0.9);
+            margin-top: 20px;
+            animation: fadeInUp 1s ease 0.5s both;
+        }
+
+        /* Scene 2: Featured Products Showcase */
+        #scene2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .product-showcase {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            padding: 100px;
+            max-width: 1600px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: slideInUp 0.8s ease both;
+        }
+
+        .product-card:nth-child(1) { animation-delay: 0.2s; }
+        .product-card:nth-child(2) { animation-delay: 0.4s; }
+        .product-card:nth-child(3) { animation-delay: 0.6s; }
+
+        .product-image {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .product-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .product-price {
+            font-size: 32px;
+            font-weight: 900;
+            color: #f5576c;
+        }
+
+        .discount-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        .section-title {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 72px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: fadeInDown 0.8s ease;
+        }
+
+        /* Scene 3: Offer Banner */
+        #scene3 {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .offer-container {
+            text-align: center;
+            animation: bounceIn 1.2s ease;
+        }
+
+        .offer-text {
+            font-size: 140px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            line-height: 1.2;
+        }
+
+        .offer-subtext {
+            font-size: 56px;
+            color: rgba(255,255,255,0.95);
+            margin-top: 30px;
+            font-weight: 600;
+        }
+
+        .promo-code {
+            display: inline-block;
+            background: white;
+            color: #fa709a;
+            padding: 25px 60px;
+            border-radius: 50px;
+            font-size: 48px;
+            font-weight: 900;
+            margin-top: 40px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+
+        /* Scene 4: Call to Action */
+        #scene4 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .cta-container {
+            text-align: center;
+            animation: zoomIn 1s ease;
+        }
+
+        .cta-heading {
+            font-size: 96px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 35px 100px;
+            border-radius: 60px;
+            font-size: 52px;
+            font-weight: 900;
+            text-decoration: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .website-url {
+            font-size: 42px;
+            color: rgba(255,255,255,0.9);
+            margin-top: 50px;
+            font-weight: 600;
+        }
+
+        /* Animations */
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(60px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px 40px;
+            border-radius: 50px;
+            z-index: 1000;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+            background: #667eea;
+            color: white;
+        }
+
+        .timer {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <!-- Background Particles -->
+        <div id="particles"></div>
+
+        <!-- Scene 1: Logo Intro (0-5s) -->
+        <div id="scene1" class="scene active">
+            <div class="logo-container">
+                <div class="logo-text">SMART SHOP</div>
+                <div class="tagline">Your Trusted Online Store</div>
+            </div>
+        </div>
+
+        <!-- Scene 2: Featured Products (5-15s) -->
+        <div id="scene2" class="scene">
+            <div class="section-title">🔥 HOT DEALS!</div>
+            <div class="product-showcase">
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80"
+                         alt="iPhone" class="product-image">
+                    <div class="product-name">iPhone 15 Pro Max</div>
+                    <div class="product-price">৳139,990</div>
+                    <div class="discount-badge">Save ৳5,000!</div>
+                </div>
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80"
+                         alt="Shoes" class="product-image">
+                    <div class="product-name">Nike Air Zoom</div>
+                    <div class="product-price">৳12,900</div>
+                    <div class="discount-badge">25% OFF!</div>
+                </div>
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80"
+                         alt="Headphones" class="product-image">
+                    <div class="product-name">Sony WH-1000XM5</div>
+                    <div class="product-price">৳34,900</div>
+                    <div class="discount-badge">Hot Sale!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 3: Special Offer (15-23s) -->
+        <div id="scene3" class="scene">
+            <div class="offer-container">
+                <div class="offer-text">MEGA SALE!<br>UP TO 50% OFF</div>
+                <div class="offer-subtext">All Categories • Free Shipping</div>
+                <div class="promo-code">Use: WELCOME10</div>
+            </div>
+        </div>
+
+        <!-- Scene 4: Call to Action (23-30s) -->
+        <div id="scene4" class="scene">
+            <div class="cta-container">
+                <div class="cta-heading">SHOP NOW!</div>
+                <div class="cta-button">Visit Our Store</div>
+                <div class="website-url">www.smartshop.com</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="control-btn" onclick="restart()">⟲ Restart</button>
+        <button class="control-btn" onclick="togglePlay()">⏸ Pause</button>
+        <span class="timer" id="timer">00:00 / 00:30</span>
+    </div>
+
+    <script>
+        // Create particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Video timeline
+        const scenes = [
+            { id: 'scene1', start: 0, end: 5000 },
+            { id: 'scene2', start: 5000, end: 15000 },
+            { id: 'scene3', start: 15000, end: 23000 },
+            { id: 'scene4', start: 23000, end: 30000 }
+        ];
+
+        let currentTime = 0;
+        let isPlaying = true;
+        let animationFrame;
+
+        function updateScene() {
+            const currentScene = scenes.find(scene =>
+                currentTime >= scene.start && currentTime < scene.end
+            );
+
+            if (currentScene) {
+                scenes.forEach(scene => {
+                    const element = document.getElementById(scene.id);
+                    if (scene.id === currentScene.id) {
+                        element.classList.add('active');
+                    } else {
+                        element.classList.remove('active');
+                    }
+                });
+            }
+
+            // Update timer
+            const minutes = Math.floor(currentTime / 60000);
+            const seconds = Math.floor((currentTime % 60000) / 1000);
+            const totalSeconds = 30;
+            document.getElementById('timer').textContent =
+                `00:${seconds.toString().padStart(2, '0')} / 00:${totalSeconds}`;
+
+            // Loop video
+            if (currentTime >= 30000) {
+                currentTime = 0;
+            }
+        }
+
+        function animate(timestamp) {
+            if (isPlaying) {
+                currentTime += 16.67; // ~60fps
+                updateScene();
+            }
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        function restart() {
+            currentTime = 0;
+            isPlaying = true;
+            updateScene();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = event.target;
+            btn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+        }
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
