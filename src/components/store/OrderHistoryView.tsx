@@ -3,6 +3,7 @@ import { useStore } from "../../context/StoreContext";
 import { Order, OrderStatus } from "../../types";
 import { PrintableDocumentData } from "../../types/print";
 import { buildOrderInvoiceData } from "../../utils/printDocumentBuilder";
+import { generateInvoicePDF } from "../../utils/pdfGenerator";
 import { EnterprisePrintModal } from "../common/EnterprisePrintModal";
 import { formatNumber } from "../../utils/numberUtils";
 import {
@@ -237,14 +238,25 @@ export const OrderHistoryView: React.FC = () => {
 
                     <button
                       onClick={() => openPrintModal(buildOrderInvoiceData(order, settings.currencySymbol, "customer"))}
-                      className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl border border-indigo-200 transition-colors"
+                      className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl border border-indigo-200 transition-colors cursor-pointer"
+                      title="অর্ডার ইনভয়েস কাস্টমার কপি দেখুন ও প্রিন্ট করুন"
                     >
-                      <FileText className="w-3.5 h-3.5 text-indigo-600" /> View Invoice
+                      <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Invoice (Customer Copy)</span>
+                    </button>
+
+                    <button
+                      onClick={() => generateInvoicePDF(order, settings.currencySymbol)}
+                      className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl border border-slate-300 transition-colors cursor-pointer"
+                      title="ইনভয়েস PDF সরাসরি ডাউনলোড করুন"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Download PDF</span>
                     </button>
 
                     <button
                       onClick={() => handleBuyAgain(order)}
-                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition-colors"
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Buy Again
                     </button>

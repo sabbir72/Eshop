@@ -117,6 +117,7 @@ export interface Product {
   totalStock: number;
   lowStockThreshold?: number;
   isLowStock: boolean;
+  warehouseLocation?: string;
   status: "Active" | "Draft" | "Inactive" | "Archived";
   rating: number;
   reviewsCount: number;
@@ -182,7 +183,10 @@ export interface InventoryTransaction {
   toWarehouse?: string;
   toWarehouseId?: string;
   toWarehouseName?: string;
-  reason: string;
+  warehouseId?: string;
+  notes?: string;
+  referenceNo?: string;
+  reason?: string;
   performedBy: string;
   createdAt?: string;
   timestamp?: string;

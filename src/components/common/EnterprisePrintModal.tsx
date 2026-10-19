@@ -50,14 +50,21 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
 }) => {
   const { currentUser, activeRole, addAuditLog } = useStore();
 
-  // Check if user is customer (read-only mode)
-  // forceCustomerView=true is passed by OrderHistoryView to ALWAYS show read-only invoice
+  // Check if user is customer / regular user (read-only mode)
+  // forceCustomerView=true is passed by OrderHistoryView or customer views to ALWAYS show strict read-only customer invoice
   const isCustomerView =
     forceCustomerView ||
     activeRole === "Customer" ||
-    activeRole === "Guest";
+    activeRole === "Guest" ||
+    currentUser?.role === "Customer" ||
+    currentUser?.role === "Guest" ||
+    (!["Admin", "Staff", "Manager", "Accountant"].includes(activeRole || "") &&
+     !["Admin", "Staff", "Manager", "Accountant"].includes(currentUser?.role || ""));
 
   const [activeCopy, setActiveCopy] = useState<DocumentCopyType>(data.copyType || "customer");
+
+  // For customers, strictly enforce 'customer' copy only - no other copies permitted
+  const effectiveCopy: DocumentCopyType = isCustomerView ? "customer" : activeCopy;
 
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     paperSize: "A4",
@@ -115,33 +122,39 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
       copyType: "customer",
       documentTitle: "OFFICIAL TAX INVOICE & CASH MEMO",
       copyLabel: "CUSTOMER COPY (গ্রাহক কপি)",
-      watermark: "CUSTOMER COPY",
+      watermark:
+        data.paymentStatus === "Paid"
+          ? "PAID"
+          : data.status === "Cancelled"
+          ? "CANCELLED"
+          : "CUSTOMER COPY",
       notes: data.notes || "Thank you for shopping with us! Retain this customer copy for 7-day exchange or warranty claims.",
       signaturesNeeded: ["Customer Signature", "Delivery Agent / Rider", "Authorized Signatory"],
     };
   };
 
   const isInvoiceDoc = data.documentType === "invoice" || data.documentType === "packing_slip";
-  const activeDocumentData = getCopyData(activeCopy);
+  const activeDocumentData = getCopyData(effectiveCopy);
 
   const handlePrint = () => {
-    if (printCount > 1 && !reprintReason.trim()) {
+    // Only admins/staff require reprint audit reasons. Customers can print their invoice freely.
+    if (!isCustomerView && printCount > 1 && !reprintReason.trim()) {
       setShowReprintModal(true);
       return;
     }
 
     // Add Audit Log Entry
     addAuditLog(
-      `Printed Document: ${data.documentTitle} (#${data.documentNumber})`,
+      `Printed Document: ${activeDocumentData.documentTitle} (#${activeDocumentData.documentNumber})`,
       "Order",
-      `Paper: ${printSettings.paperSize}, Count: ${printCount}, Reason: ${reprintReason || "Initial Print"}`
+      `Print by ${currentUser?.name || "Customer"}`
     );
 
     setPrintCount((prev) => prev + 1);
 
     // Trigger standard browser print window
     window.print();
-    triggerToast("Print job dispatched to printer queue!");
+    triggerToast("প্রিন্টারে পাঠানো হয়েছে / Print job dispatched to printer queue!");
   };
 
   // Download PDF
@@ -152,8 +165,8 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
       format: printSettings.paperSize === "A5" ? "a5" : "a4",
     });
 
-    const title = data.documentTitle.toUpperCase();
-    const rawCurrency = data.currencySymbol || "৳";
+    const title = activeDocumentData.documentTitle.toUpperCase();
+    const rawCurrency = activeDocumentData.currencySymbol || "৳";
     const currency = (!rawCurrency || rawCurrency === "৳" || rawCurrency.includes("৳")) ? "Tk " : `${rawCurrency} `;
 
     // Header Background
@@ -161,15 +174,26 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
     doc.rect(0, 0, 210, 32, "F");
 
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text(title, 15, 18);
+    doc.text(title, 15, 17);
 
-    doc.setFontSize(9);
+    // Customer Copy / Label badge in PDF
+    if (activeDocumentData.copyLabel) {
+      doc.setFillColor(79, 70, 229); // Indigo-600
+      doc.roundedRect(15, 21, 58, 6, 1, 1, "F");
+      doc.setFontSize(7.5);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.text("CUSTOMER COPY (গ্রাহক কপি)", 17, 25);
+    }
+
+    doc.setFontSize(8.5);
     doc.setFont("helvetica", "normal");
-    doc.text(`DOC #: ${data.documentNumber}`, 15, 25);
-    doc.text(`Date: ${data.generatedDate} ${data.generatedTime}`, 140, 18);
-    doc.text(`Status: ${data.status.toUpperCase()}`, 140, 25);
+    doc.setTextColor(203, 213, 225);
+    doc.text(`DOC #: ${activeDocumentData.documentNumber}`, activeDocumentData.copyLabel ? 78 : 15, 25);
+    doc.text(`Date: ${activeDocumentData.generatedDate} ${activeDocumentData.generatedTime}`, 140, 18);
+    doc.text(`Status: ${activeDocumentData.status.toUpperCase()}`, 140, 25);
 
     // Billed To / Shipping Address
     let y = 42;
@@ -310,15 +334,19 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
     doc.setTextColor(100, 116, 139);
     doc.text("Generated by Smart E-Commerce Enterprise Printing System", 15, 285);
 
-    doc.save(`${data.documentTitle.toLowerCase().replace(/\s+/g, "_")}_${data.documentNumber}.pdf`);
+    const safeDocNumber = (activeDocumentData.documentNumber || "invoice").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const filename = isCustomerView
+      ? `Invoice_${safeDocNumber}_CustomerCopy.pdf`
+      : `${activeDocumentData.documentTitle.toLowerCase().replace(/\s+/g, "_")}_${safeDocNumber}.pdf`;
+    doc.save(filename);
 
     addAuditLog(
-      `Downloaded PDF: ${data.documentTitle} (#${data.documentNumber})`,
+      `Downloaded PDF: ${activeDocumentData.documentTitle} (#${activeDocumentData.documentNumber})`,
       "Order",
-      `PDF Exported by ${currentUser.name}`
+      `PDF Exported by ${currentUser?.name || "Customer"}`
     );
 
-    triggerToast("PDF Downloaded successfully!");
+    triggerToast("ইনভয়েস PDF ডাউনলোড সম্পন্ন হয়েছে! (Invoice PDF Downloaded)");
   };
 
   // Download CSV
@@ -389,22 +417,49 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-black tracking-tight text-white uppercase">
-                {isCustomerView ? "Invoice" : activeDocumentData.documentTitle}
+                {isCustomerView ? "Invoice — Customer Copy (কাস্টমার কপি)" : activeDocumentData.documentTitle}
               </h2>
               <span className="text-[10px] font-bold bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-md font-mono">
                 #{activeDocumentData.documentNumber}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              {isCustomerView ? "Your Order Invoice" : "Enterprise Print & Export Engine"}
+              {isCustomerView ? "Official Order Tax Invoice & Cash Memo (Read-Only Customer Copy)" : "Enterprise Print & Export Engine"}
             </p>
           </div>
         </div>
 
         {/* Toolbar Quick Controls */}
         <div className="flex items-center gap-2">
-          {/* Zoom & theme controls - ADMIN ONLY */}
-          {!isCustomerView && (
+          {isCustomerView ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-700 shadow-sm transition-all active:scale-95 cursor-pointer"
+                title="Print Customer Invoice"
+              >
+                <Printer className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Print (প্রিন্ট)</span>
+              </button>
+
+              <button
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
+                title="Download PDF Invoice"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download PDF (ডাউনলোড)</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
             <>
               <button
                 onClick={() => setPreviewTheme(previewTheme === "dark" ? "light" : "dark")}
@@ -439,15 +494,15 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
                   <Maximize2 className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              <button
+                onClick={onClose}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </>
           )}
-
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -517,11 +572,34 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
         </div>
       )}
 
-      {/* Customer View - Simple Header */}
+      {/* Customer View - Clear Informational Banner */}
       {isCustomerView && (
-        <div className="bg-[#111827] border-b border-slate-800 px-4 py-3 text-center">
-          <p className="text-sm font-bold text-white">Your Invoice</p>
-          <p className="text-[11px] text-slate-400 mt-1">View and download your order invoice below</p>
+        <div className="bg-[#111827] border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-indigo-950/90 text-indigo-300 border border-indigo-700/60 shadow-xs">
+              ★ Customer Copy (গ্রাহক কপি) ★
+            </span>
+            <span className="text-slate-300 text-[11px] font-medium hidden sm:inline">
+              আপনার অর্ডারের কাস্টমার ইনভয়েস কপি। আপনি এটি সরাসরি প্রিন্ট করতে পারেন অথবা PDF ডাউনলোড করতে পারেন।
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg border border-slate-700 transition-colors shadow-xs cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-indigo-400" />
+              <span>প্রিন্ট (Print)</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>ডাউনলোড PDF</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -732,22 +810,36 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
             previewTheme === "dark" ? "bg-slate-950" : "bg-slate-200"
           }`}
         >
-          {/* Customer-only: Download PDF button at the top */}
+          {/* Customer-only: Quick action toolbar above canvas */}
           {isCustomerView && (
-            <div className="w-full max-w-3xl mb-4 flex items-center justify-between gap-3">
+            <div className="w-full max-w-3xl mb-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-800 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-white">
                 <FileText className="w-4 h-4 text-indigo-400" />
-                <span className="text-xs font-bold text-slate-300">
-                  Invoice #{data.documentNumber}
+                <span className="text-xs font-bold text-slate-200">
+                  Invoice #{activeDocumentData.documentNumber}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300 border border-indigo-700/50">
+                  Customer Copy (গ্রাহক কপি)
                 </span>
               </div>
-              <button
-                onClick={handleDownloadPDF}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg transition-all active:scale-95"
-              >
-                <Download className="w-4 h-4" />
-                Download PDF
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-2 rounded-xl border border-slate-700 transition-all active:scale-95 cursor-pointer shadow-sm"
+                  title="Print Customer Invoice"
+                >
+                  <Printer className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Print (প্রিন্ট)</span>
+                </button>
+                <button
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
+                  title="Download Customer Invoice as PDF"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download PDF (ডাউনলোড)</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -755,7 +847,7 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
             style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: "top center" }}
             className="transition-transform duration-200 my-4 w-full flex flex-col items-center gap-8"
           >
-            {activeCopy === "all" ? (
+            {activeCopy === "all" && !isCustomerView ? (
               <>
                 <div className="page-break-after w-full flex justify-center">
                   <PrintDocumentViewer
@@ -792,8 +884,8 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
         </div>
       </div>
 
-      {/* Reprint Reason Modal Prompt if printCount > 1 */}
-      {showReprintModal && (
+      {/* Reprint Reason Modal Prompt if printCount > 1 (Admin/Staff only) */}
+      {!isCustomerView && showReprintModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 text-white max-w-sm w-full p-5 rounded-2xl shadow-2xl space-y-4">
             <div className="flex items-center gap-2 text-amber-400">
@@ -833,22 +925,30 @@ export const EnterprisePrintModal: React.FC<EnterprisePrintModalProps> = ({
 
       {/* Customer View: Fixed Bottom Action Bar */}
       {isCustomerView && (
-        <div className="bg-[#0F172A] border-t border-slate-800 px-4 py-3 shrink-0 flex items-center justify-between gap-3">
-          <p className="text-[11px] text-slate-400 font-medium">
-            📄 Invoice #{data.documentNumber} — {data.generatedDate}
-          </p>
+        <div className="bg-[#0F172A] border-t border-slate-800 px-4 py-3 shrink-0 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] text-slate-300 font-medium">
+              📄 Official Customer Copy (গ্রাহক কপি) • Invoice #{activeDocumentData.documentNumber}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 py-2 rounded-xl border border-slate-700 transition-colors"
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 py-2 rounded-xl border border-slate-700 transition-colors cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" /> Close
+              <X className="w-3.5 h-3.5" /> Close (বন্ধ করুন)
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs px-4 py-2 rounded-xl border border-slate-600 transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <Printer className="w-3.5 h-3.5 text-indigo-300" /> Print (প্রিন্ট করুন)
             </button>
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2 rounded-xl shadow-lg transition-all active:scale-95"
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" /> Download PDF
+              <Download className="w-3.5 h-3.5" /> Download PDF (ডাউনলোড করুন)
             </button>
           </div>
         </div>

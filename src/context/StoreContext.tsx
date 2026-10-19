@@ -1030,7 +1030,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Deduct stock for ordered items and post Inventory Ledger Transactions
     orderData.items.forEach((item) => {
-      const prod = products.find((p) => p.id === item.product.id || p.sku === item.product.sku);
+      const pId = (item as any).productId || (item as any).product?.id;
+      const prod = products.find((p) => p.id === pId || p.sku === (item as any).sku);
       if (prod) {
         const updatedStock = Math.max(0, prod.totalStock - item.quantity);
         setProducts((prevProds) =>
@@ -1108,7 +1109,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (existing && existing.orderStatus !== "Cancelled" && newStatus === "Cancelled") {
       // Restock products on order cancellation
       existing.items.forEach((item) => {
-        const prod = products.find((p) => p.id === item.product.id || p.sku === item.product.sku);
+        const pId = (item as any).productId || (item as any).product?.id;
+        const prod = products.find((p) => p.id === pId || p.sku === (item as any).sku);
         if (prod) {
           const restoredStock = prod.totalStock + item.quantity;
           setProducts((prevProds) =>
