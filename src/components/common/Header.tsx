@@ -65,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
     updateSettings,
     products,
     categories,
+    selectedCategoryId,
     setSelectedCategoryId,
     setSelectedProduct,
     addToast,
@@ -654,6 +655,57 @@ export const Header: React.FC<HeaderProps> = ({
               <Mic className="w-4 h-4" />
             </button>
           </form>
+
+          {/* Mobile Native-Style Horizontal Category Strip */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2.5 pb-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategoryId(null);
+                setSearchQuery("");
+                setStoreView("products");
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap text-[11px] shrink-0 active:scale-95 transition-all cursor-pointer ${
+                selectedCategoryId === null && storeView === "products" && !searchQuery
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-indigo-50 text-indigo-700 border border-indigo-200/80 hover:bg-indigo-100"
+              }`}
+            >
+              ✨ {language === "BN" ? "সকল পণ্য" : "All Products"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategoryId(null);
+                setSearchQuery("");
+                setStoreView("products");
+                addToast(language === "BN" ? "মেগা অফার লোড হচ্ছে" : "Loading Hot Deals", "info");
+              }}
+              className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 font-bold whitespace-nowrap border border-rose-200/80 hover:bg-rose-100 text-[11px] shrink-0 active:scale-95 flex items-center gap-1 cursor-pointer"
+            >
+              <Flame className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
+              <span>{language === "BN" ? "মেগা ডিল" : "Hot Deals"}</span>
+            </button>
+
+            {rootCategories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  setSelectedCategoryId(c.id);
+                  setStoreView("products");
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap text-[11px] shrink-0 active:scale-95 transition-all cursor-pointer ${
+                  selectedCategoryId === c.id
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200"
+                }`}
+              >
+                {translateDynamic(c.name, c.name_bn, language)}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

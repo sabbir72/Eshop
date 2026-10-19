@@ -64,8 +64,10 @@ import {
   FileSpreadsheet,
   Wallet,
   Boxes,
+  Database,
 } from "lucide-react";
 import { RefillStockCenterModal } from "./RefillStockCenterModal";
+import { DatabaseArchitectureModal } from "./DatabaseArchitectureModal";
 
 export const AdminPanel: React.FC = () => {
   const {
@@ -85,6 +87,7 @@ export const AdminPanel: React.FC = () => {
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [quickSearchQuery, setQuickSearchQuery] = useState("");
   const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
 
   const pendingOrdersCount = useMemo(() => orders.filter((o) => o.orderStatus === "Pending").length, [orders]);
   const lowStockCount = useMemo(() => products.filter((p) => p.totalStock <= 5).length, [products]);
@@ -251,6 +254,16 @@ export const AdminPanel: React.FC = () => {
                 {lowStockCount}
               </span>
             )}
+          </button>
+
+          {/* Database Architecture & Storage Lifecycle Button */}
+          <button
+            onClick={() => setIsDbModalOpen(true)}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 active:scale-95"
+            title={language === "BN" ? "ডাটাবেজ আর্কিটেকচার ও মেইনটেন্যান্স দেখুন" : "View Database Storage Architecture & Maintenance"}
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">{language === "BN" ? "ডাটাবেজ" : "Database"}</span>
           </button>
 
           {/* Cash Calculation & Financial Log Button */}
@@ -665,6 +678,12 @@ export const AdminPanel: React.FC = () => {
       <RefillStockCenterModal
         isOpen={isRefillModalOpen}
         onClose={() => setIsRefillModalOpen(false)}
+      />
+
+      {/* Global Database Architecture Modal */}
+      <DatabaseArchitectureModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
       />
     </div>
   );

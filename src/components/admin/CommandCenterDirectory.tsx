@@ -29,28 +29,63 @@ import {
   ShoppingBag,
   TrendingUp,
   Boxes,
+  Database,
+  LayoutGrid,
+  List,
+  Smartphone,
+  Server,
+  Download,
+  ShieldCheck,
+  Check,
+  Eye,
+  Store,
 } from "lucide-react";
 import { RefillStockCenterModal } from "./RefillStockCenterModal";
+import { DatabaseArchitectureModal } from "./DatabaseArchitectureModal";
 
 interface CommandCenterDirectoryProps {
   onSelectFeature?: (view: AdminView) => void;
 }
 
-export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ onSelectFeature }) => {
-  const { adminView, setAdminView, activeRole, hasPermission, language, orders, products, settings } = useStore();
+export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({
+  onSelectFeature,
+}) => {
+  const {
+    adminView,
+    setAdminView,
+    activeRole,
+    hasPermission,
+    language,
+    orders,
+    products,
+    categories,
+    brands,
+    users,
+    coupons,
+    settings,
+    addToast,
+  } = useStore();
 
   const isBN = language === "BN";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
   const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
-  
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "compact" | "mobile">("grid");
+
   // State for expanded/collapsed categories (default all open)
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
   // Dynamic metrics for smart badges
-  const pendingOrdersCount = useMemo(() => orders.filter((o) => o.orderStatus === "Pending").length, [orders]);
-  const lowStockCount = useMemo(() => products.filter((p) => p.totalStock <= 5).length, [products]);
+  const pendingOrdersCount = useMemo(
+    () => orders.filter((o) => o.orderStatus === "Pending").length,
+    [orders]
+  );
+  const lowStockCount = useMemo(
+    () => products.filter((p) => p.totalStock <= 5).length,
+    [products]
+  );
   const codSettledAmount = useMemo(
     () =>
       orders
@@ -59,7 +94,19 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
     [orders]
   );
 
+  // Trigger light mobile haptic feedback if supported
+  const triggerHaptic = (ms: number = 10) => {
+    try {
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(ms);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const toggleCategory = (catId: string) => {
+    triggerHaptic(8);
     setCollapsedCategories((prev) => ({
       ...prev,
       [catId]: !prev[catId],
@@ -67,10 +114,12 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
   };
 
   const expandAll = () => {
+    triggerHaptic(12);
     setCollapsedCategories({});
   };
 
   const collapseAll = () => {
+    triggerHaptic(12);
     const allCollapsed: Record<string, boolean> = {};
     COMMAND_CENTER_CATEGORIES.forEach((cat) => {
       allCollapsed[cat.id] = true;
@@ -79,6 +128,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
   };
 
   const handleSelect = (viewId: AdminView) => {
+    triggerHaptic(15);
     if (onSelectFeature) {
       onSelectFeature(viewId);
     } else {
@@ -101,39 +151,48 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
       if (activeCategoryFilter !== "all") {
         if (activeCategoryFilter === "popular") {
           // Keep only popular features
-          const filteredSubcategories = category.subcategories.map((subcat) => {
-            const filteredFeatures = subcat.features.filter((feat) => isFeatureAllowed(feat) && feat.isPopular);
-            return { ...subcat, features: filteredFeatures };
-          }).filter((subcat) => subcat.features.length > 0);
+          const filteredSubcategories = category.subcategories
+            .map((subcat) => {
+              const filteredFeatures = subcat.features.filter(
+                (feat) => isFeatureAllowed(feat) && feat.isPopular
+              );
+              return { ...subcat, features: filteredFeatures };
+            })
+            .filter((subcat) => subcat.features.length > 0);
 
           if (filteredSubcategories.length === 0) return null;
-          const totalFeatureCount = filteredSubcategories.reduce((sum, sub) => sum + sub.features.length, 0);
+          const totalFeatureCount = filteredSubcategories.reduce(
+            (sum, sub) => sum + sub.features.length,
+            0
+          );
           return { ...category, subcategories: filteredSubcategories, totalFeatureCount };
         } else if (category.id !== activeCategoryFilter) {
           return null;
         }
       }
 
-      const filteredSubcategories = category.subcategories.map((subcat) => {
-        const filteredFeatures = subcat.features.filter((feat) => {
-          if (!isFeatureAllowed(feat)) return false;
+      const filteredSubcategories = category.subcategories
+        .map((subcat) => {
+          const filteredFeatures = subcat.features.filter((feat) => {
+            if (!isFeatureAllowed(feat)) return false;
 
-          if (!query) return true;
+            if (!query) return true;
 
-          const matchName = feat.name.toLowerCase().includes(query);
-          const matchDesc = feat.description.toLowerCase().includes(query);
-          const matchTag = feat.tag?.toLowerCase().includes(query);
-          const matchCat = category.name.toLowerCase().includes(query);
-          const matchSub = subcat.name.toLowerCase().includes(query);
+            const matchName = feat.name.toLowerCase().includes(query);
+            const matchDesc = feat.description.toLowerCase().includes(query);
+            const matchTag = feat.tag?.toLowerCase().includes(query);
+            const matchCat = category.name.toLowerCase().includes(query);
+            const matchSub = subcat.name.toLowerCase().includes(query);
 
-          return matchName || matchDesc || matchTag || matchCat || matchSub;
-        });
+            return matchName || matchDesc || matchTag || matchCat || matchSub;
+          });
 
-        return {
-          ...subcat,
-          features: filteredFeatures,
-        };
-      }).filter((subcat) => subcat.features.length > 0);
+          return {
+            ...subcat,
+            features: filteredFeatures,
+          };
+        })
+        .filter((subcat) => subcat.features.length > 0);
 
       if (filteredSubcategories.length === 0) return null;
 
@@ -150,7 +209,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
     }).filter(Boolean) as (CommandCenterCategory & { totalFeatureCount: number })[];
   }, [searchQuery, activeCategoryFilter, activeRole, hasPermission]);
 
-  // Search Results preview list when typing
+  // Live search results
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return [];
@@ -158,45 +217,87 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
     return ALL_COMMAND_CENTER_FEATURES.filter((feat) => {
       if (!isFeatureAllowed(feat)) return false;
 
-      const matchName = feat.name.toLowerCase().includes(query);
-      const matchDesc = feat.description.toLowerCase().includes(query);
-      const matchTag = feat.tag?.toLowerCase().includes(query);
-      const matchCat = feat.categoryName.toLowerCase().includes(query);
-      const matchSub = feat.subcategoryName.toLowerCase().includes(query);
-
-      return matchName || matchDesc || matchTag || matchCat || matchSub;
+      return (
+        feat.name.toLowerCase().includes(query) ||
+        feat.description.toLowerCase().includes(query) ||
+        feat.tag?.toLowerCase().includes(query) ||
+        feat.categoryName.toLowerCase().includes(query) ||
+        feat.subcategoryName.toLowerCase().includes(query)
+      );
     });
   }, [searchQuery, activeRole, hasPermission]);
 
-  // Render smart status indicator badge for feature cards
-  const renderSmartIndicator = (featureId: AdminView) => {
-    if (featureId === "cash-calculation") {
-      return (
-        <span className="text-[10px] font-mono font-black text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300 flex items-center gap-1 shadow-2xs">
-          <Wallet className="w-3 h-3 text-emerald-600" />
-          <span>{isBN ? "ক্যাশ ড্রয়ার অডিট" : "Live Cash Audit"}</span>
-        </span>
-      );
+  // Category specific live stats banner helper
+  const getCategoryLiveKPI = (catId: string) => {
+    switch (catId) {
+      case "overview":
+        return {
+          label: isBN ? "রিয়েল-টাইম লোড ও ট্রাফিক" : "Real-time Traffic Wave",
+          value: "Active (24% Load)",
+          color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        };
+      case "catalog":
+        return {
+          label: isBN ? `ক্যাটালগ স্টক (${products.length} পণ্য)` : `Catalog Items (${products.length})`,
+          value: lowStockCount > 0 ? `${lowStockCount} ${isBN ? "রিফিল দরকার" : "Low Stock"}` : "Healthy",
+          color: lowStockCount > 0 ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200",
+        };
+      case "inventory-logistics":
+        return {
+          label: isBN ? "মজুদ গুদাম" : "Warehouses",
+          value: `${products.length} SKUs Monitored`,
+          color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        };
+      case "sales-orders":
+        return {
+          label: isBN ? "অর্ডার ও ক্যাশ প্রবাহ" : "Orders & Cash Flow",
+          value: `${pendingOrdersCount} ${isBN ? "পেন্ডিং অর্ডার" : "Pending"} • ৳${codSettledAmount.toLocaleString()} COD`,
+          color: pendingOrdersCount > 0 ? "bg-rose-50 text-rose-800 border-rose-200" : "bg-indigo-50 text-indigo-700 border-indigo-200",
+        };
+      case "marketing-growth":
+        return {
+          label: isBN ? "মার্কেটিং ও কুপন" : "Campaigns & SEO",
+          value: `${coupons.length} ${isBN ? "কুপন সক্রিয়" : "Active Promos"}`,
+          color: "bg-purple-50 text-purple-700 border-purple-200",
+        };
+      case "support-content":
+        return {
+          label: isBN ? "কাস্টমার সাপোর্ট" : "Customer Desk",
+          value: "24/7 Live Desk",
+          color: "bg-teal-50 text-teal-700 border-teal-200",
+        };
+      case "administration-security":
+        return {
+          label: isBN ? "নিরাপত্তা ও গভর্নেন্স" : "RBAC & Security",
+          value: "Strict Policy Active",
+          color: "bg-rose-50 text-rose-700 border-rose-200",
+        };
+      default:
+        return null;
     }
+  };
+
+  // Smart dynamic indicators
+  const renderSmartIndicator = (featureId: AdminView) => {
     if (featureId === "orders" && pendingOrdersCount > 0) {
       return (
-        <span className="text-[10px] font-mono font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-          <span>{pendingOrdersCount} {isBN ? "পেন্ডিং অর্ডার" : "Pending Orders"}</span>
+        <span className="text-[10px] font-mono font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200 flex items-center gap-1 animate-pulse">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+          <span>{pendingOrdersCount} {isBN ? "পেন্ডিং" : "Pending"}</span>
         </span>
       );
     }
-    if (featureId === "inventory" && lowStockCount > 0) {
+    if (featureId === "cash-calculation") {
       return (
-        <span
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsRefillModalOpen(true);
-          }}
-          className="text-[10px] font-mono font-black text-rose-800 bg-rose-100 hover:bg-rose-200 px-2 py-0.5 rounded-md border border-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
-          title={isBN ? "ক্লিক করে রিফিল তালিকা দেখুন" : "Click to view refill list"}
-        >
-          <Boxes className="w-3 h-3 text-rose-600" />
+        <span className="text-[10px] font-mono font-black text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1 shadow-2xs">
+          <Wallet className="w-3 h-3 text-amber-700" />
+          <span>{settings.currencySymbol || "৳"} {codSettledAmount.toLocaleString()}</span>
+        </span>
+      );
+    }
+    if ((featureId === "inventory" || featureId === "products") && lowStockCount > 0) {
+      return (
+        <span className="text-[10px] font-mono font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
           <span>⚠️ {lowStockCount} {isBN ? "রিফিল প্রয়োজন" : "Refill Needed"}</span>
         </span>
       );
@@ -237,27 +338,48 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             <Zap className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <h4 className="font-extrabold text-white text-sm">
-              {isBN ? "স্মার্ট কমান্ড কুইক লঞ্চার ও শর্টকাট" : "Smart Command Quick Launcher & Shortcuts"}
-            </h4>
-            <p className="text-[11px] text-slate-400">
+            <div className="flex items-center gap-2">
+              <h4 className="font-extrabold text-white text-sm">
+                {isBN ? "স্মার্ট কমান্ড কুইক লঞ্চার ও শর্টকাট" : "Smart Command Quick Launcher & Shortcuts"}
+              </h4>
+              <span className="text-[9px] font-bold bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full uppercase">
+                Enterprise v2.4
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
               {isBN
-                ? "তাত্ক্ষণিক ক্যাশ রিকনসিলিয়েশন, নতুন প্রোডাক্ট আপলোড, ট্রাফিক লোড ট্র্যাকিং ও এআই এজেন্ট।"
-                : "Instant 1-click jump to Cash Audit, Catalog, Live Traffic Load Track & AI Workspace."}
+                ? "তাত্ক্ষণিক ক্যাশ রিকনসিলিয়েশন, নতুন প্রোডাক্ট আপলোড, ডাটাবেজ আর্কিটেকচার, ট্রাফিক লোড ট্র্যাকিং ও এআই এজেন্ট।"
+                : "Instant 1-click jump to Cash Audit, Catalog, Database Architecture, Live Traffic & AI Workspace."}
             </p>
           </div>
         </div>
 
         {/* Quick Launch Pills */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Database Architecture Modal Trigger - User Question Answered Directly */}
+          <button
+            onClick={() => {
+              triggerHaptic(15);
+              setIsDbModalOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer ring-1 ring-indigo-400/50"
+            title={isBN ? "ডাটাবেজ কোথায় ও কীভাবে মেইনটেইন হচ্ছে দেখুন" : "View Database Storage Architecture & Maintenance"}
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-200 animate-pulse" />
+            <span>{isBN ? "💾 ডাটাবেজ আর্কিটেকচার" : "💾 Database Architecture"}</span>
+          </button>
+
           {/* Refill Hub 1-Click */}
           <button
-            onClick={() => setIsRefillModalOpen(true)}
+            onClick={() => {
+              triggerHaptic(12);
+              setIsRefillModalOpen(true);
+            }}
             className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
             title={isBN ? "কোন পণ্যগুলো রিফিল করতে হবে দেখুন (A-Z)" : "Check which items need refill (A-Z)"}
           >
             <Boxes className="w-3.5 h-3.5" />
-            <span>{isBN ? "📦 রিফিল হাব (A-Z)" : "📦 Refill Hub (A-Z)"}</span>
+            <span>{isBN ? "📦 রিফিল হাব" : "📦 Refill Hub"}</span>
             {lowStockCount > 0 && (
               <span className="bg-slate-950 text-amber-300 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold">
                 {lowStockCount}
@@ -271,7 +393,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
           >
             <Wallet className="w-3.5 h-3.5" />
-            <span>{isBN ? "💵 ক্যাশ ক্যালকুলেশন" : "💵 Cash Ledger"}</span>
+            <span>{isBN ? "💵 ক্যাশ লেজার" : "💵 Cash Ledger"}</span>
           </button>
 
           {/* Traffic Tracker 1-Click */}
@@ -280,7 +402,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold transition flex items-center gap-1.5 cursor-pointer"
           >
             <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>{isBN ? "📈 ট্রাফিক ট্র্যাকার" : "📈 Traffic Track"}</span>
+            <span>{isBN ? "📈 ট্রাফিক" : "📈 Traffic"}</span>
           </button>
 
           {/* AI Agent 1-Click */}
@@ -303,15 +425,15 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
         </div>
       </div>
 
-      {/* Search and Navigation Toolbar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+      {/* Search, Filter & Multi-Mode View Toolbar */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100">
                 <Compass className="w-4 h-4" />
               </span>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 {isBN ? "এডমিন কমান্ড সেন্টার ও ডিরেক্টরি সূচিপত্র" : "Enterprise Command Center Directory"}
               </h2>
             </div>
@@ -322,16 +444,67 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            {/* View Mode Toggle: Grid / Compact / Mobile */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+              <button
+                onClick={() => {
+                  triggerHaptic(10);
+                  setViewMode("grid");
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  viewMode === "grid"
+                    ? "bg-white text-indigo-600 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Rich Grid View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{isBN ? "গ্রিড ভিউ" : "Grid"}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  triggerHaptic(10);
+                  setViewMode("compact");
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  viewMode === "compact"
+                    ? "bg-white text-indigo-600 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Dense Table / Compact View"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{isBN ? "কমপ্যাক্ট" : "Compact"}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  triggerHaptic(10);
+                  setViewMode("mobile");
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  viewMode === "mobile"
+                    ? "bg-white text-indigo-600 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Mobile Touch Tiles"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{isBN ? "মোবাইল টাইলস" : "Mobile App"}</span>
+              </button>
+            </div>
+
             <button
               onClick={expandAll}
-              className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
             >
               {isBN ? "সব খুলুন" : "Expand All"}
             </button>
             <button
               onClick={collapseAll}
-              className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
             >
               {isBN ? "সব বন্ধ করুন" : "Collapse All"}
             </button>
@@ -349,26 +522,29 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               isBN
-                ? "কমান্ড সেন্টারের যেকোনো ফিচার খুঁজুন (যেমন: Cash Calculation, Traffic, Products, Orders, Coupons, Audit)..."
-                : "Search Command Center (e.g. Cash Calculation, Live Traffic, Products, Orders, Coupons, Audit)..."
+                ? "কমান্ড সেন্টারের যেকোনো ফিচার খুঁজুন (যেমন: Database, Cash, Traffic, Products, Orders, Coupons, Audit)..."
+                : "Search Command Center (e.g. Database, Cash, Traffic, Products, Orders, Coupons, Audit)..."
             }
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Category Filter Pills */}
+        {/* Category Filter Pills (Touch friendly, horizontal scrollable) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
           <button
-            onClick={() => setActiveCategoryFilter("all")}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-[11px] ${
+            onClick={() => {
+              triggerHaptic(8);
+              setActiveCategoryFilter("all");
+            }}
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-[11px] cursor-pointer ${
               activeCategoryFilter === "all"
                 ? "bg-indigo-600 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -379,8 +555,11 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
 
           {/* Popular filter pill */}
           <button
-            onClick={() => setActiveCategoryFilter("popular")}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-[11px] flex items-center gap-1 ${
+            onClick={() => {
+              triggerHaptic(8);
+              setActiveCategoryFilter("popular");
+            }}
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-[11px] flex items-center gap-1 cursor-pointer ${
               activeCategoryFilter === "popular"
                 ? "bg-amber-500 text-slate-950 font-black shadow-xs"
                 : "bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200"
@@ -396,8 +575,11 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategoryFilter(cat.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-all text-[11px] ${
+                onClick={() => {
+                  triggerHaptic(8);
+                  setActiveCategoryFilter(cat.id);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-all text-[11px] cursor-pointer ${
                   isActive
                     ? "bg-indigo-600 text-white font-bold shadow-xs"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -426,7 +608,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
             <div className="py-8 text-center text-slate-500 space-y-1">
               <p className="text-xs font-semibold">{isBN ? "কোনো ফলাফল পাওয়া যায়নি।" : `No features found matching "${searchQuery}"`}</p>
               <p className="text-[11px] text-slate-400">
-                {isBN ? "কীওয়ার্ড পরীক্ষা করুন: cash, traffic, orders, products, audit, excel" : 'Try keywords: "cash", "traffic", "orders", "excel", "inventory"'}
+                {isBN ? "কীওয়ার্ড পরীক্ষা করুন: database, cash, traffic, orders, products, audit, excel" : 'Try keywords: "database", "cash", "traffic", "orders", "excel", "inventory"'}
               </p>
             </div>
           ) : (
@@ -485,6 +667,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
           filteredCategories.map((category) => {
             const CatIcon = category.icon;
             const isCollapsed = !!collapsedCategories[category.id];
+            const liveKPI = getCategoryLiveKPI(category.id);
 
             return (
               <section
@@ -492,11 +675,11 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
                 id={`command-cat-${category.id}`}
                 className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-200"
               >
-                {/* CATEGORY HEADER (Accordion Control) */}
+                {/* CATEGORY HEADER (Accordion Control with Live KPI) */}
                 <button
                   onClick={() => toggleCategory(category.id)}
                   aria-expanded={!isCollapsed}
-                  className="w-full flex items-center justify-between p-5 bg-gradient-to-r from-slate-50/80 to-white hover:bg-slate-100/60 border-b border-slate-100 text-left transition-colors cursor-pointer group"
+                  className="w-full flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-slate-50/80 to-white hover:bg-slate-100/60 border-b border-slate-100 text-left transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:bg-indigo-600 transition-colors">
@@ -504,7 +687,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
                           {category.name}
                         </h3>
                         <span
@@ -514,6 +697,13 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
                         >
                           {category.totalFeatureCount} {category.totalFeatureCount === 1 ? "Feature" : "Features"}
                         </span>
+
+                        {liveKPI && (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border hidden md:inline-flex items-center gap-1 ${liveKPI.color}`}>
+                            <Activity className="w-3 h-3 animate-pulse" />
+                            <span>{liveKPI.value}</span>
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
                         {category.description}
@@ -537,7 +727,7 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
 
                 {/* CATEGORY BODY (Subcategories & Feature Cards) */}
                 {!isCollapsed && (
-                  <div className="p-5 sm:p-6 space-y-6">
+                  <div className="p-4 sm:p-6 space-y-6">
                     {category.subcategories.map((subcat) => (
                       <div key={subcat.id} className="space-y-3">
                         {/* SUBCATEGORY HEADER */}
@@ -558,88 +748,193 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
                           </span>
                         </div>
 
-                        {/* FEATURE CARDS GRID (Desktop: 3 cols, Mobile: 1 col) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3.5">
-                          {subcat.features.map((feature) => {
-                            const FeatIcon = feature.icon;
-                            const isActive = adminView === feature.id;
-                            const smartIndicator = renderSmartIndicator(feature.id);
+                        {/* RENDER MODE 1: GRID VIEW (Standard Rich Cards) */}
+                        {viewMode === "grid" && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3.5">
+                            {subcat.features.map((feature) => {
+                              const FeatIcon = feature.icon;
+                              const isActive = adminView === feature.id;
+                              const smartIndicator = renderSmartIndicator(feature.id);
 
-                            return (
-                              <button
-                                key={feature.id}
-                                onClick={() => handleSelect(feature.id)}
-                                title={`Launch ${feature.name}`}
-                                className={`text-left p-4 rounded-xl border transition-all duration-150 flex flex-col justify-between group relative overflow-hidden cursor-pointer ${
-                                  isActive
-                                    ? "bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
-                                    : "bg-white hover:bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:shadow-2xs"
-                                }`}
-                              >
-                                {isActive && (
-                                  <div className="absolute top-0 right-0 w-2 h-2 bg-indigo-600 rounded-bl-md"></div>
-                                )}
+                              return (
+                                <button
+                                  key={feature.id}
+                                  onClick={() => handleSelect(feature.id)}
+                                  title={`Launch ${feature.name}`}
+                                  className={`text-left p-4 rounded-xl border transition-all duration-150 flex flex-col justify-between group relative overflow-hidden cursor-pointer ${
+                                    isActive
+                                      ? "bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
+                                      : "bg-white hover:bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:shadow-2xs"
+                                  }`}
+                                >
+                                  {isActive && (
+                                    <div className="absolute top-0 right-0 w-2 h-2 bg-indigo-600 rounded-bl-md"></div>
+                                  )}
 
-                                <div>
-                                  <div className="flex items-start justify-between gap-2 mb-2.5">
-                                    <div
-                                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                                        isActive
-                                          ? "bg-indigo-600 text-white shadow-xs"
-                                          : "bg-slate-100 text-slate-700 group-hover:bg-indigo-600 group-hover:text-white"
-                                      }`}
-                                    >
-                                      <FeatIcon className="w-4 h-4" />
+                                  <div>
+                                    <div className="flex items-start justify-between gap-2 mb-2.5">
+                                      <div
+                                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                                          isActive
+                                            ? "bg-indigo-600 text-white shadow-xs"
+                                            : "bg-slate-100 text-slate-700 group-hover:bg-indigo-600 group-hover:text-white"
+                                        }`}
+                                      >
+                                        <FeatIcon className="w-4 h-4" />
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                        {smartIndicator}
+
+                                        {feature.tag && !smartIndicator && (
+                                          <span
+                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                              isActive
+                                                ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                                                : "bg-slate-50 text-slate-600 border-slate-200 group-hover:bg-indigo-50 group-hover:text-indigo-700 group-hover:border-indigo-100"
+                                            }`}
+                                          >
+                                            {feature.tag}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
 
-                                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                      {smartIndicator}
-
-                                      {feature.tag && !smartIndicator && (
-                                        <span
-                                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                                            isActive
-                                              ? "bg-indigo-100 text-indigo-700 border-indigo-200"
-                                              : "bg-slate-50 text-slate-600 border-slate-200 group-hover:bg-indigo-50 group-hover:text-indigo-700 group-hover:border-indigo-100"
-                                          }`}
-                                        >
-                                          {feature.tag}
-                                        </span>
+                                    <h5 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                                      <span>{feature.name}</span>
+                                      {feature.isPopular && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Core Feature" />
                                       )}
+                                    </h5>
+                                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                                      {feature.description}
+                                    </p>
+                                  </div>
+
+                                  <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold">
+                                    <span
+                                      className={`transition-colors ${
+                                        isActive ? "text-indigo-600 font-bold" : "text-slate-400 group-hover:text-indigo-600"
+                                      }`}
+                                    >
+                                      {isActive ? (isBN ? "বর্তমানে সক্রিয়" : "Currently Active") : (isBN ? "চালু করুন →" : "Launch Module →")}
+                                    </span>
+                                    <ArrowRight
+                                      className={`w-3.5 h-3.5 transition-transform ${
+                                        isActive
+                                          ? "text-indigo-600 translate-x-0.5"
+                                          : "text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5"
+                                      }`}
+                                    />
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* RENDER MODE 2: COMPACT VIEW (Table / Dense List) */}
+                        {viewMode === "compact" && (
+                          <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 bg-white">
+                            {subcat.features.map((feature) => {
+                              const FeatIcon = feature.icon;
+                              const isActive = adminView === feature.id;
+                              const smartIndicator = renderSmartIndicator(feature.id);
+
+                              return (
+                                <div
+                                  key={feature.id}
+                                  onClick={() => handleSelect(feature.id)}
+                                  className={`p-3 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors cursor-pointer ${
+                                    isActive ? "bg-indigo-50/70" : ""
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                        isActive ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"
+                                      }`}
+                                    >
+                                      <FeatIcon className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <h5 className="text-xs font-bold text-slate-900 truncate">
+                                          {feature.name}
+                                        </h5>
+                                        {feature.tag && (
+                                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 hidden sm:inline">
+                                            {feature.tag}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-[11px] text-slate-400 truncate max-w-md hidden sm:block">
+                                        {feature.description}
+                                      </p>
                                     </div>
                                   </div>
 
-                                  <h5 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
-                                    <span>{feature.name}</span>
-                                    {feature.isPopular && (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Core Feature" />
-                                    )}
-                                  </h5>
-                                  <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                                    {feature.description}
-                                  </p>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {smartIndicator}
+                                    <span className="text-[11px] font-bold text-indigo-600 flex items-center gap-1">
+                                      <span>{isActive ? (isBN ? "সক্রিয়" : "Active") : (isBN ? "খুলুন" : "Open")}</span>
+                                      <ChevronRight className="w-3 h-3" />
+                                    </span>
+                                  </div>
                                 </div>
+                              );
+                            })}
+                          </div>
+                        )}
 
-                                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold">
-                                  <span
-                                    className={`transition-colors ${
-                                      isActive ? "text-indigo-600 font-bold" : "text-slate-400 group-hover:text-indigo-600"
+                        {/* RENDER MODE 3: MOBILE APP TILES (Large Tactile Touch Buttons) */}
+                        {viewMode === "mobile" && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {subcat.features.map((feature) => {
+                              const FeatIcon = feature.icon;
+                              const isActive = adminView === feature.id;
+                              const smartIndicator = renderSmartIndicator(feature.id);
+
+                              return (
+                                <button
+                                  key={feature.id}
+                                  onClick={() => handleSelect(feature.id)}
+                                  className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-between min-h-[110px] transition-transform active:scale-95 cursor-pointer shadow-2xs ${
+                                    isActive
+                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-400/50"
+                                      : "bg-slate-50 hover:bg-white text-slate-800 border-slate-200"
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1.5 ${
+                                      isActive ? "bg-white/20 text-white" : "bg-white text-indigo-600 shadow-2xs"
                                     }`}
                                   >
-                                    {isActive ? (isBN ? "বর্তমানে সক্রিয়" : "Currently Active") : (isBN ? "চালু করুন →" : "Launch Module →")}
-                                  </span>
-                                  <ArrowRight
-                                    className={`w-3.5 h-3.5 transition-transform ${
-                                      isActive
-                                        ? "text-indigo-600 translate-x-0.5"
-                                        : "text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5"
-                                    }`}
-                                  />
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                                    <FeatIcon className="w-5 h-5" />
+                                  </div>
+
+                                  <h6 className="text-[11px] font-extrabold line-clamp-1 leading-tight">
+                                    {feature.name}
+                                  </h6>
+
+                                  <div className="mt-1 flex items-center justify-center">
+                                    {smartIndicator ? (
+                                      smartIndicator
+                                    ) : (
+                                      <span
+                                        className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
+                                          isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                                        }`}
+                                      >
+                                        {feature.tag || "Open"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -654,6 +949,12 @@ export const CommandCenterDirectory: React.FC<CommandCenterDirectoryProps> = ({ 
       <RefillStockCenterModal
         isOpen={isRefillModalOpen}
         onClose={() => setIsRefillModalOpen(false)}
+      />
+
+      {/* Database Architecture & Storage Lifecycle Modal */}
+      <DatabaseArchitectureModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
       />
     </div>
   );
