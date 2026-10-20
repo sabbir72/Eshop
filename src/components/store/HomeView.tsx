@@ -40,6 +40,8 @@ import {
   BadgeCheck,
   Plus,
 } from "lucide-react";
+import { PsychologicalDealsSection } from "./PsychologicalDealsSection";
+import { MembershipClubShowcase } from "./MembershipClubShowcase";
 
 export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQuickView }) => {
   const {
@@ -813,6 +815,12 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
           })}
         </div>
       </section>
+
+      {/* 5.5 Psychological Deals Hub: Round of Three, Contrast Effect, Anchoring Bias */}
+      <PsychologicalDealsSection onQuickView={onQuickView} />
+
+      {/* 5.6 3-Tier Membership & Physical Card Delivery Club (Small Price, Delivery Charge & Price Compromise) */}
+      <MembershipClubShowcase />
 
       {/* 6. Popular Brands Spotlight */}
       <section className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">

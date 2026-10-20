@@ -28,6 +28,7 @@ import {
   Grid,
   Home as HomeIcon,
   Smartphone,
+  Crown,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -304,10 +305,26 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       ) : (
         /* Customer Website Clean Top Bar */
-        <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-8 flex items-center justify-between border-b border-slate-800">
-          <div className="flex items-center gap-4 text-[11px] font-medium text-slate-300">
+        <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-8 flex items-center justify-between border-b border-slate-800 gap-2 flex-wrap">
+          <div className="flex items-center gap-3 text-[11px] font-medium text-slate-300">
             <span>📞 {t("support_phone", language)}</span>
             <span className="hidden md:inline text-emerald-400 font-bold">⚡ {t("nationwide_delivery", language)}</span>
+
+            {/* VIP Membership Quick Link */}
+            <button
+              onClick={() => {
+                setMode("storefront");
+                setStoreView("membership");
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-black transition cursor-pointer"
+            >
+              <Crown className="w-3 h-3 text-amber-400" />
+              <span>
+                {currentUser?.membership?.status === "active"
+                  ? `${currentUser.membership.tier} VIP Member`
+                  : "👑 ৩টি ক্যাটাগরির মেম্বারশিপ কার্ড ও বিশেষ ছাড়"}
+              </span>
+            </button>
           </div>
           <div className="flex items-center gap-3">
             {/* Language Switcher */}
@@ -779,6 +796,24 @@ export const Header: React.FC<HeaderProps> = ({
                 <Gift className="w-4 h-4 text-purple-400" />
                 <span>{t("gift_boxes", language)}</span>
               </button>
+
+              {/* VIP Membership Club */}
+              <button
+                onClick={() => {
+                  setStoreView("membership");
+                }}
+                className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 font-extrabold transition-all duration-200 cursor-pointer ${
+                  storeView === "membership"
+                    ? "bg-amber-400 text-slate-950 shadow-md font-black"
+                    : "text-amber-300 hover:text-white hover:bg-amber-500/20"
+                }`}
+              >
+                <Crown className="w-4 h-4 text-amber-400" />
+                <span>{language === "BN" ? "মেম্বারশিপ কার্ড ও ক্লাব" : "VIP Membership"}</span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-mono">
+                  ৩ টিয়ার
+                </span>
+              </button>
             </div>
 
             <div className="hidden lg:flex items-center space-x-4 text-slate-400 font-medium text-[11px]">
@@ -1010,6 +1045,23 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Gift className="w-4 h-4" />
               <span>{t("gift_boxes", language)}</span>
+            </button>
+
+            {/* VIP Membership Club */}
+            <button
+              onClick={() => {
+                setStoreView("membership");
+                setMobileMenuOpen(false);
+              }}
+              className="text-left py-2.5 border-b border-slate-100 flex items-center justify-between text-amber-600 font-extrabold"
+            >
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-500" />
+                <span>{language === "BN" ? "মেম্বারশিপ কার্ড ও ক্লাব" : "VIP Membership Club"}</span>
+              </div>
+              <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2 py-0.5 rounded-full">
+                ৩ টিয়ার
+              </span>
             </button>
 
             {/* Android App Install Banner in Mobile Menu */}

@@ -16,6 +16,7 @@ import { PolicyView } from "./PolicyView";
 import { HelpCenterView } from "./HelpCenterView";
 import { LiveChatWidget } from "./LiveChatWidget";
 import { OfferDetailsView } from "./OfferDetailsView";
+import { MembershipView } from "./MembershipView";
 import { PromotionalPopup } from "../common/PromotionalPopup";
 import { Product } from "../../types";
 
@@ -33,6 +34,7 @@ export const Storefront: React.FC = () => {
       {storeView === "orders" && <OrderHistoryView />}
       {(storeView === "wishlist" || storeView === "compare") && <WishlistCompareView />}
       {storeView === "profile" && <UserProfileView />}
+      {storeView === "membership" && <MembershipView />}
       {storeView === "about-us" && <AboutUsView />}
       {storeView === "contact-us" && <ContactUsView />}
       {storeView === "careers" && <CareersView />}

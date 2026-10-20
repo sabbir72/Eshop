@@ -9,6 +9,21 @@ export type UserRole =
   | "Customer"
   | "Guest";
 
+export type MembershipTier = "Silver" | "Gold" | "Platinum";
+
+export interface UserMembership {
+  tier: MembershipTier;
+  cardNumber: string;
+  cardHolderName: string;
+  validUntil: string;
+  status: "active" | "expired" | "pending_delivery";
+  discountPercent: number;
+  deliveryCharge: number;
+  freeDeliveryThreshold: number;
+  priceCompromiseMaxPercent: number;
+  cardOrderId?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -22,6 +37,7 @@ export interface User {
   address: string;
   twoFactorEnabled: boolean;
   createdAt: string;
+  membership?: UserMembership;
 }
 
 export type ModuleName =
@@ -632,4 +648,73 @@ export interface SalesReportData {
   period: string;
   totalSales: number;
   totalOrders: number;
+}
+
+export interface MembershipPlan {
+  id: string;
+  tier: MembershipTier;
+  name: string;
+  nameBn: string;
+  cardTitle: string;
+  cardColor: string;
+  badgeColor: string;
+  price: number;
+  durationMonths: number;
+  deliveryChargeDhaka: number;
+  deliveryChargeOutside: number;
+  discountPercent: number;
+  priceCompromiseMaxPercent: number;
+  freeDeliveryThreshold: number;
+  perks: string[];
+  perksBn: string[];
+  isPopular?: boolean;
+}
+
+export interface MembershipCardOrder {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  userEmail: string;
+  tier: MembershipTier;
+  planId: string;
+  membershipFee: number;
+  deliveryCharge: number;
+  totalAmount: number;
+  cardNumber: string;
+  cardHolderName: string;
+  deliveryAddress: {
+    fullName: string;
+    phone: string;
+    alternativePhone?: string;
+    division: string;
+    district: string;
+    thanaOrArea: string;
+    fullAddress: string;
+    deliveryNotes?: string;
+  };
+  paymentMethod: "cod" | "bkash" | "nagad" | "card";
+  paymentStatus: "paid" | "pending" | "cod_on_delivery";
+  cardStatus: "Printing" | "Card Ready" | "Dispatched" | "Delivered" | "Active";
+  validFrom: string;
+  validUntil: string;
+  createdAt: string;
+}
+
+export interface PriceCompromiseOffer {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  userTier: MembershipTier;
+  productId: string;
+  productName: string;
+  productImage: string;
+  originalPrice: number;
+  requestedPrice: number;
+  approvedPrice: number;
+  status: "Pending" | "Approved" | "Counter-Offered" | "Rejected";
+  adminNote?: string;
+  createdAt: string;
+  expiresAt: string;
 }

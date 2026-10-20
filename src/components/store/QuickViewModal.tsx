@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Product } from "../../types";
 import { useStore } from "../../context/StoreContext";
-import { X, Star, ShoppingBag, Heart, RefreshCw, Check, ShieldCheck, Truck, Zap } from "lucide-react";
+import { X, Star, ShoppingBag, Heart, RefreshCw, Check, ShieldCheck, Truck, Zap, Crown } from "lucide-react";
+import { PriceCompromiseModal } from "./PriceCompromiseModal";
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -15,6 +16,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || "");
   const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || "");
   const [quantity, setQuantity] = useState(1);
+  const [showCompromiseModal, setShowCompromiseModal] = useState(false);
 
   if (!product) return null;
 
@@ -199,6 +201,16 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
             </button>
           </div>
 
+          {/* Price Compromise Button for Members / Bargain */}
+          <button
+            type="button"
+            onClick={() => setShowCompromiseModal(true)}
+            className="w-full py-2.5 px-3 rounded-xl border border-dashed border-amber-400 bg-amber-50/80 hover:bg-amber-100 text-amber-950 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+          >
+            <Crown className="w-4 h-4 text-amber-600" />
+            <span>🤝 মেম্বার প্রাইস কম্প্রোমাইজ (বিশেষ দরদাম রিকোয়েস্ট)</span>
+          </button>
+
           {/* Wishlist & Compare buttons */}
           <div className="flex items-center justify-between border-t border-slate-100 pt-3">
             <button
@@ -230,6 +242,13 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
           </div>
         </div>
       </div>
+
+      {/* Price Compromise Bargaining Modal */}
+      <PriceCompromiseModal
+        product={product}
+        isOpen={showCompromiseModal}
+        onClose={() => setShowCompromiseModal(false)}
+      />
     </div>
   );
 };

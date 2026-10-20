@@ -20,6 +20,7 @@ import {
   Tag,
   AlertCircle,
   CheckCircle,
+  Crown,
 } from "lucide-react";
 
 export const CheckoutView: React.FC = () => {
@@ -104,8 +105,23 @@ export const CheckoutView: React.FC = () => {
     return acc + price * item.quantity;
   }, 0);
 
-  const discountAmount = couponEval.isValid ? couponEval.discountAmount : 0;
-  const shippingCharge = cart.length > 0 ? settings.shippingCharge : 0;
+  // Membership Discount & Perks
+  const hasActiveMembership = !!currentUser?.membership && currentUser.membership.status === "active";
+  const memberTier = currentUser?.membership?.tier;
+  const memberDiscountPercent = hasActiveMembership ? (currentUser?.membership?.discountPercent || 0) : 0;
+  
+  const couponDiscountAmount = couponEval.isValid ? couponEval.discountAmount : 0;
+  const memberDiscountAmount = hasActiveMembership
+    ? Math.round((subtotal - couponDiscountAmount) * (memberDiscountPercent / 100))
+    : 0;
+  const discountAmount = couponDiscountAmount + memberDiscountAmount;
+
+  const isFreeDeliveryForMember = hasActiveMembership && (
+    currentUser?.membership?.freeDeliveryThreshold === 0 ||
+    subtotal >= (currentUser?.membership?.freeDeliveryThreshold || 999999)
+  );
+  const baseShippingCharge = cart.length > 0 ? settings.shippingCharge : 0;
+  const shippingCharge = isFreeDeliveryForMember ? 0 : baseShippingCharge;
   const tax = Math.round((subtotal - discountAmount) * (settings.taxRate / 100));
 
   // Dynamic Gift Wrapping Calculation
@@ -628,6 +644,32 @@ export const CheckoutView: React.FC = () => {
               )}
             </div>
 
+            {/* VIP Membership Upsell Banner */}
+            {!hasActiveMembership && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 p-3 rounded-xl border border-amber-300/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-amber-950 text-xs flex items-center gap-1.5">
+                    <Crown className="w-4 h-4 text-amber-600" />
+                    মেম্বারশিপ সুবিধা ও বিশেষ ছাড় (VIP Club)
+                  </span>
+                  <span className="text-[10px] bg-amber-200 text-amber-900 font-black px-1.5 py-0.2 rounded">
+                    ৩টি ক্যাটাগরি
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-tight">
+                  মাত্র ৳৯৯ দিয়ে সিলভার, গোল্ড বা প্লাটিনাম মেম্বারশিপ কার্ড নিয়ে এই কেনাকাটায় অতিরিক্ত ৫% থেকে ১৫% ছাড় এবং পণ্যে সরাসরি দরদাম সুবিধা পান।
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStoreView("membership")}
+                  className="w-full mt-1 py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                >
+                  <span>মেম্বারশিপ কার্ড অর্ডার করুন (ফি ৳৯৯ থেকে)</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* Calculations Breakdown */}
             <div className="space-y-2 text-xs text-slate-600 border-t border-slate-200 pt-3">
               <div className="flex justify-between">
@@ -635,16 +677,35 @@ export const CheckoutView: React.FC = () => {
                 <span className="font-bold text-slate-900">{settings.currencySymbol}{subtotal.toLocaleString()}</span>
               </div>
 
-              {discountAmount > 0 && (
+              {couponDiscountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600 font-semibold">
-                  <span>Discount ({appliedCoupon?.code})</span>
-                  <span>-{settings.currencySymbol}{discountAmount.toLocaleString()}</span>
+                  <span>Coupon Discount ({appliedCoupon?.code})</span>
+                  <span>-{settings.currencySymbol}{couponDiscountAmount.toLocaleString()}</span>
                 </div>
               )}
 
-              <div className="flex justify-between">
+              {memberDiscountAmount > 0 && (
+                <div className="flex justify-between text-amber-800 bg-amber-50 p-2 rounded-xl border border-amber-200 font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 text-amber-600" />
+                    {memberTier} Member Discount ({memberDiscountPercent}%)
+                  </span>
+                  <span>-{settings.currencySymbol}{memberDiscountAmount.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center">
                 <span>Shipping Charge</span>
-                <span className="font-bold text-slate-900">{settings.currencySymbol}{shippingCharge}</span>
+                {isFreeDeliveryForMember ? (
+                  <span className="font-bold text-emerald-600 flex items-center gap-1.5">
+                    <span className="line-through text-slate-400 font-normal text-xs">{settings.currencySymbol}{baseShippingCharge}</span>
+                    <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] uppercase font-black">
+                      FREE (VIP Member)
+                    </span>
+                  </span>
+                ) : (
+                  <span className="font-bold text-slate-900">{settings.currencySymbol}{shippingCharge}</span>
+                )}
               </div>
 
               <div className="flex justify-between">

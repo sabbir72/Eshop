@@ -34,6 +34,11 @@ import {
   TicketMessage,
   SupportTicket,
   Advertisement,
+  MembershipPlan,
+  MembershipCardOrder,
+  PriceCompromiseOffer,
+  MembershipTier,
+  UserMembership,
 } from "../types";
 import { evaluateCouponDiscount, DiscountValidationResult } from "../utils/discountEngine";
 import {
@@ -65,6 +70,9 @@ import {
   initialReturnRequests,
   initialSupportTickets,
   initialAdvertisements,
+  initialMembershipPlans,
+  initialMembershipCardOrders,
+  initialPriceCompromiseOffers,
 } from "../data/mockData";
 
 export type ViewMode = "storefront" | "admin";
@@ -88,7 +96,8 @@ export type StoreView =
   | "help-center"
   | "support-tickets"
   | "faq"
-  | "offer-details";
+  | "offer-details"
+  | "membership";
 
 export type AdminView =
   | "dashboard"
@@ -126,7 +135,8 @@ export type AdminView =
   | "seo-marketing"
   | "website-profile"
   | "excel-hub"
-  | "cash-calculation";
+  | "cash-calculation"
+  | "memberships";
 
 interface ToastNotification {
   id: string;
@@ -309,6 +319,27 @@ interface StoreContextType {
   deleteAdvertisement: (id: string) => void;
   trackAdImpression: (id: string) => void;
   trackAdClick: (id: string) => void;
+
+  // Membership & Physical Card Delivery State
+  membershipPlans: MembershipPlan[];
+  membershipCardOrders: MembershipCardOrder[];
+  priceCompromiseOffers: PriceCompromiseOffer[];
+  orderMembershipCard: (orderData: {
+    tier: MembershipTier;
+    planId: string;
+    membershipFee: number;
+    deliveryCharge: number;
+    totalAmount: number;
+    cardHolderName: string;
+    deliveryAddress: MembershipCardOrder["deliveryAddress"];
+    paymentMethod: MembershipCardOrder["paymentMethod"];
+  }) => MembershipCardOrder;
+  updateCardOrderStatus: (orderId: string, status: MembershipCardOrder["cardStatus"], paymentStatus?: MembershipCardOrder["paymentStatus"]) => void;
+  submitPriceCompromise: (productId: string, requestedPrice: number, note?: string) => PriceCompromiseOffer;
+  updatePriceCompromiseStatus: (offerId: string, status: PriceCompromiseOffer["status"], approvedPrice?: number, adminNote?: string) => void;
+  updateMembershipPlan: (planId: string, data: Partial<MembershipPlan>) => void;
+  cancelMembership: (userId?: string) => void;
+  getUserMembershipDiscount: () => number;
 
   // Notifications & Audit Logging
   toasts: ToastNotification[];
@@ -519,6 +550,240 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return changed ? next : prev;
     });
   }, []);
+
+  // Membership & Physical Card Delivery State
+  const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>(() => {
+    try {
+      const saved = localStorage.getItem("smartshop_membership_plans");
+      return saved ? JSON.parse(saved) : initialMembershipPlans;
+    } catch {
+      return initialMembershipPlans;
+    }
+  });
+
+  const [membershipCardOrders, setMembershipCardOrders] = useState<MembershipCardOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem("smartshop_membership_card_orders");
+      return saved ? JSON.parse(saved) : initialMembershipCardOrders;
+    } catch {
+      return initialMembershipCardOrders;
+    }
+  });
+
+  const [priceCompromiseOffers, setPriceCompromiseOffers] = useState<PriceCompromiseOffer[]>(() => {
+    try {
+      const saved = localStorage.getItem("smartshop_price_compromise_offers");
+      return saved ? JSON.parse(saved) : initialPriceCompromiseOffers;
+    } catch {
+      return initialPriceCompromiseOffers;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("smartshop_membership_plans", JSON.stringify(membershipPlans));
+    } catch {}
+  }, [membershipPlans]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("smartshop_membership_card_orders", JSON.stringify(membershipCardOrders));
+    } catch {}
+  }, [membershipCardOrders]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("smartshop_price_compromise_offers", JSON.stringify(priceCompromiseOffers));
+    } catch {}
+  }, [priceCompromiseOffers]);
+
+  const orderMembershipCard = (orderData: {
+    tier: MembershipTier;
+    planId: string;
+    membershipFee: number;
+    deliveryCharge: number;
+    totalAmount: number;
+    cardHolderName: string;
+    deliveryAddress: MembershipCardOrder["deliveryAddress"];
+    paymentMethod: MembershipCardOrder["paymentMethod"];
+  }) => {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const tierCode = orderData.tier.substring(0, 4).toUpperCase();
+    const cardNumber = `SMART-${tierCode}-${Math.floor(1000 + Math.random() * 9000)}-${randomSuffix}`;
+    const now = new Date();
+    const validUntil = new Date(now);
+    validUntil.setFullYear(validUntil.getFullYear() + 1);
+
+    const plan = membershipPlans.find((p) => p.tier === orderData.tier) || membershipPlans[0];
+
+    const newOrder: MembershipCardOrder = {
+      id: `card-ord-${Date.now()}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userPhone: currentUser.phone,
+      userEmail: currentUser.email,
+      tier: orderData.tier,
+      planId: orderData.planId,
+      membershipFee: orderData.membershipFee,
+      deliveryCharge: orderData.deliveryCharge,
+      totalAmount: orderData.totalAmount,
+      cardNumber,
+      cardHolderName: orderData.cardHolderName.toUpperCase(),
+      deliveryAddress: orderData.deliveryAddress,
+      paymentMethod: orderData.paymentMethod,
+      paymentStatus: orderData.paymentMethod === "cod" ? "cod_on_delivery" : "paid",
+      cardStatus: "Printing",
+      validFrom: now.toISOString().split("T")[0],
+      validUntil: validUntil.toISOString().split("T")[0],
+      createdAt: now.toISOString(),
+    };
+
+    setMembershipCardOrders((prev) => [newOrder, ...prev]);
+
+    // Automatically update active user's membership
+    const updatedMembership: UserMembership = {
+      tier: orderData.tier,
+      cardNumber,
+      cardHolderName: orderData.cardHolderName.toUpperCase(),
+      validUntil: validUntil.toISOString().split("T")[0],
+      status: "active",
+      discountPercent: plan.discountPercent,
+      deliveryCharge: orderData.deliveryCharge,
+      freeDeliveryThreshold: plan.freeDeliveryThreshold,
+      priceCompromiseMaxPercent: plan.priceCompromiseMaxPercent,
+      cardOrderId: newOrder.id,
+    };
+
+    setCurrentUser((prev) => {
+      const updated = {
+        ...prev,
+        membership: updatedMembership,
+      };
+      try {
+        localStorage.setItem("auth_user", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    recordAuditLog(`Ordered ${orderData.tier} Membership Card (${cardNumber})`, "Customer");
+    addToast(`অভিনন্দন! আপনার ${orderData.tier} মেম্বারশিপ কার্ড সফলভাবে অর্ডার হয়েছে! কার্ড নম্বর: ${cardNumber}`, "success");
+
+    return newOrder;
+  };
+
+  const updateCardOrderStatus = (
+    orderId: string,
+    status: MembershipCardOrder["cardStatus"],
+    paymentStatus?: MembershipCardOrder["paymentStatus"]
+  ) => {
+    setMembershipCardOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            cardStatus: status,
+            ...(paymentStatus ? { paymentStatus } : {}),
+          };
+        }
+        return o;
+      })
+    );
+    recordAuditLog(`Updated Membership Card Order ${orderId} status to ${status}`, "Customer");
+    addToast(`মেম্বারশিপ কার্ডের স্ট্যাটাস '${status}' সফলভাবে আপডেট হয়েছে।`, "success");
+  };
+
+  const submitPriceCompromise = (productId: string, requestedPrice: number, note?: string) => {
+    const product = products.find((p) => p.id === productId);
+    const origPrice = product ? (product.discountPrice || product.sellingPrice) : requestedPrice;
+    const tier = currentUser.membership?.tier || "Silver";
+    const maxDiscountPercent = currentUser.membership?.priceCompromiseMaxPercent || 8;
+    const minAllowedPrice = Math.round(origPrice * (1 - maxDiscountPercent / 100));
+
+    const isInstantApproved = requestedPrice >= minAllowedPrice;
+    const approvedPrice = isInstantApproved ? requestedPrice : minAllowedPrice;
+
+    const newOffer: PriceCompromiseOffer = {
+      id: `pco-${Date.now()}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userPhone: currentUser.phone,
+      userTier: tier,
+      productId,
+      productName: product?.name || "পণ্য",
+      productImage: product?.mainImage || product?.galleryImages?.[0] || "",
+      originalPrice: origPrice,
+      requestedPrice,
+      approvedPrice: isInstantApproved ? approvedPrice : 0,
+      status: isInstantApproved ? "Approved" : "Pending",
+      adminNote: isInstantApproved
+        ? `${tier} মেম্বারশিপে তাৎক্ষণিক অনুমোদিত দরদাম সুবিধা।`
+        : note || "অ্যাডমিনের পর্যালোচনায় রয়েছে।",
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    setPriceCompromiseOffers((prev) => [newOffer, ...prev]);
+
+    if (isInstantApproved) {
+      addToast(`🎉 দারুণ! ${tier} মেম্বারশিপে আপনার দরদাম ৳${approvedPrice.toLocaleString()} তৎক্ষণাৎ গৃহীত হয়েছে!`, "success");
+    } else {
+      addToast(`আপনার দরদাম রিকোয়েস্ট জমা হয়েছে। অ্যাডমিন পর্যালোচনা করবেন।`, "info");
+    }
+
+    return newOffer;
+  };
+
+  const updatePriceCompromiseStatus = (
+    offerId: string,
+    status: PriceCompromiseOffer["status"],
+    approvedPrice?: number,
+    adminNote?: string
+  ) => {
+    setPriceCompromiseOffers((prev) =>
+      prev.map((offer) => {
+        if (offer.id === offerId) {
+          return {
+            ...offer,
+            status,
+            ...(approvedPrice !== undefined ? { approvedPrice } : {}),
+            ...(adminNote !== undefined ? { adminNote } : {}),
+          };
+        }
+        return offer;
+      })
+    );
+    recordAuditLog(`Price Compromise ${offerId} updated to ${status}`, "Product");
+    addToast(`প্রাইস কম্প্রোমাইজ রিকোয়েস্ট আপডেট হয়েছে (${status})`, "success");
+  };
+
+  const updateMembershipPlan = (planId: string, data: Partial<MembershipPlan>) => {
+    setMembershipPlans((prev) =>
+      prev.map((p) => (p.id === planId ? { ...p, ...data } : p))
+    );
+    recordAuditLog(`Updated Membership Plan ${planId}`, "Settings");
+    addToast("মেম্বারশিপ প্ল্যান সফলভাবে আপডেট হয়েছে।", "success");
+  };
+
+  const cancelMembership = (userId?: string) => {
+    setCurrentUser((prev) => {
+      const updated = {
+        ...prev,
+        membership: undefined,
+      };
+      try {
+        localStorage.setItem("auth_user", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    addToast("মেম্বারশিপ বাতিল করা হয়েছে।", "info");
+  };
+
+  const getUserMembershipDiscount = () => {
+    if (currentUser.membership && currentUser.membership.status === "active") {
+      return currentUser.membership.discountPercent || 0;
+    }
+    return 0;
+  };
 
   // Cart & Discount
   const [cart, setCart] = useState<CartItem[]>([
@@ -1820,6 +2085,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteAdvertisement,
         trackAdImpression,
         trackAdClick,
+        membershipPlans,
+        membershipCardOrders,
+        priceCompromiseOffers,
+        orderMembershipCard,
+        updateCardOrderStatus,
+        submitPriceCompromise,
+        updatePriceCompromiseStatus,
+        updateMembershipPlan,
+        cancelMembership,
+        getUserMembershipDiscount,
         toasts,
         addToast,
         removeToast,

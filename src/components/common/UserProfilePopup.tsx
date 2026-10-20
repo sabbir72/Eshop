@@ -20,6 +20,7 @@ import {
   Settings,
   Sparkles,
   Download,
+  Crown,
 } from "lucide-react";
 
 interface UserProfilePopupProps {
@@ -356,6 +357,38 @@ export const UserProfilePopup: React.FC<UserProfilePopupProps> = ({
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+
+            {/* VIP Membership & Card Club */}
+            <button
+              onClick={() =>
+                handleNavigate(() => {
+                  setStoreView("membership");
+                })
+              }
+              className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 text-slate-900 border border-amber-300/80 transition cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-yellow-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Crown className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-xs text-amber-950">
+                      {isBN ? "ভিআইপি মেম্বারশিপ কার্ড ও ক্লাব" : "VIP Membership & Card"}
+                    </span>
+                    <span className="text-[9px] font-black bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded">
+                      {currentUser?.membership?.status === "active" ? currentUser.membership.tier : (isBN ? "৩টি টিয়ার" : "3 Tiers")}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-amber-800 font-medium">
+                    {isBN
+                      ? "ফিজিক্যাল কার্ড ডেলিভারি, মেম্বার ডিসকাউন্ট ও প্রাইস কম্প্রোমাইজ"
+                      : "Card delivery, exclusive discounts & price compromise"}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
 
             {/* 5. My Orders */}

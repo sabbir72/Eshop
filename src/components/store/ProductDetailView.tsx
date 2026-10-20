@@ -15,7 +15,10 @@ import {
   X,
   Truck,
   RotateCcw,
+  Crown,
+  Tag,
 } from "lucide-react";
+import { PriceCompromiseModal } from "./PriceCompromiseModal";
 
 export const ProductDetailView: React.FC = () => {
   const {
@@ -31,9 +34,11 @@ export const ProductDetailView: React.FC = () => {
     addReview,
     products,
     settings,
+    currentUser,
   } = useStore();
 
   const p = selectedProduct;
+  const [showCompromiseModal, setShowCompromiseModal] = useState<boolean>(false);
 
   // Selected Media Image
   const [activeImage, setActiveImage] = useState<string>(p?.mainImage || p?.galleryImages?.[0] || "");
@@ -181,21 +186,43 @@ export const ProductDetailView: React.FC = () => {
           </div>
 
           {/* Pricing Box */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-slate-50 to-indigo-50/50 p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-2xl font-black text-slate-900">
-                {settings.currencySymbol}{currentPrice.toLocaleString()}
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900">
+                  {settings.currencySymbol}{currentPrice.toLocaleString()}
+                </span>
+                {p.sellingPrice > currentPrice && (
+                  <span className="text-xs text-slate-400 line-through font-medium">
+                    {settings.currencySymbol}{p.sellingPrice.toLocaleString()}
+                  </span>
+                )}
               </div>
-              {p.sellingPrice > currentPrice && (
-                <div className="text-xs text-slate-400 line-through font-medium">
-                  {settings.currencySymbol}{p.sellingPrice.toLocaleString()}
-                </div>
-              )}
+
+              {/* Member Price Badge */}
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3 text-amber-600" />
+                  মেম্বার প্রাইস: {settings.currencySymbol}{Math.round(currentPrice * 0.9).toLocaleString()}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  (১০% পর্যন্ত অতিরিক্ত ছাড়)
+                </span>
+              </div>
             </div>
 
-            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-              Tax: {p.taxPercent || 5}% Included
-            </span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                Tax: {p.taxPercent || 5}% Included
+              </span>
+              <button
+                type="button"
+                onClick={() => setStoreView("membership")}
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+              >
+                মেম্বারশিপ সুবিধা দেখুন →
+              </button>
+            </div>
           </div>
 
           {/* Color Matrix Picker */}
@@ -285,6 +312,16 @@ export const ProductDetailView: React.FC = () => {
                 </button>
               </div>
             )}
+
+            {/* Member Price Compromise / Bargaining Button */}
+            <button
+              type="button"
+              onClick={() => setShowCompromiseModal(true)}
+              className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/70 hover:bg-amber-100 text-amber-950 font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+            >
+              <Crown className="w-4 h-4 text-amber-600" />
+              <span>🤝 মেম্বার প্রাইস কম্প্রোমাইজ (বিশেষ দরদাম রিকোয়েস্ট)</span>
+            </button>
 
             <div className="flex items-center gap-2">
               <button
@@ -496,6 +533,13 @@ export const ProductDetailView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Price Compromise Bargaining Modal */}
+      <PriceCompromiseModal
+        product={p}
+        isOpen={showCompromiseModal}
+        onClose={() => setShowCompromiseModal(false)}
+      />
     </div>
   );
 };

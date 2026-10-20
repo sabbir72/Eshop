@@ -25,6 +25,7 @@ import { WarehouseMovementManagement } from "./WarehouseMovementManagement";
 import { SEOMarketingManagement } from "./SEOMarketingManagement";
 import { ExcelHubManagement } from "./ExcelHubManagement";
 import { CashCalculationLog } from "./CashCalculationLog";
+import { MembershipManagement } from "./MembershipManagement";
 import {
   COMMAND_CENTER_CATEGORIES,
   findBreadcrumbsForView,
@@ -65,6 +66,7 @@ import {
   Wallet,
   Boxes,
   Database,
+  Crown,
 } from "lucide-react";
 import { RefillStockCenterModal } from "./RefillStockCenterModal";
 import { DatabaseArchitectureModal } from "./DatabaseArchitectureModal";
@@ -81,6 +83,8 @@ export const AdminPanel: React.FC = () => {
     orders,
     products,
     language,
+    membershipCardOrders,
+    priceCompromiseOffers,
   } = useStore();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
@@ -91,6 +95,14 @@ export const AdminPanel: React.FC = () => {
 
   const pendingOrdersCount = useMemo(() => orders.filter((o) => o.orderStatus === "Pending").length, [orders]);
   const lowStockCount = useMemo(() => products.filter((p) => p.totalStock <= 5).length, [products]);
+  const pendingMembershipCardCount = useMemo(
+    () => (membershipCardOrders || []).filter((o) => o.cardStatus === "Printing" || o.cardStatus === "Card Ready").length,
+    [membershipCardOrders]
+  );
+  const pendingCompromiseCount = useMemo(
+    () => (priceCompromiseOffers || []).filter((p) => p.status === "Pending").length,
+    [priceCompromiseOffers]
+  );
 
   const toggleCategory = (catId: string) => {
     setCollapsedCategories((prev) => ({
@@ -601,6 +613,11 @@ export const AdminPanel: React.FC = () => {
                                           AI
                                         </span>
                                       )}
+                                      {feat.id === "memberships" && (
+                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500/25 text-amber-300 border border-amber-500/40 shrink-0 flex items-center gap-0.5">
+                                          👑 {pendingMembershipCardCount + pendingCompromiseCount > 0 ? `${pendingMembershipCardCount + pendingCompromiseCount}` : "VIP"}
+                                        </span>
+                                      )}
                                     </button>
                                   );
                                 })}
@@ -647,6 +664,7 @@ export const AdminPanel: React.FC = () => {
           {adminView === "inventory" && <InventoryManagement />}
           {adminView === "warehouse-movement" && <WarehouseMovementManagement />}
           {adminView === "orders" && <OrderManagement />}
+          {adminView === "memberships" && <MembershipManagement />}
           {adminView === "coupons" && <CouponManagement />}
           {adminView === "marketing" && <MarketingManagement />}
           {adminView === "seo-marketing" && <SEOMarketingManagement />}

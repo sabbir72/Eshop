@@ -25,6 +25,7 @@ import {
   FileSpreadsheet,
   Wallet,
   DollarSign,
+  Crown,
 } from "lucide-react";
 import { AdminView } from "../../context/StoreContext";
 import { ModuleName } from "../../types";
@@ -261,6 +262,22 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
         ],
       },
       {
+        id: "membership-club-ops",
+        name: "Membership & VIP Club",
+        description: "3 Membership tiers, physical card delivery orders & price compromise negotiation",
+        features: [
+          {
+            id: "memberships",
+            name: "Membership Club & Price Compromise",
+            description: "3 Membership tiers (Silver, Gold, Platinum), physical card courier dispatch & live price compromise approvals",
+            icon: Crown,
+            module: "CMS",
+            tag: "VIP Club",
+            isPopular: true,
+          },
+        ],
+      },
+      {
         id: "promotions-discounts",
         name: "Discounts & Incentives",
         description: "Promotional voucher management and campaign codes",
@@ -307,11 +324,12 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
         features: [
           {
             id: "marketing",
-            name: "Marketing & Ad Management",
-            description: "Hero sliders, popups, flash deals, SMS/WhatsApp broadcast, UTM tracking & AI copy",
+            name: "Marketing, Campaigns & Psychology",
+            description: "Hero sliders, popups, Neuro-Marketing (Round of Three, Contrast Effect, Anchoring Bias), SMS/WhatsApp broadcast & UTM tracking",
             icon: Megaphone,
             module: "CMS",
-            tag: "Campaigns",
+            tag: "Neuro-Marketing",
+            isPopular: true,
           },
         ],
       },
