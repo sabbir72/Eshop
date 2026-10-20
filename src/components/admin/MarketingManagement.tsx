@@ -630,6 +630,9 @@ export const MarketingManagement: React.FC = () => {
       : "";
 
     return {
+      deliveredOrderCount: deliveredOrders.length,
+      approvedReviewCount: approvedReviews.length,
+      reviewAverage,
       socialProof:
         socialProof ||
         "এই পণ্যের যাচাইকৃত অর্ডার বা অনুমোদিত রিভিউয়ের তথ্য নেই—পণ্যের বিবরণ দেখে সিদ্ধান্ত নিন।",
@@ -661,6 +664,8 @@ export const MarketingManagement: React.FC = () => {
     openCreateModal("campaign");
     setTitle(`${psychologyProduct.name} - ${title}`);
     setDescription(message);
+    setMediaType("image");
+    if (psychologyProduct.mainImage) setMediaUrl(psychologyProduct.mainImage);
     setButtonLink("products");
     setTermsConditions("প্রকাশের আগে পণ্যের স্টক, মূল্য, ডেলিভারি চার্জ ও শর্ত যাচাই করুন।");
   };
@@ -1650,6 +1655,22 @@ export const MarketingManagement: React.FC = () => {
                 title: "যাচাইকৃত সামাজিক প্রমাণ",
                 description: "বাস্তব অর্ডার, রিভিউ বা রেটিংয়ের তথ্য দেখান; সংখ্যা ও সময়সীমা যাচাই করে নিন।",
                 message: psychologyEvidence?.socialProof ?? "পণ্যের যাচাইকৃত অর্ডার ও রিভিউয়ের তথ্য পাওয়া যায়নি।",
+                visualTitle: "ক্রেতার অভিজ্ঞতা",
+                visualDetail:
+                  [
+                    psychologyEvidence?.approvedReviewCount
+                      ? `${psychologyEvidence.approvedReviewCount}টি অনুমোদিত রিভিউ${
+                          psychologyEvidence.reviewAverage !== null
+                            ? ` · ${psychologyEvidence.reviewAverage.toFixed(1)}/5`
+                            : ""
+                        }`
+                      : "",
+                    psychologyEvidence?.deliveredOrderCount
+                      ? `${psychologyEvidence.deliveredOrderCount}টি সম্পন্ন অর্ডার`
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "যাচাইকৃত রিভিউ সংগ্রহ চলছে",
                 color: "indigo",
               },
               {
@@ -1657,6 +1678,12 @@ export const MarketingManagement: React.FC = () => {
                 title: "সত্যনিষ্ঠ সময়সীমা ও স্টক",
                 description: "অফারের প্রকৃত শেষ সময় বা inventory-তে থাকা স্টক জানিয়ে সিদ্ধান্তের সময় স্পষ্ট করুন।",
                 message: psychologyEvidence?.stock ?? "পণ্য নির্বাচন করলে বর্তমান স্টকের তথ্য দেখা যাবে.",
+                visualTitle: "স্টক ও অফার আপডেট",
+                visualDetail: psychologyProduct
+                  ? psychologyProduct.totalStock > 0
+                    ? `স্টকে আছে ${psychologyProduct.totalStock}টি`
+                    : "বর্তমানে স্টকে নেই"
+                  : "পণ্য নির্বাচন করুন",
                 color: "amber",
               },
               {
@@ -1664,55 +1691,101 @@ export const MarketingManagement: React.FC = () => {
                 title: "ঝুঁকি ও খরচের স্বচ্ছতা",
                 description: "ডেলিভারি, পেমেন্ট, ওয়ারেন্টি ও রিটার্নের শর্ত আগে থেকেই পরিষ্কারভাবে জানান।",
                 message: psychologyEvidence?.transparency ?? "পণ্য নির্বাচন করলে মূল্য ও ডেলিভারি তথ্য দেখা যাবে।",
+                visualTitle: "দাম ও সুবিধা",
+                visualDetail: psychologyProduct
+                  ? `৳${psychologyProduct.sellingPrice.toLocaleString("bn-BD")} · ডেলিভারি ৳${settings.shippingCharge.toLocaleString("bn-BD")}`
+                  : "পণ্য নির্বাচন করুন",
                 color: "emerald",
               },
             ].map((strategy) => (
               <article
                 key={strategy.number}
-                className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs"
+                className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-[10px] font-black tracking-wider text-slate-400">
-                    STRATEGY {strategy.number}
-                  </span>
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
-                </div>
-                <h4 className="mt-2 text-sm font-extrabold text-slate-900">{strategy.title}</h4>
-                <p className="mt-1 min-h-10 text-xs leading-relaxed text-slate-500">
-                  {strategy.description}
-                </p>
-                <div className="mt-3 flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                    উদাহরণ বার্তা
-                  </p>
-                  <p className="mt-1 break-words text-xs leading-relaxed text-slate-700">
-                    {strategy.message}
-                  </p>
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => handleCopyPsychologyExample(strategy.message)}
-                    className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
+                <div className="relative aspect-[16/9] overflow-hidden bg-slate-200">
+                  {psychologyProduct?.mainImage ? (
+                    <img
+                      src={psychologyProduct.mainImage}
+                      alt={psychologyProduct.name}
+                      className="h-full w-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">
+                      <ShoppingBag className="h-10 w-10" aria-hidden="true" />
+                    </div>
+                  )}
+                  <div
+                    className={`absolute inset-0 ${
                       strategy.color === "indigo"
-                        ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                        ? "bg-gradient-to-t from-indigo-950/90 via-indigo-950/10 to-slate-950/15"
                         : strategy.color === "amber"
-                          ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                          ? "bg-gradient-to-t from-amber-950/90 via-amber-950/10 to-slate-950/15"
+                          : "bg-gradient-to-t from-emerald-950/90 via-emerald-950/10 to-slate-950/15"
                     }`}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    বার্তাটি কপি করুন
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => usePsychologyMessageInCampaign(strategy.title, strategy.message)}
-                    disabled={!psychologyProduct}
-                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Megaphone className="h-3.5 w-3.5" />
-                    ক্যাম্পেইনে ব্যবহার
-                  </button>
+                  />
+                  <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3">
+                    <span className="rounded-full border border-white/30 bg-slate-950/45 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-white backdrop-blur-sm">
+                      STRATEGY {strategy.number}
+                    </span>
+                    <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-bold text-slate-800">
+                      {strategy.visualTitle}
+                    </span>
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-3.5 text-white">
+                    <p className="line-clamp-1 text-[10px] font-medium text-white/80">
+                      {psychologyProduct?.name ?? "পণ্য নির্বাচন করুন"}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug">
+                      {strategy.visualDetail}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-extrabold text-slate-900">{strategy.title}</h4>
+                      <p className="mt-1 min-h-10 text-xs leading-relaxed text-slate-500">
+                        {strategy.description}
+                      </p>
+                    </div>
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  </div>
+                  <div className="mt-3 flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                      উদাহরণ বার্তা
+                    </p>
+                    <p className="mt-1 break-words text-xs leading-relaxed text-slate-700">
+                      {strategy.message}
+                    </p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPsychologyExample(strategy.message)}
+                      className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
+                        strategy.color === "indigo"
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                          : strategy.color === "amber"
+                            ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                            : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      }`}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      বার্তাটি কপি করুন
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => usePsychologyMessageInCampaign(strategy.title, strategy.message)}
+                      disabled={!psychologyProduct}
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Megaphone className="h-3.5 w-3.5" />
+                      ক্যাম্পেইনে ব্যবহার
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
