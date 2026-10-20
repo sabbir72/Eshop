@@ -6,6 +6,10 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-build:
@@ -39,7 +43,7 @@ jobs:
   vercel-deploy:
     name: Vercel Production Deployment
     needs: lint-and-build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
 
     env:
@@ -48,6 +52,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Report missing Vercel deployment credentials
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: echo "::warning::Build passed, but production deployment was skipped. Configure VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID repository secrets."
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25

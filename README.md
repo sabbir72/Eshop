@@ -132,6 +132,22 @@ npm run start
 
 ## ☁️ Deployment Instructions
 
+### GitHub Actions → Vercel
+
+Pushes to `main` run the type check and production build, then deploy to Vercel when the repository has these GitHub Actions secrets configured:
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
+
+The workflow can also be started manually from **Actions → SmartShop CI/CD Pipeline → Run workflow** on `main`. A successful build without these secrets does not publish a new release.
+
+### Browser and installed PWA updates
+
+Production builds register the service worker and apply a published update automatically. Users may need to reopen the app if it was left running during deployment. Local development does not register a service worker, so source changes remain visible through Vite HMR.
+
+The repository currently contains the web app and installable PWA, but no Android application/Play Store project. Publishing a Play Store app requires an Android package, a verified production domain, signing configuration, and Play Console credentials.
+
 ### Deploying to Render / Railway / Cloud Run / VPS (Recommended for Full-Stack Node Apps)
 Since this app runs a custom Node.js Express server (`server.ts`) alongside static files:
 

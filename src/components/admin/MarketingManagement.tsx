@@ -53,6 +53,8 @@ import {
   HelpCircle,
   Volume2,
   VolumeX,
+  Brain,
+  ShieldCheck,
 } from "lucide-react";
 
 // Curated high quality presets for Bangladesh e-commerce
@@ -178,6 +180,8 @@ export const MarketingManagement: React.FC = () => {
     addCoupon,
     customers,
     products,
+    orders,
+    reviews,
     categories,
     settings,
     addToast,
@@ -193,8 +197,10 @@ export const MarketingManagement: React.FC = () => {
     | "coupons"
     | "utm-tracking"
     | "ai-copywriter"
+    | "psychology"
     | "analytics"
   >("slider");
+  const [psychologyProductId, setPsychologyProductId] = useState("");
 
   // Filters & Search State
   const [searchTerm, setSearchTerm] = useState("");
@@ -333,6 +339,9 @@ export const MarketingManagement: React.FC = () => {
   }, [advertisements, activeSubTab, searchTerm, statusFilter]);
 
   const openCreateModal = (forcedType?: "slider" | "popup" | "campaign" | "video") => {
+    const campaignStartDate = new Date();
+    const campaignEndDate = new Date(campaignStartDate);
+    campaignEndDate.setDate(campaignEndDate.getDate() + 30);
     setEditingAd(null);
     setTitle("");
     setDescription("");
@@ -346,8 +355,8 @@ export const MarketingManagement: React.FC = () => {
     setButtonText("Shop Now");
     setButtonLink("products");
     setPriority(advertisements.length + 1);
-    setStartDate(new Date().toISOString().split("T")[0]);
-    setEndDate("2026-12-31");
+    setStartDate(campaignStartDate.toISOString().split("T")[0]);
+    setEndDate(campaignEndDate.toISOString().split("T")[0]);
     setIsActive(true);
     setTermsConditions("");
     setShowModal(true);
@@ -561,6 +570,99 @@ export const MarketingManagement: React.FC = () => {
         "success"
       );
     }, 1200);
+  };
+
+  const handleCopyPsychologyExample = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      addToast("ক্যাম্পেইন কপি ক্লিপবোর্ডে কপি হয়েছে।", "success");
+    } catch {
+      addToast("কপি করা যায়নি। ব্রাউজারের clipboard permission পরীক্ষা করুন।", "error");
+    }
+  };
+
+  const psychologyProduct = useMemo(
+    () =>
+      products.find((product) => product.id === psychologyProductId) ??
+      products.find((product) => product.status === "Active") ??
+      products[0],
+    [products, psychologyProductId]
+  );
+
+  const psychologyEvidence = useMemo(() => {
+    if (!psychologyProduct) return null;
+
+    const deliveredOrders = orders.filter(
+      (order) =>
+        (order.orderStatus === "Delivered" || order.orderStatus === "Completed") &&
+        order.items.some((item) => item.productId === psychologyProduct.id)
+    );
+    const approvedReviews = reviews.filter(
+      (review) => review.productId === psychologyProduct.id && review.status === "Approved"
+    );
+    const reviewAverage = approvedReviews.length
+      ? approvedReviews.reduce((sum, review) => sum + review.rating, 0) / approvedReviews.length
+      : null;
+    const now = Date.now();
+    const discountIsCurrent =
+      psychologyProduct.discountPrice > 0 &&
+      psychologyProduct.discountPrice < psychologyProduct.sellingPrice &&
+      (!psychologyProduct.discountStartDate ||
+        new Date(psychologyProduct.discountStartDate).getTime() <= now) &&
+      (!psychologyProduct.discountEndDate ||
+        new Date(psychologyProduct.discountEndDate).getTime() >= now);
+    const socialProof = [
+      deliveredOrders.length
+        ? `আমাদের রেকর্ডে এই পণ্যের ${deliveredOrders.length}টি ডেলিভারি/সম্পন্ন অর্ডার আছে।`
+        : "",
+      approvedReviews.length && reviewAverage !== null
+        ? `${approvedReviews.length}টি অনুমোদিত রিভিউতে গড় রেটিং ${reviewAverage.toFixed(1)}/5।`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const currentOffer = discountIsCurrent
+      ? `বর্তমান অফার মূল্য ৳${psychologyProduct.discountPrice.toLocaleString("bn-BD")}${
+          psychologyProduct.discountEndDate
+            ? `; অফার শেষ ${new Date(psychologyProduct.discountEndDate).toLocaleDateString("bn-BD")}`
+            : ""
+        }।`
+      : "";
+
+    return {
+      socialProof:
+        socialProof ||
+        "এই পণ্যের যাচাইকৃত অর্ডার বা অনুমোদিত রিভিউয়ের তথ্য নেই—পণ্যের বিবরণ দেখে সিদ্ধান্ত নিন।",
+      stock:
+        psychologyProduct.totalStock > 0
+          ? `${currentOffer}${currentOffer ? " " : ""}বর্তমান স্টক ${psychologyProduct.totalStock}টি।`
+          : "এই পণ্যটি বর্তমানে স্টকে নেই।",
+      transparency: [
+        `মূল্য ৳${psychologyProduct.sellingPrice.toLocaleString("bn-BD")}`,
+        discountIsCurrent
+          ? `বর্তমান অফার মূল্য ৳${psychologyProduct.discountPrice.toLocaleString("bn-BD")}`
+          : "",
+        `বেস ডেলিভারি চার্জ ৳${settings.shippingCharge.toLocaleString("bn-BD")}`,
+        `কর ${settings.taxRate}%`,
+        psychologyProduct.warranty
+          ? `ওয়ারেন্টি ${psychologyProduct.warranty}`
+          : "ওয়ারেন্টির তথ্য পণ্যের বিবরণে উল্লেখ নেই",
+      ]
+        .filter(Boolean)
+        .join(" • "),
+    };
+  }, [orders, psychologyProduct, reviews, settings.shippingCharge, settings.taxRate]);
+
+  const usePsychologyMessageInCampaign = (title: string, message: string) => {
+    if (!psychologyProduct) {
+      addToast("ক্যাম্পেইন তৈরির জন্য আগে একটি পণ্য যোগ করুন।", "warning");
+      return;
+    }
+    openCreateModal("campaign");
+    setTitle(`${psychologyProduct.name} - ${title}`);
+    setDescription(message);
+    setButtonLink("products");
+    setTermsConditions("প্রকাশের আগে পণ্যের স্টক, মূল্য, ডেলিভারি চার্জ ও শর্ত যাচাই করুন।");
   };
 
   // Calculate Character count & SMS parts
@@ -823,6 +925,21 @@ export const MarketingManagement: React.FC = () => {
         >
           <Sparkles className="w-4 h-4 text-purple-400" />
           <span>স্মার্ট কপিরাইটার</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab("psychology")}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeSubTab === "psychology"
+              ? "bg-fuchsia-600 text-white shadow-xs"
+              : "text-slate-600 hover:bg-fuchsia-50 hover:text-fuchsia-700"
+          }`}
+        >
+          <Brain className="w-4 h-4 text-fuchsia-400" />
+          <span>সাইকোলজি ইন্টেলিজেন্স ল্যাব</span>
+          <span className="px-1.5 py-0.5 rounded-md bg-fuchsia-100 text-fuchsia-700 text-[10px] font-bold">
+            ৩টি কৌশল
+          </span>
         </button>
 
         <button
@@ -1481,6 +1598,132 @@ export const MarketingManagement: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB: CUSTOMER-CENTRIC MARKETING PSYCHOLOGY */}
+      {activeSubTab === "psychology" && (
+        <div className="space-y-5">
+          <div className="rounded-3xl border border-fuchsia-200 bg-gradient-to-r from-fuchsia-950 via-slate-900 to-indigo-950 p-5 sm:p-6 text-white shadow-md">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/15 p-2.5 text-fuchsia-300">
+                <Brain className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-extrabold">সাইকোলজি ইন্টেলিজেন্স ল্যাব</h3>
+                <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-300">
+                  গ্রাহককে স্বচ্ছ তথ্য দিয়ে সিদ্ধান্ত নিতে সাহায্য করার ৩টি ব্যবহারযোগ্য ক্যাম্পেইন কৌশল।
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <label htmlFor="psychology-product" className="text-xs font-bold text-slate-700">
+                যে পণ্যের জন্য বার্তা তৈরি করবেন
+              </label>
+              <p className="mt-1 text-[11px] text-slate-500">
+                বার্তাগুলো নির্বাচিত পণ্যের বর্তমান ক্যাটালগ ও স্টোরের তথ্য থেকে তৈরি হবে।
+              </p>
+            </div>
+            <select
+              id="psychology-product"
+              value={psychologyProduct?.id ?? ""}
+              onChange={(event) => setPsychologyProductId(event.target.value)}
+              className="min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 sm:w-80"
+              disabled={!products.length}
+            >
+              {!products.length && <option value="">কোনো পণ্য নেই</option>}
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} {product.status !== "Active" ? `(${product.status})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {[
+              {
+                number: "01",
+                title: "যাচাইকৃত সামাজিক প্রমাণ",
+                description: "বাস্তব অর্ডার, রিভিউ বা রেটিংয়ের তথ্য দেখান; সংখ্যা ও সময়সীমা যাচাই করে নিন।",
+                message: psychologyEvidence?.socialProof ?? "পণ্যের যাচাইকৃত অর্ডার ও রিভিউয়ের তথ্য পাওয়া যায়নি।",
+                color: "indigo",
+              },
+              {
+                number: "02",
+                title: "সত্যনিষ্ঠ সময়সীমা ও স্টক",
+                description: "অফারের প্রকৃত শেষ সময় বা inventory-তে থাকা স্টক জানিয়ে সিদ্ধান্তের সময় স্পষ্ট করুন।",
+                message: psychologyEvidence?.stock ?? "পণ্য নির্বাচন করলে বর্তমান স্টকের তথ্য দেখা যাবে.",
+                color: "amber",
+              },
+              {
+                number: "03",
+                title: "ঝুঁকি ও খরচের স্বচ্ছতা",
+                description: "ডেলিভারি, পেমেন্ট, ওয়ারেন্টি ও রিটার্নের শর্ত আগে থেকেই পরিষ্কারভাবে জানান।",
+                message: psychologyEvidence?.transparency ?? "পণ্য নির্বাচন করলে মূল্য ও ডেলিভারি তথ্য দেখা যাবে।",
+                color: "emerald",
+              },
+            ].map((strategy) => (
+              <article
+                key={strategy.number}
+                className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-black tracking-wider text-slate-400">
+                    STRATEGY {strategy.number}
+                  </span>
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+                </div>
+                <h4 className="mt-2 text-sm font-extrabold text-slate-900">{strategy.title}</h4>
+                <p className="mt-1 min-h-10 text-xs leading-relaxed text-slate-500">
+                  {strategy.description}
+                </p>
+                <div className="mt-3 flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                    উদাহরণ বার্তা
+                  </p>
+                  <p className="mt-1 break-words text-xs leading-relaxed text-slate-700">
+                    {strategy.message}
+                  </p>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPsychologyExample(strategy.message)}
+                    className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
+                      strategy.color === "indigo"
+                        ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                        : strategy.color === "amber"
+                          ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                    }`}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    বার্তাটি কপি করুন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => usePsychologyMessageInCampaign(strategy.title, strategy.message)}
+                    disabled={!psychologyProduct}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Megaphone className="h-3.5 w-3.5" />
+                    ক্যাম্পেইনে ব্যবহার
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <p className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-relaxed text-emerald-900">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              কেবল যাচাইকৃত তথ্য ব্যবহার করুন। ভুয়া scarcity, বানানো রিভিউ বা বিভ্রান্তিকর ছাড় দেখাবেন না।
+            </span>
+          </p>
         </div>
       )}
 
