@@ -87,7 +87,7 @@ export const AdminDashboard: React.FC = () => {
         {/* Top ambient glow */}
         <div className="absolute top-0 right-1/4 w-96 h-40 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
+        <div className="flex flex-col gap-5 relative z-10">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2.5 flex-wrap">
               <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
@@ -123,7 +123,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Quick Action Button Hub */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Dedicated Refill Center Button */}
             <button
               onClick={() => {

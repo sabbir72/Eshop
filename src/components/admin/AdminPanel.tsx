@@ -640,7 +640,7 @@ export const AdminPanel: React.FC = () => {
         </aside>
 
         {/* Admin Content Column */}
-        <main className="lg:col-span-9 min-w-0">
+        <main className="admin-content lg:col-span-9 min-w-0">
           {adminView === "dashboard" && <AdminDashboard />}
           {adminView === "products" && <ProductManagement />}
           {adminView === "categories" && <CategoryManagement />}
@@ -688,4 +688,3 @@ export const AdminPanel: React.FC = () => {
     </div>
   );
 };
-

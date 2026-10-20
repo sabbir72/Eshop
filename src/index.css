@@ -40,6 +40,31 @@
   scrollbar-width: none;
 }
 
+.admin-content .overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #94A3B8 #E2E8F0;
+}
+
+.admin-content .overflow-x-auto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-content .overflow-x-auto::-webkit-scrollbar-track {
+  background: #E2E8F0;
+  border-radius: 9999px;
+}
+
+.admin-content .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #94A3B8;
+  border: 2px solid #E2E8F0;
+  border-radius: 9999px;
+}
+
+.admin-content .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
+}
+
 /* Table Responsive Wrapper */
 .responsive-table-wrapper {
   width: 100%;
@@ -182,5 +207,4 @@
     border: none !important;
   }
 }
-
 
