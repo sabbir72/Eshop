@@ -138,7 +138,8 @@ export type AdminView =
   | "website-profile"
   | "excel-hub"
   | "cash-calculation"
-  | "memberships";
+  | "memberships"
+  | "system-diagnostics";
 
 interface ToastNotification {
   id: string;

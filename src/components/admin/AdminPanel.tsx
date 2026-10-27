@@ -26,10 +26,13 @@ import { SEOMarketingManagement } from "./SEOMarketingManagement";
 import { ExcelHubManagement } from "./ExcelHubManagement";
 import { CashCalculationLog } from "./CashCalculationLog";
 import { MembershipManagement } from "./MembershipManagement";
+import { SystemDiagnosticRunner } from "./SystemDiagnosticRunner";
 import {
   COMMAND_CENTER_CATEGORIES,
   findBreadcrumbsForView,
   ALL_COMMAND_CENTER_FEATURES,
+  getFeatureName,
+  getCategoryName,
 } from "./commandCenterStructure";
 import {
   LayoutDashboard,
@@ -67,6 +70,8 @@ import {
   Boxes,
   Database,
   Crown,
+  Cpu,
+  Languages,
 } from "lucide-react";
 import { RefillStockCenterModal } from "./RefillStockCenterModal";
 import { DatabaseArchitectureModal } from "./DatabaseArchitectureModal";
@@ -83,6 +88,7 @@ export const AdminPanel: React.FC = () => {
     orders,
     products,
     language,
+    setLanguage,
     membershipCardOrders,
     priceCompromiseOffers,
   } = useStore();
@@ -126,9 +132,13 @@ export const AdminPanel: React.FC = () => {
       if (!isFeatureAllowed(feat.module)) return false;
       return (
         feat.name.toLowerCase().includes(query) ||
+        (feat.name_bn && feat.name_bn.toLowerCase().includes(query)) ||
         feat.description.toLowerCase().includes(query) ||
+        (feat.description_bn && feat.description_bn.toLowerCase().includes(query)) ||
         feat.tag?.toLowerCase().includes(query) ||
+        (feat.tag_bn && feat.tag_bn.toLowerCase().includes(query)) ||
         feat.categoryName.toLowerCase().includes(query) ||
+        (feat.categoryName_bn && feat.categoryName_bn.toLowerCase().includes(query)) ||
         feat.subcategoryName.toLowerCase().includes(query)
       );
     });
@@ -188,22 +198,22 @@ export const AdminPanel: React.FC = () => {
             className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 font-bold shrink-0 transition-colors"
           >
             <Compass className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Command Center</span>
+            <span>{language === "BN" ? "কমান্ড সেন্টার" : "Command Center"}</span>
           </button>
 
           {breadcrumbInfo && adminView !== "dashboard" && (
             <>
               <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-600 font-semibold shrink-0">
-                {breadcrumbInfo.category.name}
+                {getCategoryName(breadcrumbInfo.category, language)}
               </span>
               <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-500 shrink-0">
-                {breadcrumbInfo.subcategory.name}
+                {getCategoryName(breadcrumbInfo.subcategory, language)}
               </span>
               <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md shrink-0 border border-indigo-100">
-                {breadcrumbInfo.feature.name}
+                {getFeatureName(breadcrumbInfo.feature, language)}
               </span>
             </>
           )}
@@ -306,6 +316,32 @@ export const AdminPanel: React.FC = () => {
             <span className="hidden sm:inline">Excel Hub</span>
           </button>
 
+          {/* System Automated Test & Diagnostics Button */}
+          <button
+            onClick={() => setAdminView("system-diagnostics")}
+            className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+              adminView === "system-diagnostics"
+                ? "bg-indigo-600 text-white shadow-indigo-500/20"
+                : "text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200"
+            }`}
+            title={language === "BN" ? "নতুন বিল্ড ও কোড পরীক্ষার জন্য স্বয়ংক্রিয় বাগ ডিটেক্টর ও টেস্ট রানার" : "Automated Bug Detector & Quality Tests"}
+          >
+            <Cpu className={`w-3.5 h-3.5 ${adminView === "system-diagnostics" ? "text-white" : "text-indigo-600"}`} />
+            <span className="hidden sm:inline">
+              {language === "BN" ? "সিস্টেম টেস্ট ও বাগ ডিটেক্টর" : "System Diagnostics & Tests"}
+            </span>
+          </button>
+
+          {/* Pure Language Switcher Toggle (EN / BN) */}
+          <button
+            onClick={() => setLanguage(language === "BN" ? "EN" : "BN")}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-900 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            title={language === "BN" ? "Switch to English" : "বাংলা ভাষায় রূপান্তর করুন"}
+          >
+            <Languages className="w-3.5 h-3.5 text-indigo-600" />
+            <span>{language === "BN" ? "বাংলা (BN)" : "English (EN)"}</span>
+          </button>
+
           {/* User Profile Button */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("open-user-profile"))}
@@ -345,7 +381,7 @@ export const AdminPanel: React.FC = () => {
               type="text"
               value={quickSearchQuery}
               onChange={(e) => setQuickSearchQuery(e.target.value)}
-              placeholder="Type module name, keyword, or action..."
+              placeholder={language === "BN" ? "মডিউল বা ফিচার অনুসন্ধান করুন (যেমন: পণ্য, অর্ডার, কুপন)..." : "Type module name, keyword, or action..."}
               autoFocus
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
@@ -368,10 +404,10 @@ export const AdminPanel: React.FC = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600">
-                      {feat.name}
+                      {getFeatureName(feat, language)}
                     </p>
                     <p className="text-[10px] text-slate-400 truncate">
-                      {feat.categoryName}
+                      {language === "BN" && feat.categoryName_bn ? feat.categoryName_bn : feat.categoryName}
                     </p>
                   </div>
                 </button>
@@ -390,11 +426,11 @@ export const AdminPanel: React.FC = () => {
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-indigo-400 shrink-0" />
             <span className="text-white uppercase tracking-wider text-[11px] font-black truncate">
-              {breadcrumbInfo ? breadcrumbInfo.feature.name : "Command Center"}
+              {breadcrumbInfo ? getFeatureName(breadcrumbInfo.feature, language) : (language === "BN" ? "কমান্ড সেন্টার" : "Command Center")}
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-slate-300 bg-slate-800 px-2.5 py-1 rounded-xl text-[11px] shrink-0">
-            <span>{mobileNavOpen ? "Close" : "Menu"}</span>
+            <span>{mobileNavOpen ? (language === "BN" ? "বন্ধ করুন" : "Close") : (language === "BN" ? "মেনু" : "Menu")}</span>
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} />
           </div>
         </button>
@@ -407,13 +443,13 @@ export const AdminPanel: React.FC = () => {
                 <div key={`mob-cat-${category.id}`} className="space-y-1.5">
                   <div className="flex items-center gap-2 px-2 py-1 text-[11px] font-black text-indigo-400 uppercase tracking-wider">
                     <CatIcon className="w-3.5 h-3.5" />
-                    <span>{category.name}</span>
+                    <span>{getCategoryName(category, language)}</span>
                   </div>
 
                   {category.subcategories.map((subcat) => (
                     <div key={`mob-sub-${subcat.id}`} className="pl-2 space-y-1">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
-                        {subcat.name}
+                        {getCategoryName(subcat, language)}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                         {subcat.features.map((feat) => {
@@ -436,7 +472,7 @@ export const AdminPanel: React.FC = () => {
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <FeatIcon className="w-4 h-4 shrink-0" />
-                                <span className="truncate">{feat.name}</span>
+                                <span className="truncate">{getFeatureName(feat, language)}</span>
                               </div>
                               {feat.id === "orders" && pendingOrdersCount > 0 && (
                                 <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-slate-950 shrink-0">
@@ -520,7 +556,7 @@ export const AdminPanel: React.FC = () => {
                           }`}
                         />
                         <span className="text-[11.5px] font-bold text-slate-200 truncate uppercase tracking-wider">
-                          {category.name}
+                          {getCategoryName(category, language)}
                         </span>
                       </div>
 
@@ -551,7 +587,7 @@ export const AdminPanel: React.FC = () => {
                               {/* Subcategory Label */}
                               <div className="px-2 pt-1 pb-0.5">
                                 <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 block">
-                                  {subcat.name}
+                                  {getCategoryName(subcat, language)}
                                 </span>
                               </div>
 
@@ -565,7 +601,7 @@ export const AdminPanel: React.FC = () => {
                                     <button
                                       key={feat.id}
                                       onClick={() => setAdminView(feat.id)}
-                                      title={feat.name}
+                                      title={getFeatureName(feat, language)}
                                       className={`w-full flex items-center justify-between text-left transition-all duration-150 rounded-lg px-2.5 py-1.5 min-h-[32px] group ${
                                         isActive
                                           ? "bg-indigo-600 text-white font-bold shadow-xs shadow-indigo-600/30"
@@ -588,7 +624,7 @@ export const AdminPanel: React.FC = () => {
                                           }`}
                                         />
                                         <span className="text-[12px] truncate leading-none">
-                                          {feat.name}
+                                          {getFeatureName(feat, language)}
                                         </span>
                                       </div>
 
@@ -689,6 +725,7 @@ export const AdminPanel: React.FC = () => {
               <SecurityLabelManagement />
             </div>
           )}
+          {adminView === "system-diagnostics" && <SystemDiagnosticRunner />}
         </main>
       </div>
 

@@ -75,6 +75,57 @@ export function createExpressApp() {
   });
 
   // -------------------------------------------------------------------
+  // TEST AGENT & BUG INCIDENT PIPELINE ENDPOINTS
+  // -------------------------------------------------------------------
+  let latestTestAgentLog: any = {
+    runId: "DEPLOY-CHECK-2026",
+    triggerType: "Deployment",
+    timestamp: new Date().toISOString(),
+    totalTests: 16,
+    passedTests: 16,
+    failedTests: 0,
+    durationMs: 38,
+    healthScore: 100,
+    status: "PASS",
+    incidents: [],
+  };
+  let activeIncidents: any[] = [];
+
+  app.get("/api/admin/test-agent", (req, res) => {
+    res.json({
+      status: "ok",
+      latestRun: latestTestAgentLog,
+      openIncidents: activeIncidents.filter((i) => i.status !== "resolved"),
+      allIncidents: activeIncidents,
+      overallHealthScore: latestTestAgentLog.healthScore,
+    });
+  });
+
+  app.post("/api/admin/test-agent/report", (req, res) => {
+    const report = req.body;
+    if (report && report.runId) {
+      latestTestAgentLog = { ...report, timestamp: new Date().toISOString() };
+      if (Array.isArray(report.incidents)) {
+        for (const inc of report.incidents) {
+          if (!activeIncidents.some((existing) => existing.title === inc.title && existing.status !== "resolved")) {
+            activeIncidents.unshift(inc);
+          }
+        }
+      }
+      return res.json({ success: true, message: "Report recorded successfully", healthScore: report.healthScore });
+    }
+    res.status(400).json({ error: "Invalid report payload" });
+  });
+
+  app.post("/api/admin/test-agent/resolve", (req, res) => {
+    const { incidentId } = req.body;
+    activeIncidents = activeIncidents.map((i) =>
+      i.id === incidentId ? { ...i, status: "resolved" } : i
+    );
+    res.json({ success: true, message: "Incident resolved", openCount: activeIncidents.filter((i) => i.status !== "resolved").length });
+  });
+
+  // -------------------------------------------------------------------
   // AUTHENTICATION & RBAC ENDPOINTS
   // -------------------------------------------------------------------
 

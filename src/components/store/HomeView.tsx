@@ -43,7 +43,6 @@ import {
   Box,
 } from "lucide-react";
 import { PsychologicalDealsSection } from "./PsychologicalDealsSection";
-import { ThreeDProductStage } from "./ThreeDProductStage";
 import { ThreeDProductCard } from "./ThreeDProductCard";
 import { ThreeDProductCarousel } from "./ThreeDProductCarousel";
 
@@ -75,11 +74,9 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
   const [copiedCoupon, setCopiedCoupon] = useState(false);
   const [activeTabFilter, setActiveTabFilter] = useState<"all" | "deals" | "gadgets" | "budget">("all");
   const [productDisplayMode, setProductDisplayMode] = useState<"3d-tilt" | "3d-carousel" | "grid">("3d-tilt");
-  const stageSectionRef = useRef<HTMLDivElement>(null);
-
-  const scrollTo3DStage = () => {
-    if (stageSectionRef.current) {
-      stageSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  const handleProduct3DInspect = (product?: Product) => {
+    if (product && onQuickView) {
+      onQuickView(product);
     }
   };
 
@@ -1332,11 +1329,6 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
         </div>
       </section>
 
-      {/* Interactive 3D Flagship Hologram Experience Stage */}
-      <div ref={stageSectionRef} className="pt-2">
-        <ThreeDProductStage onQuickView={onQuickView} />
-      </div>
-
       {/* 9. Curated Recommendation Products Section with Segmented Filters and 3D Display Styles */}
       <section className="space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -1457,7 +1449,7 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
             onToggleWishlist={(p) => toggleWishlist(p)}
             onQuickView={onQuickView}
             currencySymbol={settings.currencySymbol}
-            onOpen3DStage={scrollTo3DStage}
+            onOpen3DStage={handleProduct3DInspect}
           />
         ) : productDisplayMode === "3d-tilt" ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 sm:gap-5">
@@ -1476,7 +1468,7 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
                 onToggleCompare={(p) => toggleCompare(p)}
                 onQuickView={onQuickView}
                 currencySymbol={settings.currencySymbol}
-                onOpen3DStage={scrollTo3DStage}
+                onOpen3DStage={handleProduct3DInspect}
               />
             ))}
           </div>

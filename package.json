@@ -8,7 +8,14 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx scripts/run-audit-tests.ts",
+    "test:smoke": "tsx scripts/run-smoke-tests.ts",
+    "test:sanity": "tsx scripts/run-sanity-tests.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test tests/e2e/smoke.spec.ts",
+    "test:e2e:sanity": "playwright test tests/e2e/sanity.spec.ts",
+    "test:agent": "tsx scripts/test-agent-runner.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -35,6 +42,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/papaparse": "^5.5.2",

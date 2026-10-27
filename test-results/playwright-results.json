@@ -1,0 +1,549 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/app/applet/node_modules/.bin/playwright",
+      "test",
+      "--list"
+    ],
+    "configFile": "/app/applet/playwright.config.ts",
+    "rootDir": "/app/applet/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/app/applet/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/app/applet/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "/app/applet/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/app/applet/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/app/applet/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "name": "chromium",
+        "testDir": "/app/applet/tests/e2e",
+        "snapshotDir": "/app/applet/tests/e2e",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 45000,
+        "use": {
+          "baseURL": "http://localhost:3000",
+          "trace": "on-first-retry",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure",
+          "headless": true,
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "ignoreHTTPSErrors": true,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36",
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "chromium"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "chromium"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/app/applet/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "name": "mobile-chrome",
+        "testDir": "/app/applet/tests/e2e",
+        "snapshotDir": "/app/applet/tests/e2e",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 45000,
+        "use": {
+          "baseURL": "http://localhost:3000",
+          "trace": "on-first-retry",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure",
+          "headless": true,
+          "viewport": {
+            "width": 393,
+            "height": 727
+          },
+          "ignoreHTTPSErrors": true,
+          "userAgent": "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+          "screen": {
+            "width": 393,
+            "height": 851
+          },
+          "deviceScaleFactor": 2.75,
+          "isMobile": true,
+          "hasTouch": true,
+          "defaultBrowserType": "chromium"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile-chrome"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/playwright-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "admin.spec.ts",
+      "file": "admin.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "এডমিন কমান্ড সেন্টার ও সিস্টেম অডিট (Admin Panel E2E)",
+          "file": "admin.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "এডমিন কমান্ড সেন্টারে নেভিগেশন ও কেপিআই ড্যাশবোর্ড লোড যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4043a9dd1ab94463227-aa50ab5b3117d894b83f",
+              "file": "admin.spec.ts",
+              "line": 14,
+              "column": 3
+            },
+            {
+              "title": "সিস্টেম টেস্ট ও বাগ ডিটেক্টর এক্সিকিউশন যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4043a9dd1ab94463227-a7bc3a787a30e2dfc83f",
+              "file": "admin.spec.ts",
+              "line": 28,
+              "column": 3
+            },
+            {
+              "title": "এডমিন কমান্ড সেন্টারে নেভিগেশন ও কেপিআই ড্যাশবোর্ড লোড যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4043a9dd1ab94463227-510c2e590b87ea865987",
+              "file": "admin.spec.ts",
+              "line": 14,
+              "column": 3
+            },
+            {
+              "title": "সিস্টেম টেস্ট ও বাগ ডিটেক্টর এক্সিকিউশন যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4043a9dd1ab94463227-b88cc5a04ac1a8cb3879",
+              "file": "admin.spec.ts",
+              "line": 28,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "checkout.spec.ts",
+      "file": "checkout.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "কার্ট ও চেকআউট ভ্যালিডেশন (Cart & Checkout E2E)",
+          "file": "checkout.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "কার্ট ওপেন এবং মোট মূল্যের হিসাব সঠিকতা যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "25ab1bfc84c57e3e3a45-2ae0f7ead715fcbd23e3",
+              "file": "checkout.spec.ts",
+              "line": 14,
+              "column": 3
+            },
+            {
+              "title": "চেকআউট ফর্মে বাংলাদেশি ১১ ডিজিটের ফোন নাম্বার রেজেক্স ভ্যালিডেশন",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "25ab1bfc84c57e3e3a45-190542af334af4830f45",
+              "file": "checkout.spec.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "কার্ট ওপেন এবং মোট মূল্যের হিসাব সঠিকতা যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "25ab1bfc84c57e3e3a45-56c14df61e794a1844f3",
+              "file": "checkout.spec.ts",
+              "line": 14,
+              "column": 3
+            },
+            {
+              "title": "চেকআউট ফর্মে বাংলাদেশি ১১ ডিজিটের ফোন নাম্বার রেজেক্স ভ্যালিডেশন",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "25ab1bfc84c57e3e3a45-7dff62a818c45b83dac4",
+              "file": "checkout.spec.ts",
+              "line": 27,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "storefront.spec.ts",
+      "file": "storefront.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "স্টোরফ্রন্ট ও প্রোডাক্ট ব্রাউজিং (Storefront & Catalog E2E)",
+          "file": "storefront.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "হোমপেজ লোড ও ব্র্যান্ড এলিমেন্ট উপস্থিতি যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-2519195ed1b2067228d8",
+              "file": "storefront.spec.ts",
+              "line": 16,
+              "column": 3
+            },
+            {
+              "title": "পণ্য তালিকা এবং মুদ্রা প্রতীক (৳) প্রদর্শন যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-8871e8ee60d0f4c04e62",
+              "file": "storefront.spec.ts",
+              "line": 29,
+              "column": 3
+            },
+            {
+              "title": "কার্টে পণ্য যোগ এবং ব্যাজ কাউন্ট আপডেট যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-3bfff4a1d30d2fea31d7",
+              "file": "storefront.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "ভাষা পরিবর্তন (EN <-> BN) কার্যকারিতা যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-6f8cd9a5c1a7506a47df",
+              "file": "storefront.spec.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "হোমপেজ লোড ও ব্র্যান্ড এলিমেন্ট উপস্থিতি যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-8c9933de35fadf35f20c",
+              "file": "storefront.spec.ts",
+              "line": 16,
+              "column": 3
+            },
+            {
+              "title": "পণ্য তালিকা এবং মুদ্রা প্রতীক (৳) প্রদর্শন যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-4cb2104fbdaffb477733",
+              "file": "storefront.spec.ts",
+              "line": 29,
+              "column": 3
+            },
+            {
+              "title": "কার্টে পণ্য যোগ এবং ব্যাজ কাউন্ট আপডেট যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-4ac182e17a2449c86dd7",
+              "file": "storefront.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "ভাষা পরিবর্তন (EN <-> BN) কার্যকারিতা যাচাই",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "972707a4d1c1162f8b74-471e3acb49870840490a",
+              "file": "storefront.spec.ts",
+              "line": 51,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-27T18:40:20.024Z",
+    "duration": 98.90399999999988,
+    "expected": 0,
+    "skipped": 16,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
