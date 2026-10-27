@@ -28,6 +28,7 @@ import {
   MembershipPlan,
   MembershipCardOrder,
   PriceCompromiseOffer,
+  PsychologicalCampaign,
 } from "../types";
 
 export const initialCategories: Category[] = [
@@ -2781,3 +2782,71 @@ export const initialPriceCompromiseOffers: PriceCompromiseOffer[] = [
     expiresAt: "2026-10-28T23:59:59Z",
   },
 ];
+
+export const initialPsychologicalCampaigns: PsychologicalCampaign[] = [
+  {
+    id: "psy-triad-1",
+    strategy: "round-of-three",
+    title: "৩-প্যাক মেগা সেভার ডিল — iPhone 15 Pro Max",
+    badge: "মোস্ট পপুলার চয়েস",
+    productId: "prod-1",
+    productName: "iPhone 15 Pro Max 256GB Titanium",
+    productImage: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&q=80",
+    basePrice: 139990,
+    triadConfig: {
+      tier1Qty: 1,
+      tier1Price: 139990,
+      tier2Qty: 2,
+      tier2Price: 246382,
+      tier2Savings: 33598,
+      tier2Discount: 12,
+      tier3Qty: 3,
+      tier3Price: 314978,
+      tier3Savings: 104992,
+      tier3Discount: 25,
+    },
+    isActive: true,
+    createdAt: "2026-10-20",
+  },
+  {
+    id: "psy-contrast-1",
+    strategy: "contrast-effect",
+    title: "স্বচ্ছ বাজার দর বনাম আমাদের মান — MacBook Pro M3",
+    badge: "লিমিটেড টাইম",
+    productId: "prod-2",
+    productName: "Apple MacBook Pro 14 M3 Chip 512GB",
+    productImage: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80",
+    basePrice: 195000,
+    contrastConfig: {
+      competitorPrice: 245000,
+      ourPrice: 195000,
+      savings: 50000,
+      savingsPercent: 20,
+      ourHighlight: "১০০% অফিসিয়াল ১ বছরের ওয়ারেন্টি ও ওপেন বক্স ক্যাশ অন ডেলিভারি",
+      competitorNote: "অজানা ওয়ারেন্টি, হিডেন ডেলিভারি চার্জ ও অগ্রিম পেমেন্টের ঝুঁকি",
+    },
+    isActive: true,
+    createdAt: "2026-10-21",
+  },
+  {
+    id: "psy-anchor-1",
+    strategy: "anchoring-bias",
+    title: "অরিজিনাল MRP বনাম ডিরেক্ট প্রাইস — Sony WH-1000XM5",
+    badge: "ফ্ল্যাশ ডিল",
+    productId: "prod-3",
+    productName: "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
+    productImage: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80",
+    basePrice: 38500,
+    anchorConfig: {
+      anchorPrice: 52000,
+      sellingPrice: 38500,
+      savings: 13500,
+      savingsPercent: 26,
+      dailyCost: 35,
+      hookText: "প্রতিদিন মাত্র ৳৩৫ টাকা — এক কাপ চায়ের খরচে বিশ্বমানের নয়েজ ক্যান্সেলিং অডিও!",
+    },
+    isActive: true,
+    createdAt: "2026-10-22",
+  },
+];
+

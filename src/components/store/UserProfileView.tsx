@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useStore } from "../../context/StoreContext";
 import { PasswordInput } from "../common/PasswordInput";
-import { Order, OrderStatus } from "../../types";
+import { Order, OrderStatus, ReturnRequest } from "../../types";
 import {
   User,
   KeyRound,
@@ -39,7 +39,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-type ProfileTab = "overview" | "orders" | "profile" | "addresses" | "security" | "notifications";
+type ProfileTab = "overview" | "orders" | "returns" | "profile" | "addresses" | "security" | "notifications";
 
 interface SavedAddress {
   id: string;
@@ -74,6 +74,8 @@ export const UserProfileView: React.FC = () => {
     settings,
     addToCart,
     setSelectedProduct,
+    returnRequests,
+    addReturnRequest,
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
@@ -172,6 +174,71 @@ export const UserProfileView: React.FC = () => {
 
   const rewardPoints = Math.floor(totalPurchaseAmount / 100);
   const walletBalance = Math.floor(rewardPoints * 0.1); // 10 points = 1 BDT
+
+  // User-specific Return & Refund Requests (Private to logged-in user)
+  const userReturnRequests = useMemo(() => {
+    return returnRequests.filter(
+      (r) =>
+        r.customerEmail === currentUser.email ||
+        r.customerPhone === currentUser.phone ||
+        r.customerName === currentUser.name ||
+        userOrders.some((o) => o.id === r.orderId || o.orderNumber === r.orderNumber)
+    );
+  }, [returnRequests, currentUser, userOrders]);
+
+  // Return & Refund Claim Form State
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [returnOrderId, setReturnOrderId] = useState("");
+  const [returnItemName, setReturnItemName] = useState("");
+  const [returnReason, setReturnReason] = useState<ReturnRequest["reason"]>("Defective/Faulty");
+  const [returnDetails, setReturnDetails] = useState("");
+  const [returnProofImage, setReturnProofImage] = useState("");
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+
+  const handleOpenReturnModal = (orderId?: string) => {
+    const defaultOrder = orderId ? userOrders.find((o) => o.id === orderId) : userOrders[0];
+    setReturnOrderId(defaultOrder?.id || "");
+    setReturnItemName(defaultOrder?.items?.[0]?.name || "Product");
+    setReturnReason("Defective/Faulty");
+    setReturnDetails("");
+    setReturnProofImage("");
+    setIsReturnModalOpen(true);
+  };
+
+  const handleUserSubmitReturn = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetOrder = userOrders.find((o) => o.id === returnOrderId) || userOrders[0];
+    if (!targetOrder) {
+      addToast("অনুগ্রহ করে কোনো অর্ডার নির্বাচন করুন।", "error");
+      return;
+    }
+
+    const selectedItem = targetOrder.items?.find((it) => it.name === returnItemName) || targetOrder.items?.[0];
+    const refundValue = selectedItem ? selectedItem.price * selectedItem.quantity : targetOrder.total || 1500;
+
+    setIsSubmittingReturn(true);
+    setTimeout(() => {
+      addReturnRequest({
+        orderId: targetOrder.id,
+        orderNumber: targetOrder.orderNumber || targetOrder.id,
+        customerName: currentUser.name || "Customer",
+        customerEmail: currentUser.email || "customer@example.com",
+        customerPhone: currentUser.phone || "",
+        productId: "prod-" + Date.now(),
+        productName: selectedItem?.name || "Purchased Product",
+        productImage: selectedItem?.image || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80",
+        reason: returnReason,
+        details: returnDetails,
+        images: [returnProofImage || (selectedItem?.image || "")],
+        refundAmount: refundValue,
+      });
+
+      setIsSubmittingReturn(false);
+      setIsReturnModalOpen(false);
+      addToast("আপনার ৭ দিনের রিটার্ন ও রিফান্ড আবেদন সফলভাবে গ্রহণ করা হয়েছে!", "success");
+      setActiveTab("returns");
+    }, 400);
+  };
 
   // Password strength score
   const passwordStrength = useMemo(() => {
@@ -311,7 +378,7 @@ export const UserProfileView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-20 w-full">
       {/* 1. Header Profile Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -409,6 +476,19 @@ export const UserProfileView: React.FC = () => {
         >
           <ShoppingBag className="w-4 h-4" />
           <span>আমার অর্ডারসমূহ ({userOrders.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("returns")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shrink-0 ${
+            activeTab === "returns"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          }`}
+        >
+          <RotateCcw className="w-4 h-4" />
+          <span>রিটার্ন ও রিফান্ড ({userReturnRequests.length})</span>
         </button>
 
         <button
@@ -800,6 +880,238 @@ export const UserProfileView: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: RETURNS & REFUNDS (USER SPECIFIC - ONLY SHOWS FOR LOGGED IN USER) */}
+      {activeTab === "returns" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <RotateCcw className="w-5 h-5" />
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  আমার রিটার্ন ও রিফান্ড হিস্ট্রি
+                </h3>
+                <span className="text-xs font-mono font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                  {userReturnRequests.length}টি
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 max-w-xl">
+                আপনার ৭ দিনের রিটার্ন পলিসির আওতায় থাকা অর্ডারকৃত পণ্যের লাইভ ট্র্যাকিং, কোয়ালিটি চেকিং ও রিফান্ড স্ট্যাটাস।
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenReturnModal()}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>নতুন রিটার্ন আবেদন করুন</span>
+            </button>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">মোট আবেদন</span>
+              <span className="text-xl font-black text-slate-900 font-mono">{userReturnRequests.length}টি</span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-black uppercase text-amber-500 block">যাচাই চলছে</span>
+              <span className="text-xl font-black text-amber-600 font-mono">
+                {userReturnRequests.filter((r) => r.status === "Requested").length}টি
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-black uppercase text-blue-500 block">অনুমোদিত / পিকআপ</span>
+              <span className="text-xl font-black text-blue-600 font-mono">
+                {userReturnRequests.filter((r) => r.status === "Approved" || r.status === "Product Received").length}টি
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[10px] font-black uppercase text-emerald-500 block">রিফান্ড সম্পন্ন</span>
+              <span className="text-xl font-black text-emerald-600 font-mono">
+                {userReturnRequests.filter((r) => r.status === "Refund Processed").length}টি
+              </span>
+            </div>
+          </div>
+
+          {/* Policy Reminder Banner */}
+          <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 flex items-start gap-3 text-xs text-indigo-900">
+            <Shield className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <strong className="font-bold block">৭ দিনের অফিসিয়াল রিটার্ন ও রিফান্ড পলিসি:</strong>
+              <p className="text-indigo-700 leading-relaxed text-[11px]">
+                পণ্য ডেলিভারি গ্রহণের ৭ দিনের মধ্যে আবেদন করলে সম্পূর্ণ বিনামূল্যে ডোরস্টেপ পিকআপ অথবা কুরিয়ার ড্রপ সুবিধা পাবেন। ভেরিফিকেশন সম্পন্ন হওয়ার ১ কার্যদিবসের মধ্যে আপনার বিকাশ/নগদ বা ব্যাংক অ্যাকাউন্টে রিফান্ড ট্রান্সফার করা হয়।
+              </p>
+            </div>
+          </div>
+
+          {/* User's Return Requests List */}
+          {userReturnRequests.length === 0 ? (
+            <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3 shadow-2xs">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                <RotateCcw className="w-7 h-7" />
+              </div>
+              <h4 className="text-base font-black text-slate-900">আপনার কোনো সক্রিয় রিটার্ন বা রিফান্ড রেকর্ড নেই</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                আপনার কোনো ডেলিভার্ড পণ্যে সমস্যা, ডিফেক্ট বা সাইজ অমিল থাকলে অর্ডার থেকে সহজেই রিটার্ন আবেদন জমা দিতে পারেন।
+              </p>
+              <button
+                type="button"
+                onClick={() => handleOpenReturnModal()}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer"
+              >
+                ডেলিভার্ড অর্ডার থেকে রিটার্ন শুরু করুন
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userReturnRequests.map((ret) => {
+                const isStep1 = true;
+                const isStep2 = ret.status === "Approved" || ret.status === "Product Received" || ret.status === "Refund Processed";
+                const isStep3 = ret.status === "Product Received" || ret.status === "Refund Processed";
+                const isStep4 = ret.status === "Refund Processed";
+
+                return (
+                  <div
+                    key={ret.id}
+                    className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs hover:border-indigo-300 transition-all space-y-4"
+                  >
+                    {/* Top Row: Claim & Status */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3.5">
+                        <img
+                          src={ret.productImage}
+                          alt={ret.productName}
+                          className="w-14 h-14 object-cover rounded-2xl border border-slate-200 bg-slate-50"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                              ক্লেইম #{ret.requestNumber}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              অর্ডার: <strong className="text-slate-800">{ret.orderNumber}</strong>
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-black text-slate-900 mt-1">
+                            {ret.productName}
+                          </h4>
+                          <span className="text-[11px] text-slate-400">দাখিলের তারিখ: {ret.createdAt}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                            ret.status === "Refund Processed"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                              : ret.status === "Approved"
+                              ? "bg-blue-100 text-blue-800 border border-blue-300"
+                              : ret.status === "Product Received"
+                              ? "bg-purple-100 text-purple-800 border border-purple-300"
+                              : ret.status === "Rejected"
+                              ? "bg-rose-100 text-rose-800 border border-rose-300"
+                              : "bg-amber-100 text-amber-800 border border-amber-300"
+                          }`}
+                        >
+                          {ret.status === "Refund Processed"
+                            ? "✓ রিফান্ড সম্পন্ন"
+                            : ret.status === "Approved"
+                            ? "✓ আবেদন অনুমোদিত"
+                            : ret.status === "Product Received"
+                            ? "📦 পণ্য গৃহীত ও চেকিং"
+                            : ret.status === "Rejected"
+                            ? "✕ আবেদন বাতিল"
+                            : "⚡ যাচাই চলছে"}
+                        </span>
+
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 block font-semibold uppercase">
+                            রিফান্ড পরিমাণ
+                          </span>
+                          <span className="text-base font-black text-indigo-600 font-mono">
+                            {settings.currencySymbol}{ret.refundAmount.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stepper Progress */}
+                    <div className="py-2 bg-slate-50/80 rounded-2xl p-4 border border-slate-100">
+                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                            isStep1 ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
+                          }`}>
+                            ✓
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-800">১. আবেদন জমা</span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                            isStep2 ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
+                          }`}>
+                            {isStep2 ? "✓" : "২"}
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-800">২. যাচাই ও অনুমোদন</span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                            isStep3 ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
+                          }`}>
+                            {isStep3 ? "✓" : "৩"}
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-800">৩. কুরিয়ার পিকআপ</span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                            isStep4 ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
+                          }`}>
+                            {isStep4 ? "✓" : "৪"}
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-800">৪. রিফান্ড প্রদান</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Reason & Problem Details */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl">
+                      <div>
+                        <span className="font-bold text-slate-700">রিটার্নের কারণ: </span>
+                        <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-bold text-slate-800">
+                          {ret.reason}
+                        </span>
+                        {ret.details && (
+                          <p className="text-slate-500 text-[11px] mt-1 italic">&ldquo;{ret.details}&rdquo;</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-400">সহায়তার জন্য:</span>
+                        <button
+                          type="button"
+                          onClick={() => setStoreView("faq")}
+                          className="text-indigo-600 hover:underline font-bold text-xs"
+                        >
+                          হেল্প সেন্টারে প্রশ্ন করুন &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1438,6 +1750,166 @@ export const UserProfileView: React.FC = () => {
                 বন্ধ করুন
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* USER RETURN & REFUND CLAIM MODAL */}
+      {isReturnModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    ৭ দিনের রিটার্ন ও রিফান্ড আবেদন
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    অর্ডারকৃত পণ্যের সমস্যা বা সাইজ অমিলের জন্য ক্লেইম সাবমিট করুন
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReturnModalOpen(false)}
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUserSubmitReturn} className="space-y-4 text-xs">
+              {/* Order Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  অর্ডার বেছে নিন *
+                </label>
+                <select
+                  value={returnOrderId}
+                  onChange={(e) => {
+                    const ordId = e.target.value;
+                    setReturnOrderId(ordId);
+                    const selected = userOrders.find((o) => o.id === ordId);
+                    if (selected?.items?.[0]) {
+                      setReturnItemName(selected.items[0].name);
+                    }
+                  }}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold bg-white outline-none focus:border-indigo-600"
+                  required
+                >
+                  {userOrders.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      #{o.orderNumber || o.id} • {o.orderStatus} • {settings.currencySymbol}{(o.total || 0).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Product Item Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  কোন পণ্যটি রিটার্ন করবেন? *
+                </label>
+                {(() => {
+                  const targetOrd = userOrders.find((o) => o.id === returnOrderId) || userOrders[0];
+                  return (
+                    <select
+                      value={returnItemName}
+                      onChange={(e) => setReturnItemName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold bg-white outline-none focus:border-indigo-600"
+                      required
+                    >
+                      {targetOrd?.items?.map((it, idx) => (
+                        <option key={idx} value={it.name}>
+                          {it.name} (x{it.quantity}) - {settings.currencySymbol}{(it.price * it.quantity).toLocaleString()}
+                        </option>
+                      )) || <option value="Product">সাধারণ প্রোডাক্ট</option>}
+                    </select>
+                  );
+                })()}
+              </div>
+
+              {/* Reason Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  রিটার্নের কারণ বেছে নিন *
+                </label>
+                <select
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value as ReturnRequest["reason"])}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold bg-white outline-none focus:border-indigo-600"
+                >
+                  <option value="Defective/Faulty">Defective/Faulty (ত্রুটিপূর্ণ বা নষ্ট পণ্য)</option>
+                  <option value="Wrong Item Received">Wrong Item Received (ভুল পণ্য ডেলিভারি)</option>
+                  <option value="Item Damaged in Transit">Item Damaged in Transit (কুরিয়ার ট্রানজিটে ক্ষতি)</option>
+                  <option value="Size Issue">Size Issue (সাইজ অমিল - এক্সচেঞ্জ প্রয়োজন)</option>
+                  <option value="Mind Changed">Mind Changed (পছন্দ পরিবর্তন)</option>
+                </select>
+              </div>
+
+              {/* Details Textarea */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  সমস্যার বিস্তারিত বিবরণ *
+                </label>
+                <textarea
+                  rows={3}
+                  value={returnDetails}
+                  onChange={(e) => setReturnDetails(e.target.value)}
+                  placeholder="পণ্যটিতে কি সমস্যা পেয়েছেন তা বিস্তারিত বুঝিয়ে লিখুন..."
+                  className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-indigo-600"
+                  required
+                />
+              </div>
+
+              {/* Proof Image URL */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  ত্রুটিপূর্ণ অংশের ছবি (Image URL)
+                </label>
+                <input
+                  type="url"
+                  value={returnProofImage}
+                  onChange={(e) => setReturnProofImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/... (ঐচ্ছিক)"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-600"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  ছবি সংযুক্ত করলে ২৪ ঘণ্টার মধ্যে দ্রুত অনুমোদন পাওয়া যায়।
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsReturnModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReturn}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingReturn ? (
+                    <>
+                      <Clock className="w-3.5 h-3.5 animate-spin" />
+                      <span>জমা হচ্ছে...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>রিটার্ন আবেদন নিশ্চিত করুন</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

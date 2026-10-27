@@ -39,9 +39,13 @@ import {
   Tag,
   BadgeCheck,
   Plus,
+  Rotate3d,
+  Box,
 } from "lucide-react";
 import { PsychologicalDealsSection } from "./PsychologicalDealsSection";
-import { MembershipClubShowcase } from "./MembershipClubShowcase";
+import { ThreeDProductStage } from "./ThreeDProductStage";
+import { ThreeDProductCard } from "./ThreeDProductCard";
+import { ThreeDProductCarousel } from "./ThreeDProductCarousel";
 
 export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQuickView }) => {
   const {
@@ -70,6 +74,14 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [copiedCoupon, setCopiedCoupon] = useState(false);
   const [activeTabFilter, setActiveTabFilter] = useState<"all" | "deals" | "gadgets" | "budget">("all");
+  const [productDisplayMode, setProductDisplayMode] = useState<"3d-tilt" | "3d-carousel" | "grid">("3d-tilt");
+  const stageSectionRef = useRef<HTMLDivElement>(null);
+
+  const scrollTo3DStage = () => {
+    if (stageSectionRef.current) {
+      stageSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   // Combine advertisements of type "slider" (top 5 active scheduled) or fall back to homeBanners
   const activeSliderAds = useMemo(() => {
@@ -819,9 +831,6 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
       {/* 5.5 Psychological Deals Hub: Round of Three, Contrast Effect, Anchoring Bias */}
       <PsychologicalDealsSection onQuickView={onQuickView} />
 
-      {/* 5.6 3-Tier Membership & Physical Card Delivery Club (Small Price, Delivery Charge & Price Compromise) */}
-      <MembershipClubShowcase />
-
       {/* 6. Popular Brands Spotlight */}
       <section className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
@@ -1323,84 +1332,175 @@ export const HomeView: React.FC<{ onQuickView?: (p: Product) => void }> = ({ onQ
         </div>
       </section>
 
-      {/* 9. Curated Recommendation Products Section with Segmented Filters */}
+      {/* Interactive 3D Flagship Hologram Experience Stage */}
+      <div ref={stageSectionRef} className="pt-2">
+        <ThreeDProductStage onQuickView={onQuickView} />
+      </div>
+
+      {/* 9. Curated Recommendation Products Section with Segmented Filters and 3D Display Styles */}
       <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="space-y-0.5">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <span>আপনার জন্য নির্বাচিত সেরা পণ্য</span>
               <Sparkles className="w-5 h-5 text-amber-500 animate-pulse hidden sm:inline" />
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              লাইভ ভেরিফাইড স্টক, কাস্টমার রেটিং ও ট্রেন্ডিং কালেকশন
+              লাইভ ভেরিফাইড স্টক, কাস্টমার রেটিং ও ট্রেন্ডিং ৩ডি ভিজ্যুয়ালাইজেশন
             </p>
           </div>
 
-          {/* Interactive Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70">
-            <button
-              onClick={() => setActiveTabFilter("all")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
-                activeTabFilter === "all"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              ✨ সকল পণ্য
-            </button>
-            <button
-              onClick={() => setActiveTabFilter("deals")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
-                activeTabFilter === "deals"
-                  ? "bg-white text-rose-600 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              🔥 স্পেশাল ডিসকাউন্ট
-            </button>
-            <button
-              onClick={() => setActiveTabFilter("gadgets")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
-                activeTabFilter === "gadgets"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              ⚡ স্মার্ট গ্যাজেটস
-            </button>
-            <button
-              onClick={() => setActiveTabFilter("budget")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
-                activeTabFilter === "budget"
-                  ? "bg-white text-emerald-700 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              🏷️ ৫০,০০০ টাকার মধ্যে
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Interactive Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70">
+              <button
+                onClick={() => setActiveTabFilter("all")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
+                  activeTabFilter === "all"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                ✨ সকল পণ্য
+              </button>
+              <button
+                onClick={() => setActiveTabFilter("deals")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
+                  activeTabFilter === "deals"
+                    ? "bg-white text-rose-600 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                🔥 স্পেশাল ডিসকাউন্ট
+              </button>
+              <button
+                onClick={() => setActiveTabFilter("gadgets")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
+                  activeTabFilter === "gadgets"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                ⚡ স্মার্ট গ্যাজেটস
+              </button>
+              <button
+                onClick={() => setActiveTabFilter("budget")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
+                  activeTabFilter === "budget"
+                    ? "bg-white text-emerald-700 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                🏷️ ৫০,০০০ টাকার মধ্যে
+              </button>
+            </div>
+
+            {/* 3D Visual Style Switcher */}
+            <div className="flex items-center gap-1 bg-slate-900/95 p-1 rounded-2xl border border-indigo-500/30 text-white shadow-sm shrink-0">
+              <span className="text-[11px] font-black text-cyan-400 px-2 flex items-center gap-1">
+                <Rotate3d className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden xl:inline">স্টাইল:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setProductDisplayMode("3d-tilt")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                  productDisplayMode === "3d-tilt"
+                    ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md"
+                    : "text-slate-300 hover:text-white"
+                }`}
+                title="৩ডি স্পেশাল প্যারালাক্স টিল্ট"
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>৩ডি টিল্ট</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setProductDisplayMode("3d-carousel")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                  productDisplayMode === "3d-carousel"
+                    ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md"
+                    : "text-slate-300 hover:text-white"
+                }`}
+                title="৩ডি অরবিট ক্যারোসেল"
+              >
+                <Rotate3d className="w-3 h-3 text-cyan-300" />
+                <span>৩ডি অরবিট</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setProductDisplayMode("grid")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                  productDisplayMode === "grid"
+                    ? "bg-slate-700 text-white shadow-md"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="ক্লাসিক গ্রিড"
+              >
+                <Grid className="w-3 h-3" />
+                <span className="hidden sm:inline">ক্লাসিক</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Product Cards Grid (Clean, Balanced & Uniform) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 sm:gap-5">
-          {filteredRecommendedProducts.map((product, idx) => (
-            <ProductCard
-              key={`rec-${product.id}-${idx}`}
-              product={product}
-              onSelectProduct={(p) => {
-                setSelectedProduct(p);
-                setStoreView("product-detail");
-              }}
-              onAddToCart={(p) => addToCart(p)}
-              isWishlisted={wishlist.some((item) => item.id === product.id)}
-              onToggleWishlist={(p) => toggleWishlist(p)}
-              isCompared={compareList.some((item) => item.id === product.id)}
-              onToggleCompare={(p) => toggleCompare(p)}
-              onQuickView={onQuickView}
-              currencySymbol={settings.currencySymbol}
-            />
-          ))}
-        </div>
+        {/* Conditional Product Display: 3D Orbit Carousel vs 3D Spatial Tilt Grid vs Classic Grid */}
+        {productDisplayMode === "3d-carousel" ? (
+          <ThreeDProductCarousel
+            products={filteredRecommendedProducts}
+            onSelectProduct={(p) => {
+              setSelectedProduct(p);
+              setStoreView("product-detail");
+            }}
+            onAddToCart={(p) => addToCart(p)}
+            wishlist={wishlist}
+            onToggleWishlist={(p) => toggleWishlist(p)}
+            onQuickView={onQuickView}
+            currencySymbol={settings.currencySymbol}
+            onOpen3DStage={scrollTo3DStage}
+          />
+        ) : productDisplayMode === "3d-tilt" ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 sm:gap-5">
+            {filteredRecommendedProducts.map((product, idx) => (
+              <ThreeDProductCard
+                key={`rec-3d-${product.id}-${idx}`}
+                product={product}
+                onSelectProduct={(p) => {
+                  setSelectedProduct(p);
+                  setStoreView("product-detail");
+                }}
+                onAddToCart={(p) => addToCart(p)}
+                isWishlisted={wishlist.some((item) => item.id === product.id)}
+                onToggleWishlist={(p) => toggleWishlist(p)}
+                isCompared={compareList.some((item) => item.id === product.id)}
+                onToggleCompare={(p) => toggleCompare(p)}
+                onQuickView={onQuickView}
+                currencySymbol={settings.currencySymbol}
+                onOpen3DStage={scrollTo3DStage}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 sm:gap-5">
+            {filteredRecommendedProducts.map((product, idx) => (
+              <ProductCard
+                key={`rec-${product.id}-${idx}`}
+                product={product}
+                onSelectProduct={(p) => {
+                  setSelectedProduct(p);
+                  setStoreView("product-detail");
+                }}
+                onAddToCart={(p) => addToCart(p)}
+                isWishlisted={wishlist.some((item) => item.id === product.id)}
+                onToggleWishlist={(p) => toggleWishlist(p)}
+                isCompared={compareList.some((item) => item.id === product.id)}
+                onToggleCompare={(p) => toggleCompare(p)}
+                onQuickView={onQuickView}
+                currencySymbol={settings.currencySymbol}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Dynamic "View More" (আরও দেখুন / Load More) Interactive Controls */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">

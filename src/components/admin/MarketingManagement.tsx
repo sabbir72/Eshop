@@ -56,6 +56,7 @@ import {
   Brain,
   ShieldCheck,
 } from "lucide-react";
+import { PsychologicalMarketingStrategies } from "./PsychologicalMarketingStrategies";
 
 // Curated high quality presets for Bangladesh e-commerce
 const CURATED_BANNER_PRESETS = [
@@ -178,7 +179,7 @@ export const MarketingManagement: React.FC = () => {
     deleteAdvertisement,
     coupons,
     addCoupon,
-    customers,
+    users,
     products,
     orders,
     reviews,
@@ -187,6 +188,12 @@ export const MarketingManagement: React.FC = () => {
     addToast,
     setAdminView,
   } = useStore();
+
+  const customers = useMemo(() => {
+    return (users || []).filter(
+      (u) => u.role === "Customer" || !u.role || u.role === "Guest"
+    );
+  }, [users]);
 
   const [activeSubTab, setActiveSubTab] = useState<
     | "slider"
@@ -700,6 +707,13 @@ export const MarketingManagement: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={() => setActiveSubTab("psychology")}
+            className="bg-fuchsia-950/80 hover:bg-fuchsia-900 text-fuchsia-200 text-xs font-black px-3.5 py-2 rounded-xl border border-fuchsia-600/50 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+          >
+            <Brain className="w-4 h-4 text-fuchsia-300" /> সাইকোলজি ল্যাব (৩ কৌশল)
+          </button>
+
+          <button
             onClick={() => setActiveSubTab("ai-copywriter")}
             className="bg-purple-900/60 hover:bg-purple-800/80 text-purple-200 text-xs font-bold px-3.5 py-2 rounded-xl border border-purple-700/50 flex items-center gap-1.5 transition-colors"
           >
@@ -1021,7 +1035,7 @@ export const MarketingManagement: React.FC = () => {
                 >
                   <span>সকল ক্রেতা</span>
                   <span className="block text-[10px] text-slate-500 font-normal">
-                    {customers.length > 0 ? customers.length : 1850} জন গ্রাহক
+                    {(customers?.length || 0) > 0 ? customers.length : 1850} জন গ্রাহক
                   </span>
                 </button>
 
@@ -1608,196 +1622,19 @@ export const MarketingManagement: React.FC = () => {
 
       {/* TAB: CUSTOMER-CENTRIC MARKETING PSYCHOLOGY */}
       {activeSubTab === "psychology" && (
-        <div className="space-y-5">
-          <div className="rounded-3xl border border-fuchsia-200 bg-gradient-to-r from-fuchsia-950 via-slate-900 to-indigo-950 p-5 sm:p-6 text-white shadow-md">
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/15 p-2.5 text-fuchsia-300">
-                <Brain className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-extrabold">সাইকোলজি ইন্টেলিজেন্স ল্যাব</h3>
-                <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-300">
-                  গ্রাহককে স্বচ্ছ তথ্য দিয়ে সিদ্ধান্ত নিতে সাহায্য করার ৩টি ব্যবহারযোগ্য ক্যাম্পেইন কৌশল।
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <label htmlFor="psychology-product" className="text-xs font-bold text-slate-700">
-                যে পণ্যের জন্য বার্তা তৈরি করবেন
-              </label>
-              <p className="mt-1 text-[11px] text-slate-500">
-                বার্তাগুলো নির্বাচিত পণ্যের বর্তমান ক্যাটালগ ও স্টোরের তথ্য থেকে তৈরি হবে।
-              </p>
-            </div>
-            <select
-              id="psychology-product"
-              value={psychologyProduct?.id ?? ""}
-              onChange={(event) => setPsychologyProductId(event.target.value)}
-              className="min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 sm:w-80"
-              disabled={!products.length}
-            >
-              {!products.length && <option value="">কোনো পণ্য নেই</option>}
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} {product.status !== "Active" ? `(${product.status})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {[
-              {
-                number: "01",
-                title: "যাচাইকৃত সামাজিক প্রমাণ",
-                description: "বাস্তব অর্ডার, রিভিউ বা রেটিংয়ের তথ্য দেখান; সংখ্যা ও সময়সীমা যাচাই করে নিন।",
-                message: psychologyEvidence?.socialProof ?? "পণ্যের যাচাইকৃত অর্ডার ও রিভিউয়ের তথ্য পাওয়া যায়নি।",
-                visualTitle: "ক্রেতার অভিজ্ঞতা",
-                visualDetail:
-                  [
-                    psychologyEvidence?.approvedReviewCount
-                      ? `${psychologyEvidence.approvedReviewCount}টি অনুমোদিত রিভিউ${
-                          psychologyEvidence.reviewAverage !== null
-                            ? ` · ${psychologyEvidence.reviewAverage.toFixed(1)}/5`
-                            : ""
-                        }`
-                      : "",
-                    psychologyEvidence?.deliveredOrderCount
-                      ? `${psychologyEvidence.deliveredOrderCount}টি সম্পন্ন অর্ডার`
-                      : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "যাচাইকৃত রিভিউ সংগ্রহ চলছে",
-                color: "indigo",
-              },
-              {
-                number: "02",
-                title: "সত্যনিষ্ঠ সময়সীমা ও স্টক",
-                description: "অফারের প্রকৃত শেষ সময় বা inventory-তে থাকা স্টক জানিয়ে সিদ্ধান্তের সময় স্পষ্ট করুন।",
-                message: psychologyEvidence?.stock ?? "পণ্য নির্বাচন করলে বর্তমান স্টকের তথ্য দেখা যাবে.",
-                visualTitle: "স্টক ও অফার আপডেট",
-                visualDetail: psychologyProduct
-                  ? psychologyProduct.totalStock > 0
-                    ? `স্টকে আছে ${psychologyProduct.totalStock}টি`
-                    : "বর্তমানে স্টকে নেই"
-                  : "পণ্য নির্বাচন করুন",
-                color: "amber",
-              },
-              {
-                number: "03",
-                title: "ঝুঁকি ও খরচের স্বচ্ছতা",
-                description: "ডেলিভারি, পেমেন্ট, ওয়ারেন্টি ও রিটার্নের শর্ত আগে থেকেই পরিষ্কারভাবে জানান।",
-                message: psychologyEvidence?.transparency ?? "পণ্য নির্বাচন করলে মূল্য ও ডেলিভারি তথ্য দেখা যাবে।",
-                visualTitle: "দাম ও সুবিধা",
-                visualDetail: psychologyProduct
-                  ? `৳${psychologyProduct.sellingPrice.toLocaleString("bn-BD")} · ডেলিভারি ৳${settings.shippingCharge.toLocaleString("bn-BD")}`
-                  : "পণ্য নির্বাচন করুন",
-                color: "emerald",
-              },
-            ].map((strategy) => (
-              <article
-                key={strategy.number}
-                className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="relative aspect-[16/9] overflow-hidden bg-slate-200">
-                  {psychologyProduct?.mainImage ? (
-                    <img
-                      src={psychologyProduct.mainImage}
-                      alt={psychologyProduct.name}
-                      className="h-full w-full object-cover"
-                      onError={(event) => {
-                        event.currentTarget.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">
-                      <ShoppingBag className="h-10 w-10" aria-hidden="true" />
-                    </div>
-                  )}
-                  <div
-                    className={`absolute inset-0 ${
-                      strategy.color === "indigo"
-                        ? "bg-gradient-to-t from-indigo-950/90 via-indigo-950/10 to-slate-950/15"
-                        : strategy.color === "amber"
-                          ? "bg-gradient-to-t from-amber-950/90 via-amber-950/10 to-slate-950/15"
-                          : "bg-gradient-to-t from-emerald-950/90 via-emerald-950/10 to-slate-950/15"
-                    }`}
-                  />
-                  <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3">
-                    <span className="rounded-full border border-white/30 bg-slate-950/45 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-white backdrop-blur-sm">
-                      STRATEGY {strategy.number}
-                    </span>
-                    <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-bold text-slate-800">
-                      {strategy.visualTitle}
-                    </span>
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 p-3.5 text-white">
-                    <p className="line-clamp-1 text-[10px] font-medium text-white/80">
-                      {psychologyProduct?.name ?? "পণ্য নির্বাচন করুন"}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug">
-                      {strategy.visualDetail}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-extrabold text-slate-900">{strategy.title}</h4>
-                      <p className="mt-1 min-h-10 text-xs leading-relaxed text-slate-500">
-                        {strategy.description}
-                      </p>
-                    </div>
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                  </div>
-                  <div className="mt-3 flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                      উদাহরণ বার্তা
-                    </p>
-                    <p className="mt-1 break-words text-xs leading-relaxed text-slate-700">
-                      {strategy.message}
-                    </p>
-                  </div>
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyPsychologyExample(strategy.message)}
-                      className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
-                        strategy.color === "indigo"
-                          ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                          : strategy.color === "amber"
-                            ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                      }`}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                      বার্তাটি কপি করুন
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => usePsychologyMessageInCampaign(strategy.title, strategy.message)}
-                      disabled={!psychologyProduct}
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Megaphone className="h-3.5 w-3.5" />
-                      ক্যাম্পেইনে ব্যবহার
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <p className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-relaxed text-emerald-900">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              কেবল যাচাইকৃত তথ্য ব্যবহার করুন। ভুয়া scarcity, বানানো রিভিউ বা বিভ্রান্তিকর ছাড় দেখাবেন না।
-            </span>
-          </p>
-        </div>
+        <PsychologicalMarketingStrategies
+          onOpenCreateModal={openCreateModal}
+          onSelectStrategyCopy={(copyTitle, copyDesc) => {
+            setTitle(copyTitle);
+            setDescription(copyDesc);
+            setShowModal(true);
+          }}
+          onSendToBroadcast={(broadcastText) => {
+            setSmsMessage(broadcastText);
+            setActiveSubTab("sms-whatsapp");
+            addToast("বার্তাটি এসএমএস ও হোয়াটসঅ্যাপ ব্রডকাস্টের জন্য রেডি করা হয়েছে!", "info");
+          }}
+        />
       )}
 
       {/* TAB 5: ANALYTICS & ROAS VIEW */}

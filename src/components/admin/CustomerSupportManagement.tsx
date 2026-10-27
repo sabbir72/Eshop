@@ -52,8 +52,16 @@ import {
   Star,
 } from "lucide-react";
 import { SupportTicket, ReturnRequest, TicketMessage } from "../../types";
+import { CustomerHistoryIntelligencePanel } from "./CustomerHistoryIntelligencePanel";
 
-type ServiceSubTab = "tickets" | "quick-handler" | "live-console" | "returns" | "faq-sync" | "analytics";
+type ServiceSubTab =
+  | "tickets"
+  | "customer-360"
+  | "quick-handler"
+  | "live-console"
+  | "returns"
+  | "faq-sync"
+  | "analytics";
 
 export const CustomerSupportManagement: React.FC = () => {
   const {
@@ -120,6 +128,14 @@ export const CustomerSupportManagement: React.FC = () => {
   const [newChannel, setNewChannel] = useState<NonNullable<SupportTicket["channel"]>>("Web Ticket");
   const [newOrderNumber, setNewOrderNumber] = useState("");
   const [newInitialMsg, setNewInitialMsg] = useState("");
+
+  // Customer 360° History & Intelligence State
+  const [c360Search, setC360Search] = useState("");
+  const [c360SelectedCustomer, setC360SelectedCustomer] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+  } | null>(null);
 
   // Customer Objection Handler Simulator State
   const [handlerCustomerQuery, setHandlerCustomerQuery] = useState("");
@@ -656,6 +672,21 @@ export const CustomerSupportManagement: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab("customer-360")}
+          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center gap-2 whitespace-nowrap transition-all shadow-xs ${
+            activeTab === "customer-360"
+              ? "bg-slate-900 text-white shadow-slate-900/20 shadow-md ring-2 ring-indigo-500/30"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <User className="w-4 h-4 text-indigo-500" />
+          <span>গ্রাহক হিস্টোরি ও ডকুমেন্টেশন (Customer 360°)</span>
+          <span className="bg-indigo-100 text-indigo-800 text-[9px] px-2 py-0.5 rounded-full font-black">
+            Intelligence
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("quick-handler")}
           className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center gap-2 whitespace-nowrap transition-all shadow-xs ${
             activeTab === "quick-handler"
@@ -982,6 +1013,113 @@ export const CustomerSupportManagement: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: CUSTOMER 360° INTELLIGENCE & HISTORY DOSSIER        */}
+      {/* ======================================================== */}
+      {activeTab === "customer-360" && (
+        <div className="space-y-6 text-left">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-7 rounded-3xl border border-indigo-800/40 shadow-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="p-2 bg-indigo-600/30 border border-indigo-400/30 rounded-xl text-indigo-300">
+                <User className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl font-black">
+                গ্রাহক হিস্টোরি ও ডকুমেন্টেশন ইন্টেলিজেন্স ডসিয়ার (Customer 360°)
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm text-indigo-200/90 max-w-3xl leading-relaxed">
+              যেকোনো গ্রাহকের সাথে যোগাযোগ শুরু করার সময় বা কমিউনিকেশন চলাকালীন তার <strong>পূর্বের সকল চ্যাট, টিকিট, অর্ডার, রিটার্ন ও ইন্টারনাল ডকুমেন্টেশন</strong> এক নজরে পর্যবেক্ষণ করুন। এই তথ্য শুধুমাত্র অ্যাডমিন ও সাপোর্ট টিমের জন্য সুরক্ষিত।
+            </p>
+          </div>
+
+          {/* Customer Lookup & Quick Pick Toolbar */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="text"
+                  value={c360Search}
+                  onChange={(e) => setC360Search(e.target.value)}
+                  placeholder="গ্রাহকের নাম, মোবাইল নম্বর বা ইমেইল দিয়ে খুঁজুন (e.g. 017..., sabbir@..., Rahim)..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {c360SelectedCustomer && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setC360SelectedCustomer(null);
+                    setC360Search("");
+                  }}
+                  className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer shrink-0"
+                >
+                  রিসেট করুন
+                </button>
+              )}
+            </div>
+
+            {/* Quick Customer Chips from Active Tickets & Orders */}
+            <div className="flex items-center gap-2 overflow-x-auto py-1">
+              <span className="text-[11px] font-bold text-slate-400 shrink-0">
+                সাম্প্রতিক গ্রাহকগণ:
+              </span>
+              {Array.from(
+                new Map<string, { name: string; email: string; phone: string }>(
+                  [
+                    ...supportTickets.map((t): [string, { name: string; email: string; phone: string }] => [
+                      t.customerEmail || t.customerPhone || t.customerName,
+                      { name: t.customerName, email: t.customerEmail, phone: t.customerPhone || "" },
+                    ]),
+                    ...orders.map((o): [string, { name: string; email: string; phone: string }] => [
+                      o.customerEmail || o.customerPhone || o.customerName,
+                      { name: o.customerName, email: o.customerEmail, phone: o.customerPhone || "" },
+                    ]),
+                  ]
+                ).values()
+              )
+                .slice(0, 8)
+                .map((cust, idx) => {
+                  const isSelected =
+                    c360SelectedCustomer?.email === cust.email ||
+                    c360SelectedCustomer?.phone === cust.phone ||
+                    c360SelectedCustomer?.name === cust.name;
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setC360SelectedCustomer(cust)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                        isSelected
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                      }`}
+                    >
+                      <User className="w-3 h-3" />
+                      <span>{cust.name}</span>
+                      {cust.phone && <span className="font-mono text-[10px] opacity-75">({cust.phone.slice(-4)})</span>}
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Intelligence Panel View */}
+          <div className="grid grid-cols-1 gap-6">
+            <CustomerHistoryIntelligencePanel
+              customerName={c360SelectedCustomer?.name || c360Search || supportTickets[0]?.customerName || "Sabbir Hossain"}
+              customerEmail={c360SelectedCustomer?.email || (c360Search.includes("@") ? c360Search : supportTickets[0]?.customerEmail || "sabbir@example.com")}
+              customerPhone={c360SelectedCustomer?.phone || (!c360Search.includes("@") && c360Search ? c360Search : supportTickets[0]?.customerPhone || "01712345678")}
+              onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+              className="border border-slate-200 shadow-sm"
+            />
           </div>
         </div>
       )}
@@ -1587,9 +1725,9 @@ export const CustomerSupportManagement: React.FC = () => {
       {/* ======================================================== */}
       {selectedTicket && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-6xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[95vh] flex flex-col animate-in fade-in zoom-in-95 overflow-hidden">
             {/* Modal Top Header */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3 shrink-0">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
@@ -1632,14 +1770,18 @@ export const CustomerSupportManagement: React.FC = () => {
 
               <button
                 onClick={() => setSelectedTicket(null)}
-                className="text-slate-400 hover:text-slate-600 text-2xl font-black p-1 leading-none"
+                className="text-slate-400 hover:text-slate-600 text-2xl font-black p-1 leading-none cursor-pointer"
               >
                 &times;
               </button>
             </div>
 
-            {/* AI Assistant Ribbon */}
-            <div className="p-3 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Dual-Pane Layout: Left = Active Ticket Conversation Desk, Right = Customer 360 History & Docs */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 overflow-hidden min-h-0">
+              {/* Left Column: Active Ticket & Response Desk (7 cols) */}
+              <div className="lg:col-span-7 flex flex-col space-y-3 overflow-y-auto pr-1 min-h-0">
+                {/* AI Assistant Ribbon */}
+                <div className="p-3 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
                 <div>
@@ -1820,8 +1962,22 @@ export const CustomerSupportManagement: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Right Column: Customer 360 Previous History, Past Chats & Documents (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col overflow-hidden min-h-0">
+            <CustomerHistoryIntelligencePanel
+              customerName={selectedTicket.customerName}
+              customerEmail={selectedTicket.customerEmail}
+              customerPhone={selectedTicket.customerPhone}
+              currentTicketId={selectedTicket.id}
+              onSelectTicket={(t) => setSelectedTicket(t)}
+              className="h-full border border-slate-200"
+            />
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  )}
 
       {/* ======================================================== */}
       {/* MODAL: RMA RETURN DETAILS & PROOF AUDIT                  */}

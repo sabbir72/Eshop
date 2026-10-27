@@ -12,6 +12,7 @@ import { AndroidBottomNav } from "./components/common/AndroidBottomNav";
 import { UserProfilePopup } from "./components/common/UserProfilePopup";
 import { ExcelDataSyncModal } from "./components/common/ExcelDataSyncModal";
 import { OfflineIndicator } from "./components/common/OfflineIndicator";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 const MainContent: React.FC = () => {
   const { mode, setMode, setStoreView, setAdminView } = useStore();
@@ -123,8 +124,10 @@ const MainContent: React.FC = () => {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <MainContent />
-    </StoreProvider>
+    <ErrorBoundary fallbackTitle="SmartShop অ্যাপ্লিকেশনে একটি অপ্রত্যাশিত সমস্যা হয়েছে">
+      <StoreProvider>
+        <MainContent />
+      </StoreProvider>
+    </ErrorBoundary>
   );
 }

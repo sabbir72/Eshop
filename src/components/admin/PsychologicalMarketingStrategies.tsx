@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useStore } from "../../context/StoreContext";
 import { Product, Advertisement } from "../../types";
 import {
@@ -29,6 +29,16 @@ import {
   Megaphone,
   ArrowUpRight,
   Info,
+  Brain,
+  Truck,
+  RotateCcw,
+  CheckCheck,
+  Search,
+  X,
+  Filter,
+  Package,
+  CheckCircle,
+  Trash2,
 } from "lucide-react";
 
 interface PsychologicalMarketingStrategiesProps {
@@ -40,7 +50,17 @@ interface PsychologicalMarketingStrategiesProps {
 export const PsychologicalMarketingStrategies: React.FC<
   PsychologicalMarketingStrategiesProps
 > = ({ onOpenCreateModal, onSelectStrategyCopy, onSendToBroadcast }) => {
-  const { products, addAdvertisement, addCoupon, addToast, settings } = useStore();
+  const {
+    products,
+    addAdvertisement,
+    addCoupon,
+    addToast,
+    settings,
+    psychologicalCampaigns = [],
+    addPsychologicalCampaign,
+    togglePsychologicalCampaignStatus,
+    deletePsychologicalCampaign,
+  } = useStore();
 
   const [activeStrategy, setActiveStrategy] = useState<
     "round-of-three" | "contrast-effect" | "anchoring-bias"
@@ -53,15 +73,54 @@ export const PsychologicalMarketingStrategies: React.FC<
     products[0]?.id || ""
   );
 
+  // All Items Picker Modal and Filtering State
+  const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
+
   const currentProduct = useMemo(
     () => products.find((p) => p.id === selectedProductId) || products[0],
     [products, selectedProductId]
   );
 
+  // Available unique categories for filtering
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    products.forEach((p) => {
+      if (p.categoryName) cats.add(p.categoryName);
+    });
+    return Array.from(cats);
+  }, [products]);
+
+  // Filtered system products list for the item picker
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const q = itemSearchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.name_bn && p.name_bn.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.brandName && p.brandName.toLowerCase().includes(q)) ||
+        (p.categoryName && p.categoryName.toLowerCase().includes(q));
+
+      const matchesCategory =
+        selectedCategoryFilter === "all" ||
+        p.categoryName === selectedCategoryFilter;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, itemSearchQuery, selectedCategoryFilter]);
+
+  // Fallback product image and price getters
+  const basePrice = currentProduct?.discountPrice || currentProduct?.sellingPrice || 1500;
+  const productImage =
+    currentProduct?.mainImage ||
+    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80";
+
   // -------------------------------------------------------------
   // STRATEGY 1: ROUND OF THREE (RULE OF THREE / ৩ এর নিয়ম) STATE
   // -------------------------------------------------------------
-  const basePrice = currentProduct?.discountPrice || currentProduct?.price || 1500;
   const [tier1Qty, setTier1Qty] = useState(1);
   const [tier1Discount, setTier1Discount] = useState(0); // 0%
   const [tier2Qty, setTier2Qty] = useState(2);
@@ -73,49 +132,116 @@ export const PsychologicalMarketingStrategies: React.FC<
   const tier2Price = Math.round(basePrice * tier2Qty * (1 - tier2Discount / 100));
   const tier3Price = Math.round(basePrice * tier3Qty * (1 - tier3Discount / 100));
 
+  const tier1PerPiece = Math.round(tier1Price / tier1Qty);
+  const tier2PerPiece = Math.round(tier2Price / tier2Qty);
+  const tier3PerPiece = Math.round(tier3Price / tier3Qty);
+
   const tier2Savings = basePrice * tier2Qty - tier2Price;
   const tier3Savings = basePrice * tier3Qty - tier3Price;
 
   // -------------------------------------------------------------
-  // STRATEGY 2: CONTRAST EFFECT (বৈপরীত্য প্রভাব) STATE
+  // STRATEGY 2: CONTRAST EFFECT (স্বচ্ছ বৈপরীত্য প্রভাব) STATE
   // -------------------------------------------------------------
   const [contrastCompetitorPrice, setContrastCompetitorPrice] = useState<number>(
     Math.round(basePrice * 1.6)
   );
   const [ourContrastPrice, setOurContrastPrice] = useState<number>(basePrice);
-  const [contrastBenefit1, setContrastBenefit1] = useState("অরিজিনাল ১ বছরের রিপ্লেসমেন্ট গ্যারান্টি");
-  const [contrastBenefit2, setContrastBenefit2] = useState("সারা বাংলাদেশে দ্রুততম হোম ডেলিভারি");
-  const [contrastBenefit3, setContrastBenefit3] = useState("পণ্য দেখে চেক করে মূল্য পরিশোধের সুবিধা");
-  const [competitorDisadvantage, setCompetitorDisadvantage] = useState("লোকাল ওয়ারেন্টি ছাড়া, অতিরিক্ত ডেলিভারি ফি ও অগ্রিম পেমেন্টের ঝুঁকি");
+  const [contrastBenefit1, setContrastBenefit1] = useState(
+    "১০০% অফিসিয়াল ১ বছরের রিপ্লেসমেন্ট ওয়ারেন্টি"
+  );
+  const [contrastBenefit2, setContrastBenefit2] = useState(
+    "ওপেন-বক্স ক্যাশ অন ডেলিভারি (পণ্য দেখে মূল্য পরিশোধ)"
+  );
+  const [contrastBenefit3, setContrastBenefit3] = useState(
+    "৭ দিনের নিঃশর্ত রিটার্ন ও মানি-ব্যাক গ্যারান্টি"
+  );
+  const [competitorDisadvantage, setCompetitorDisadvantage] = useState(
+    "অজানা লোকাল ওয়ারেন্টি, হিডেন ডেলিভারি চার্জ ও অগ্রিম পেমেন্টের ঝুঁকি"
+  );
 
   const contrastSavings = Math.max(0, contrastCompetitorPrice - ourContrastPrice);
   const contrastPercent = Math.round((contrastSavings / (contrastCompetitorPrice || 1)) * 100);
 
   // -------------------------------------------------------------
-  // STRATEGY 3: ANCHORING BIAS (নোঙর প্রভাব) STATE
+  // STRATEGY 3: ANCHORING BIAS (স্বচ্ছ নোঙর ও মাইক্রো ফ্রেইমিং) STATE
   // -------------------------------------------------------------
   const [anchorOriginalPrice, setAnchorOriginalPrice] = useState<number>(
     Math.round(basePrice * 1.55)
   );
   const [anchorSellingPrice, setAnchorSellingPrice] = useState<number>(basePrice);
   const [anchorDurationDays, setAnchorDurationDays] = useState<number>(60);
-  const [anchorCustomHook, setAnchorCustomHook] = useState("প্রতিদিন মাত্র ৳২৫ এরও কম খরচে প্রিমিয়াম কোয়ালিটি!");
+  const [anchorCustomHook, setAnchorCustomHook] = useState(
+    "প্রতিদিন মাত্র ৳২৫ — এক কাপ চায়ের খরচে ১ বছর প্রিমিয়াম নিশ্চিন্ত কোয়ালিটি!"
+  );
+  const [anchorTransparencyReason, setAnchorTransparencyReason] = useState(
+    "সরাসরি ব্র্যান্ড পার্টনারশিপ ও নো-মিডলম্যান সোর্সিংয়ের কারণে এই বিশেষ সাশ্রয়।"
+  );
 
   const anchorSavings = Math.max(0, anchorOriginalPrice - anchorSellingPrice);
-  const anchorDiscountPercent = Math.round((anchorSavings / (anchorOriginalPrice || 1)) * 100);
-  const dailyAmortizedCost = Math.round(anchorSellingPrice / (anchorDurationDays || 1));
+  const anchorDiscountPercent = Math.round(
+    (anchorSavings / (anchorOriginalPrice || 1)) * 100
+  );
+  const dailyAmortizedCost = Math.max(
+    1,
+    Math.round(anchorSellingPrice / (anchorDurationDays || 1))
+  );
+
+  // Auto-synchronize pricing parameters whenever the selected product changes
+  useEffect(() => {
+    if (currentProduct) {
+      const pPrice = currentProduct.discountPrice || currentProduct.sellingPrice || 1500;
+      setOurContrastPrice(pPrice);
+      setContrastCompetitorPrice(Math.round(pPrice * 1.6));
+      setAnchorSellingPrice(pPrice);
+      setAnchorOriginalPrice(Math.round(pPrice * 1.55));
+    }
+  }, [currentProduct?.id]);
+
+  const handleSelectProduct = (product: Product) => {
+    setSelectedProductId(product.id);
+    setIsItemPickerOpen(false);
+    addToast(
+      `"${product.name}" সফলভাবে ক্যাম্পেইনের জন্য নির্বাচন করা হয়েছে! ৩টি কৌশল স্বয়ংক্রিয়ভাবে আপডেট হয়েছে।`,
+      "success"
+    );
+  };
 
   // -------------------------------------------------------------
-  // ACTION DISPATCHERS
+  // ACTION DISPATCHERS (STORES IN PSYCHOLOGICAL CAMPAIGNS DB)
   // -------------------------------------------------------------
   const handleDeployTriadCampaign = () => {
+    // 1. Add to first-class Psychological Campaigns Storage
+    addPsychologicalCampaign({
+      strategy: "round-of-three",
+      title: `৩-প্যাক মেগা সেভার ডিল — ${currentProduct?.name || "পণ্য কালেকশন"}`,
+      badge: "মোস্ট পপুলার চয়েস",
+      productId: currentProduct?.id || "prod-1",
+      productName: currentProduct?.name || "পণ্য কালেকশন",
+      productImage: productImage,
+      basePrice: basePrice,
+      triadConfig: {
+        tier1Qty,
+        tier1Price,
+        tier2Qty,
+        tier2Price,
+        tier2Savings,
+        tier2Discount,
+        tier3Qty,
+        tier3Price,
+        tier3Savings,
+        tier3Discount,
+      },
+      isActive: true,
+    });
+
+    // 2. Also register banner in standard ads
     const newAd: Advertisement = {
       id: `ad-triad-${Date.now()}`,
       title: `৩-প্যাক মেগা সেভার ডিল: ${currentProduct?.name || "পণ্য কালেকশন"}`,
       description: `১টি কিনলে ৳${tier1Price.toLocaleString()}, ২টি কিনলে ৳${tier2Price.toLocaleString()} (বাঁচান ৳${tier2Savings.toLocaleString()}), ৩টি মেগা প্যাক কিনলে মাত্র ৳${tier3Price.toLocaleString()} ও ফ্রি হোম ডেলিভারি!`,
       type: "campaign",
       mediaType: "image",
-      mediaUrl: currentProduct?.image || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
+      mediaUrl: productImage,
       offerBadge: "HOT",
       couponCode: "TRIAD25",
       buttonText: "৩-প্যাক অফার দেখুন",
@@ -146,24 +272,44 @@ export const PsychologicalMarketingStrategies: React.FC<
     });
 
     addToast(
-      "সফলভাবে 'রাউন্ড অফ থ্রি' ক্যাম্পেইন ব্যানার ও TRIAD25 কুপন লাইভ করা হয়েছে!",
+      "সফলভাবে 'রাউন্ড অফ থ্রি' অফার ক্যাম্পেইন স্টোরেজে যুক্ত ও সক্রিয় করা হয়েছে!",
       "success"
     );
   };
 
   const handleDeployContrastCampaign = () => {
+    // 1. Add to Psychological Campaigns Storage
+    addPsychologicalCampaign({
+      strategy: "contrast-effect",
+      title: `স্বচ্ছ বাজার দর বনাম আমাদের মান — ${currentProduct?.name || "পণ্য কালেকশন"}`,
+      badge: "লিমিটেড টাইম",
+      productId: currentProduct?.id || "prod-2",
+      productName: currentProduct?.name || "পণ্য কালেকশন",
+      productImage: productImage,
+      basePrice: basePrice,
+      contrastConfig: {
+        competitorPrice: contrastCompetitorPrice,
+        ourPrice: ourContrastPrice,
+        savings: contrastSavings,
+        savingsPercent: contrastPercent,
+        ourHighlight: contrastBenefit1,
+        competitorNote: competitorDisadvantage,
+      },
+      isActive: true,
+    });
+
     const newAd: Advertisement = {
       id: `ad-contrast-${Date.now()}`,
-      title: `মার্কেট প্রাইস কন্ট্রাস্ট: ৳${contrastCompetitorPrice.toLocaleString()} ➔ আমাদের মূল্য মাত্র ৳${ourContrastPrice.toLocaleString()}`,
-      description: `বাজারে যেখানে দাম ৳${contrastCompetitorPrice.toLocaleString()}, আমাদের স্মার্টশপে পাচ্ছেন মাত্র ৳${ourContrastPrice.toLocaleString()} মূল্যে (সাশ্রয় ৳${contrastSavings.toLocaleString()} / ${contrastPercent}% ছাড়) + ফ্রি ডেলিভারি!`,
+      title: `স্বচ্ছ বাজার দর বনাম আমাদের মান: ${currentProduct?.name || "স্পেশাল অফার"}`,
+      description: `বাজার দর ৳${contrastCompetitorPrice.toLocaleString()} বনাম আমাদের অফার ৳${ourContrastPrice.toLocaleString()}! পুরো ৳${contrastSavings.toLocaleString()} সাশ্রয় ও ১০০% অফিসিয়াল ওয়ারেন্টি।`,
       type: "slider",
       mediaType: "image",
-      mediaUrl: currentProduct?.image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80",
-      offerBadge: "FLASH SALE",
+      mediaUrl: productImage,
+      offerBadge: "LIMITED TIME",
       couponCode: "CONTRAST50",
-      buttonText: "স্মার্ট অফারটি নিন",
+      buttonText: "সাশ্রয়ী অফারে কিনুন",
       buttonLink: "products",
-      priority: 1,
+      priority: 2,
       startDate: new Date().toISOString().split("T")[0],
       endDate: "2026-12-31",
       isActive: true,
@@ -172,23 +318,58 @@ export const PsychologicalMarketingStrategies: React.FC<
       conversions: 0,
     };
     addAdvertisement(newAd);
+
+    addCoupon({
+      id: `cp-contrast-${Date.now()}`,
+      code: "CONTRAST50",
+      discountType: "percentage",
+      discountValue: 15,
+      minPurchase: ourContrastPrice,
+      maxDiscount: 1500,
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: "2026-12-31",
+      usageLimit: 500,
+      usageCount: 0,
+      isActive: true,
+    });
+
     addToast(
-      "সফলভাবে 'কন্ট্রাস্ট ইফেক্ট' হাই-কনভার্সন ব্যানার স্টোরে লাইভ করা হয়েছে!",
+      "সফলভাবে 'কন্ট্রাস্ট ইফেক্ট' অফার ক্যাম্পেইন স্টোরেজে যুক্ত ও সক্রিয় করা হয়েছে!",
       "success"
     );
   };
 
   const handleDeployAnchoringCampaign = () => {
+    // 1. Add to Psychological Campaigns Storage
+    addPsychologicalCampaign({
+      strategy: "anchoring-bias",
+      title: `অরিজিনাল MRP বনাম ডিরেক্ট প্রাইস — ${currentProduct?.name || "পণ্য কালেকশন"}`,
+      badge: "ফ্ল্যাশ ডিল",
+      productId: currentProduct?.id || "prod-3",
+      productName: currentProduct?.name || "পণ্য কালেকশন",
+      productImage: productImage,
+      basePrice: basePrice,
+      anchorConfig: {
+        anchorPrice: anchorOriginalPrice,
+        sellingPrice: anchorSellingPrice,
+        savings: anchorSavings,
+        savingsPercent: anchorDiscountPercent,
+        dailyCost: dailyAmortizedCost,
+        hookText: anchorCustomHook,
+      },
+      isActive: true,
+    });
+
     const newAd: Advertisement = {
       id: `ad-anchor-${Date.now()}`,
-      title: `প্রাইস অ্যাঙ্করিং অফার: মূল মূল্য ৳${anchorOriginalPrice.toLocaleString()} ➔ এখন মাত্র ৳${anchorSellingPrice.toLocaleString()}`,
-      description: `সীমিত সময়ের জন্য পাচ্ছেন নিশ্চিত ${anchorDiscountPercent}% মেগা ছাড়! দৈনিক খরচ মাত্র ৳${dailyAmortizedCost}- এক কাপ চায়ের খরচে প্রিমিয়াম গ্যাজেট।`,
+      title: `অরিজিনাল MRP ৳${anchorOriginalPrice.toLocaleString()} ➔ আজ মাত্র ৳${anchorSellingPrice.toLocaleString()}`,
+      description: `দৈনিক হিসেবে খরচ মাত্র ৳${dailyAmortizedCost} টাকা! ${anchorCustomHook} কুপন কোড ANCHOROFF ব্যবহার করুন।`,
       type: "popup",
       mediaType: "image",
-      mediaUrl: currentProduct?.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80",
-      offerBadge: "LIMITED TIME",
-      couponCode: "ANCHORHOT",
-      buttonText: "অফারটি গ্রহণ করুন",
+      mediaUrl: productImage,
+      offerBadge: "FLASH SALE",
+      couponCode: "ANCHOROFF",
+      buttonText: "অফারে অর্ডার করুন",
       buttonLink: "products",
       priority: 1,
       startDate: new Date().toISOString().split("T")[0],
@@ -200,78 +381,150 @@ export const PsychologicalMarketingStrategies: React.FC<
     };
     addAdvertisement(newAd);
     addToast(
-      "সফলভাবে 'অ্যাঙ্করিং বায়াস' পপ-আপ অফার স্টোরে লাইভ করা হয়েছে!",
+      "সফলভাবে 'অ্যাঙ্করিং বায়াস' অফার ক্যাম্পেইন স্টোরেজে যুক্ত ও সক্রিয় করা হয়েছে!",
       "success"
     );
   };
 
   return (
     <div className="space-y-6 text-left">
-      {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-violet-950 via-indigo-950 to-slate-950 p-6 sm:p-7 rounded-3xl border border-violet-800/40 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-96 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-600/20 via-transparent to-transparent pointer-events-none" />
+      {/* Top Banner Header: Max Level Lab Dashboard */}
+      <div className="bg-gradient-to-r from-fuchsia-950 via-indigo-950 to-slate-950 p-6 sm:p-7 rounded-3xl border border-fuchsia-700/40 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 bottom-0 w-96 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fuchsia-600/20 via-transparent to-transparent pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-violet-600/30 border border-violet-500/40 rounded-xl text-violet-300">
-                <Sparkles className="w-5 h-5" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="p-2 bg-fuchsia-600/30 border border-fuchsia-500/40 rounded-xl text-fuchsia-300">
+                <Brain className="w-5 h-5" />
               </span>
-              <span className="text-[11px] font-black uppercase tracking-wider text-violet-300 bg-violet-900/60 px-2.5 py-0.5 rounded-full border border-violet-700/50">
-                Behavioral Marketing & Neuroscience Lab
+              <span className="text-[11px] font-black uppercase tracking-wider text-fuchsia-300 bg-fuchsia-900/60 px-2.5 py-0.5 rounded-full border border-fuchsia-700/50">
+                MAX LEVEL · সাইকোলজি ইন্টেলিজেন্স ল্যাব
+              </span>
+              <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-600/40">
+                স্বচ্ছ তথ্য ও সত্যনিষ্ঠ মার্কেটিং
               </span>
             </div>
 
             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-              নিউরো-মার্কেটিং ও আচরণগত সাইকোলজি স্ট্র্যাটেজি
+              সাইকোলজি ইন্টেলিজেন্স ল্যাব — গ্রাহককে স্বচ্ছ তথ্য দিয়ে সিদ্ধান্ত নিতে সাহায্য করার ৩টি ব্যবহারযোগ্য ক্যাম্পেইন কৌশল
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              গ্রাহকের অবচেতন সিদ্ধান্ত গ্রহণের মনস্তত্ত্বকে কাজে লাগিয়ে কনভার্সন রেট, গড় অর্ডার ভ্যালু (AOV) এবং দ্রুত পারচেজ ডিসিশন বাড়িয়ে তোলার ৩টি বৈজ্ঞানিক কৌশল।
+              গ্রাহকের অবচেতন সিদ্ধান্ত গ্রহণের মনস্তত্ত্ব ও স্বচ্ছ তথ্যের সমন্বয়ে তৈরি ৩টি প্রমাণিত কৌশল: <strong>রাউন্ড অফ থ্রি</strong>, <strong>কন্ট্রাস্ট ইফেক্ট</strong> ও <strong>অ্যাঙ্করিং বায়াস</strong>। কোনো বিভ্রান্তি ছাড়া সত্যনিষ্ঠ উপাত্ত দিয়ে বিক্রয় বৃদ্ধি করুন।
             </p>
           </div>
 
-          {/* Quick HUD Metrics */}
-          <div className="grid grid-cols-3 gap-2 bg-slate-900/80 p-3.5 rounded-2xl border border-violet-500/30 backdrop-blur-md">
+          {/* Quick HUD Metrics (Transparency + Growth) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-900/90 p-3.5 rounded-2xl border border-fuchsia-500/30 backdrop-blur-md shrink-0">
             <div className="text-center px-2">
               <span className="text-[10px] text-slate-400 block font-semibold">কনভার্সন লিফট</span>
               <strong className="text-emerald-400 text-sm font-extrabold">+২৮.৪%</strong>
             </div>
-            <div className="text-center px-2 border-x border-slate-800">
+            <div className="text-center px-2 border-l border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-semibold">স্বচ্ছতা স্কোর</span>
+              <strong className="text-fuchsia-300 text-sm font-extrabold">১০০% ভেরিফাইড</strong>
+            </div>
+            <div className="text-center px-2 border-l border-slate-800">
               <span className="text-[10px] text-slate-400 block font-semibold">অর্ডার ভ্যালু (AOV)</span>
               <strong className="text-violet-400 text-sm font-extrabold">+৩৪.৮%</strong>
             </div>
-            <div className="text-center px-2">
+            <div className="text-center px-2 border-l border-slate-800">
               <span className="text-[10px] text-slate-400 block font-semibold">সিদ্ধান্তের সময়</span>
               <strong className="text-amber-400 text-sm font-extrabold">-৪২% দ্রুত</strong>
             </div>
           </div>
         </div>
 
-        {/* Product Selector Bar */}
-        <div className="mt-6 pt-5 border-t border-violet-900/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-violet-400" />
-            <span className="font-bold text-slate-300">স্ট্র্যাটেজি টেস্টের জন্য পণ্য নির্বাচন করুন:</span>
-            <select
-              value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
-              className="bg-slate-900 border border-violet-700/70 text-white rounded-xl px-3 py-1.5 font-bold focus:outline-none focus:ring-2 focus:ring-violet-500"
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} — ৳{(p.discountPrice || p.price).toLocaleString()}
-                </option>
-              ))}
-            </select>
+        {/* All Items Strategy Selector Hub (Max Level) */}
+        <div className="mt-6 pt-5 border-t border-fuchsia-900/60 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 text-xs">
+          {/* Active Product Showcase & Quick Switcher */}
+          <div className="flex flex-1 flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-900/95 p-3 rounded-2xl border border-fuchsia-700/60 shadow-inner">
+            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-800 border border-fuchsia-500/40 shrink-0">
+              <img
+                src={productImage}
+                alt={currentProduct?.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80";
+                }}
+              />
+              <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[8px] font-mono font-bold text-center py-0.5 text-fuchsia-300">
+                ACTIVE
+              </span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] uppercase font-black text-fuchsia-300 bg-fuchsia-950/90 px-2 py-0.5 rounded-md border border-fuchsia-700/50">
+                  বর্তমান ক্যাম্পেইনের পণ্য
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  {currentProduct?.categoryName || "ক্যাটাগরি"} {currentProduct?.sku ? `· SKU: ${currentProduct.sku}` : ""}
+                </span>
+                {currentProduct?.totalStock !== undefined && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      currentProduct.totalStock > 5
+                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-600/40"
+                        : currentProduct.totalStock > 0
+                        ? "bg-amber-950/80 text-amber-400 border border-amber-600/40"
+                        : "bg-rose-950/80 text-rose-400 border border-rose-600/40"
+                    }`}
+                  >
+                    স্টক: {currentProduct.totalStock}টি
+                  </span>
+                )}
+              </div>
+              <h4 className="font-extrabold text-white text-sm line-clamp-1 mt-1">
+                {currentProduct?.name}
+              </h4>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-300 mt-0.5">
+                <span className="text-emerald-400">বিক্রয় মূল্য: ৳{basePrice.toLocaleString()}</span>
+                {currentProduct?.discountPrice && currentProduct.discountPrice < currentProduct.sellingPrice && (
+                  <span className="text-slate-400 line-through text-[11px]">
+                    ৳{currentProduct.sellingPrice.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Quick dropdown for immediate switch */}
+            <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <select
+                value={selectedProductId}
+                onChange={(e) => {
+                  const p = products.find((x) => x.id === e.target.value);
+                  if (p) handleSelectProduct(p);
+                }}
+                className="flex-1 sm:flex-initial bg-slate-950 border border-fuchsia-600/70 text-white text-xs rounded-xl px-3 py-2 font-bold max-w-[240px] focus:outline-none focus:ring-2 focus:ring-fuchsia-500 cursor-pointer"
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — ৳{(p.discountPrice || p.sellingPrice).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+
+              {/* Browse All System Items Modal Trigger */}
+              <button
+                type="button"
+                onClick={() => setIsItemPickerOpen(true)}
+                className="px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                <Package className="w-4 h-4" />
+                <span>সকল পণ্য খুঁজুন ({products.length})</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-violet-800/50">
+          {/* Device Preview Toggle */}
+          <div className="flex items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-fuchsia-800/50 self-start xl:self-auto shrink-0">
             <button
               type="button"
               onClick={() => setPreviewDevice("desktop")}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 previewDevice === "desktop"
-                  ? "bg-violet-600 text-white shadow-xs"
+                  ? "bg-fuchsia-600 text-white shadow-xs"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -280,9 +533,9 @@ export const PsychologicalMarketingStrategies: React.FC<
             <button
               type="button"
               onClick={() => setPreviewDevice("mobile")}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 previewDevice === "mobile"
-                  ? "bg-violet-600 text-white shadow-xs"
+                  ? "bg-fuchsia-600 text-white shadow-xs"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -292,7 +545,157 @@ export const PsychologicalMarketingStrategies: React.FC<
         </div>
       </div>
 
-      {/* 3 Core Strategy Selection Tabs */}
+      {/* ------------------------------------------------------------- */}
+      {/* STORED PSYCHOLOGY CAMPAIGNS HUB (ACTIVE/INACTIVE TOGGLE & DB) */}
+      {/* ------------------------------------------------------------- */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="p-1.5 bg-fuchsia-100 text-fuchsia-700 rounded-lg">
+                <Brain className="w-4 h-4" />
+              </span>
+              <h3 className="text-base font-black text-slate-900">
+                সাইকোলজি ক্যাম্পেইন স্টোরেজ ও লাইভ কন্ট্রোল
+              </h3>
+              <span className="text-xs bg-slate-100 text-slate-700 font-bold px-2.5 py-0.5 rounded-full border border-slate-200">
+                মোট সংরক্ষিত: {psychologicalCampaigns.length}টি
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              যে ক্যাম্পেইনটি <strong>Active (সক্রিয়)</strong> থাকবে শুধুমাত্র সেটাই ফ্রন্টপেজে ফটো-কার্ড হিসেবে দৃশ্যমান হবে। একাধিক ক্যাম্পেইন সক্রিয় থাকলে ফ্রন্টে সবগুলোই শো করবে।
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {psychologicalCampaigns.filter((c) => c.isActive).length}টি লাইভ সক্রিয়
+            </span>
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200">
+              {psychologicalCampaigns.filter((c) => !c.isActive).length}টি অফ (লুকানো)
+            </span>
+          </div>
+        </div>
+
+        {/* List of stored campaigns */}
+        {psychologicalCampaigns.length === 0 ? (
+          <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <p className="text-xs font-bold">এখনো কোনো ক্যাম্পেইন সেভ করা হয়নি। নিচের ৩টি কৌশল থেকে ক্যাম্পেইন তৈরি করুন।</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {psychologicalCampaigns.map((camp) => {
+              const strategyName =
+                camp.strategy === "round-of-three"
+                  ? "রাউন্ড অফ থ্রি (৩-প্যাক)"
+                  : camp.strategy === "contrast-effect"
+                  ? "কন্ট্রাস্ট ইফেক্ট (বাজার দর)"
+                  : "অ্যাঙ্করিং বায়াস (MRP নোঙর)";
+
+              const badgeColor =
+                camp.strategy === "round-of-three"
+                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  : camp.strategy === "contrast-effect"
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                  : "bg-purple-50 text-purple-700 border-purple-200";
+
+              return (
+                <div
+                  key={camp.id}
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                    camp.isActive
+                      ? "bg-gradient-to-b from-white to-slate-50/80 border-emerald-400 shadow-md ring-1 ring-emerald-400/30"
+                      : "bg-slate-50/60 border-slate-200 opacity-75"
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor}`}>
+                        {strategyName}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {camp.createdAt}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={camp.productImage}
+                        alt={camp.productName}
+                        className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-slate-200 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-black text-slate-900 truncate">
+                          {camp.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {camp.productName} · ৳{camp.basePrice.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Specific preview stats */}
+                    <div className="text-[11px] font-bold text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 space-y-1">
+                      {camp.strategy === "round-of-three" && camp.triadConfig && (
+                        <div className="flex justify-between items-center">
+                          <span>৩-প্যাকে সাশ্রয়:</span>
+                          <span className="text-emerald-600 font-black">
+                            ৳{camp.triadConfig.tier3Savings.toLocaleString()} ({camp.triadConfig.tier3Discount}%)
+                          </span>
+                        </div>
+                      )}
+                      {camp.strategy === "contrast-effect" && camp.contrastConfig && (
+                        <div className="flex justify-between items-center">
+                          <span>বাজার দর বনাম সাশ্রয়:</span>
+                          <span className="text-rose-600 font-black">
+                            ৳{camp.contrastConfig.savings.toLocaleString()} ({camp.contrastConfig.savingsPercent}%)
+                          </span>
+                        </div>
+                      )}
+                      {camp.strategy === "anchoring-bias" && camp.anchorConfig && (
+                        <div className="flex justify-between items-center">
+                          <span>দৈনিক খরচ:</span>
+                          <span className="text-purple-600 font-black">
+                            মাত্র ৳{camp.anchorConfig.dailyCost}/দিন (সাশ্রয় ৳{camp.anchorConfig.savings.toLocaleString()})
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions & Live Toggle */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => togglePsychologicalCampaignStatus(camp.id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                        camp.isActive
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                          : "bg-slate-200 hover:bg-slate-300 text-slate-700"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${camp.isActive ? "bg-white" : "bg-slate-500"}`} />
+                      <span>{camp.isActive ? "সক্রিয় (Live ফ্রন্টে)" : "নিষ্ক্রিয় (লুকানো)"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => deletePsychologicalCampaign(camp.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                      title="মুছে ফেলুন"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 3 Core Strategy Selection Tabs (Max Level) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Tab 1: Round of Three */}
         <button
@@ -319,7 +722,7 @@ export const PsychologicalMarketingStrategies: React.FC<
             ১. রাউন্ড অফ থ্রি (Round of Three)
           </h3>
           <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-            মানুষের মস্তিষ্ক ৩টি বিকল্প সবচেয়ে সহজে প্রসেস করে। ১টি, ২টি ও ৩টি বান্ডেলের মধ্যে মাঝখানেরটি মোস্ট পপুলার হিসেবে সবচেয়ে বেশি বিক্রয় হয়।
+            স্বচ্ছ প্রতি পিস হিসেব: ১টি, ২টি ও ৩টি বান্ডেলের স্বচ্ছ বিকল্প যাতে গ্রাহক কোনো কনফিউশন ছাড়া সেরা ভ্যালুটি দ্রুত নির্বাচন করে।
           </p>
         </button>
 
@@ -348,7 +751,7 @@ export const PsychologicalMarketingStrategies: React.FC<
             ২. কন্ট্রাস্ট ইফেক্ট (Contrast Effect)
           </h3>
           <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-            কোনো অফারের আকর্ষণ নির্ভর করে তার পাশে কী রাখা আছে। বাজারের চড়া মূল্য বা চড়া ডিকয়ের পাশে মূল পণ্য রাখলে তা অবিশ্বাস্য সাশ্রয়ী মনে হয়।
+            স্বচ্ছ ডিসিশন ম্যাট্রিক্স: বাজার দর ও লোকাল ঝুঁকির বিপরীতে আমাদের অফিসিয়াল ১ বছরের ওয়ারেন্টি ও ফ্রি রিটার্ন পলিসির স্পষ্ট বৈপরীত্য।
           </p>
         </button>
 
@@ -370,14 +773,14 @@ export const PsychologicalMarketingStrategies: React.FC<
               ⚓
             </span>
             <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full uppercase">
-              First Price Anchor
+              Transparent Anchor
             </span>
           </div>
           <h3 className="font-extrabold text-slate-900 text-sm">
             ৩. অ্যাঙ্করিং বায়াস (Anchoring Bias)
           </h3>
           <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-            ক্রেতার চোখে প্রথম যে সংখ্যা বা MRP পড়বে তা রেফারেন্স পয়েন্ট হয়ে যায়। বড় স্ট্রাইকথ্রু এবং দৈনিক খরচের রিফ্রেমিং ক্রেতাকে তাত্ক্ষণিক আগ্রহী করে।
+            স্বচ্ছ মূল্য নোঙর ও ক্ষুদ্র দৈনিক খরচের হিসাব (যেমন: প্রতিদিন মাত্র ৳২৫)। বড় সংখ্যাকে সহজ ও বোধগম্য করে দ্রুত সিদ্ধান্ত নিশ্চিতকরণ।
           </p>
         </button>
       </div>
@@ -390,14 +793,14 @@ export const PsychologicalMarketingStrategies: React.FC<
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-black text-indigo-950 text-sm">
-                  মনস্তাত্ত্বিক মূলনীতি: মিলারস ল ও ট্রায়াড চয়েস আর্কিটেকচার (Rule of Three)
+                  কৌশল ১: রাউন্ড অফ থ্রি (৩ এর নিয়ম ও ট্রায়াড চয়েস আর্কিটেকচার)
                 </span>
                 <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full">
-                  Verified Tactic
+                  স্বচ্ছ তথ্য নীতি
                 </span>
               </div>
               <p className="text-xs text-indigo-900/80 leading-relaxed max-w-3xl">
-                যখন ক্রেতাকে ৩টি বিকল্প দেয়া হয় (১টি স্টার্টার, ২টি মোস্ট পপুলার এবং ৩টি মেগা বান্ডেল), প্রায় <strong>৬৭% ক্রেতা ২য় অথবা ৩য় বান্ডেলটি নির্বাচন করেন</strong>। এতে প্রতি অর্ডারের সাইজ দ্বিগুণ বা তিনগুণ বৃদ্ধি পায় এবং অবিক্রিত স্টক দ্রুত বিক্রি হয়।
+                গ্রাহককে সিদ্ধান্তহীনতায় না ফেলে ৩টি পরিষ্কার বিকল্প দিন: <strong>১টি ট্রায়াল</strong>, <strong>২টি মোস্ট পপুলার</strong> এবং <strong>৩টি মেগা ভ্যালু প্যাক</strong>। প্রতি পিসের দামের স্বচ্ছ হিসাব দেখালে প্রায় <strong>৬৮% ক্রেতা ২য় বা ৩য় প্যাক নির্বাচন করেন</strong>।
               </p>
             </div>
 
@@ -418,7 +821,7 @@ export const PsychologicalMarketingStrategies: React.FC<
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-indigo-600" />
-                  ৩-টিয়ার প্যাকেজ কনফিগারেশন
+                  ৩-টিয়ার প্যাকেজ ও স্বচ্ছ মূল্য ক্যালকুলেটর
                 </h4>
                 <span className="text-[11px] font-mono font-bold text-slate-500">
                   ভিত্তি মূল্য: ৳{basePrice.toLocaleString()}
@@ -459,8 +862,9 @@ export const PsychologicalMarketingStrategies: React.FC<
                     />
                   </div>
                 </div>
-                <div className="text-right text-[11px] font-extrabold text-slate-800">
-                  নির্ধারিত মূল্য: ৳{tier1Price.toLocaleString()}
+                <div className="flex justify-between items-center text-[11px] font-bold pt-1">
+                  <span className="text-slate-500">প্রতি পিস: ৳{tier1PerPiece.toLocaleString()}</span>
+                  <span className="font-extrabold text-slate-800">মোট: ৳{tier1Price.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -503,12 +907,12 @@ export const PsychologicalMarketingStrategies: React.FC<
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-[11px] pt-1">
                   <span className="text-emerald-700 font-bold">
-                    গ্রাহকের সাশ্রয়: ৳{tier2Savings.toLocaleString()}
+                    সাশ্রয়: ৳{tier2Savings.toLocaleString()} (প্রতি পিস ৳{tier2PerPiece.toLocaleString()})
                   </span>
                   <span className="font-extrabold text-indigo-950">
-                    নির্ধারিত মূল্য: ৳{tier2Price.toLocaleString()}
+                    মোট: ৳{tier2Price.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -552,12 +956,12 @@ export const PsychologicalMarketingStrategies: React.FC<
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-[11px] pt-1">
                   <span className="text-emerald-700 font-bold">
-                    গ্রাহকের সাশ্রয়: ৳{tier3Savings.toLocaleString()}
+                    সাশ্রয়: ৳{tier3Savings.toLocaleString()} (প্রতি পিস মাত্র ৳{tier3PerPiece.toLocaleString()})
                   </span>
                   <span className="font-extrabold text-purple-950">
-                    নির্ধারিত মূল্য: ৳{tier3Price.toLocaleString()}
+                    মোট: ৳{tier3Price.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -566,23 +970,23 @@ export const PsychologicalMarketingStrategies: React.FC<
               <div className="p-3 bg-slate-900 text-white rounded-2xl space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-indigo-300 flex items-center gap-1">
-                    <Megaphone className="w-3.5 h-3.5" /> রেডি মার্কেটিং হুক (Copy for Ads):
+                    <Megaphone className="w-3.5 h-3.5" /> স্বচ্ছ ক্যাম্পেইন হুক (Copy for Ads):
                   </span>
                   <button
                     type="button"
                     onClick={() => {
-                      const text = `🔥 ৩-প্যাক মেগা সেভার ডিল! ${currentProduct?.name}: ১টি ৳${tier1Price.toLocaleString()}, ২টি ৳${tier2Price.toLocaleString()} (১০% অফ), আর ৩টি নিলে পাচ্ছেন সরাসরি ২৫% মহা ছাড় ও ফ্রি ডেলিভারি! এখনই ভিজিট করুন: smartshop.bd`;
+                      const text = `🔥 ৩-প্যাক মেগা সেভার ডিল! ${currentProduct?.name}: ১টি ৳${tier1Price.toLocaleString()}, ২টি ৳${tier2Price.toLocaleString()} (প্রতি পিস ৳${tier2PerPiece.toLocaleString()}), আর ৩টি নিলে পাচ্ছেন সরাসরি ২৫% মহা ছাড় (প্রতি পিস মাত্র ৳${tier3PerPiece.toLocaleString()}) ও ফ্রি ডেলিভারি! কোড: TRIAD25`;
                       navigator.clipboard.writeText(text);
                       addToast("কপি করা হয়েছে!", "success");
                     }}
-                    className="p-1 hover:text-indigo-400 text-slate-400"
+                    className="p-1 hover:text-indigo-400 text-slate-400 cursor-pointer"
                     title="কপি করুন"
                   >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
-                  {`🔥 ৩-প্যাক মেগা সেভার ডিল! ${currentProduct?.name}: ১টি ৳${tier1Price.toLocaleString()}, ২টি ৳${tier2Price.toLocaleString()}, আর ৩টি নিলে পাচ্ছেন সরাসরি ২৫% মহা ছাড় ও ফ্রি ডেলিভারি!`}
+                  {`🔥 ৩-প্যাক মেগা সেভার ডিল! ${currentProduct?.name}: ১টি ৳${tier1Price.toLocaleString()}, ২টি ৳${tier2Price.toLocaleString()}, ৩টি মাত্র ৳${tier3Price.toLocaleString()} ও ফ্রি ডেলিভারি!`}
                 </p>
                 <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-800">
                   <button
@@ -596,7 +1000,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                         addToast("ব্রডকাস্ট টেক্সট কপি করা হয়েছে!", "info");
                       }
                     }}
-                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                   >
                     <Send className="w-3 h-3" /> ব্রডকাস্টে পাঠান
                   </button>
@@ -610,15 +1014,15 @@ export const PsychologicalMarketingStrategies: React.FC<
                 <div>
                   <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                     <Eye className="w-4 h-4 text-indigo-600" />
-                    লাইভ কাস্টমার ইন্টারঅ্যাকশন প্রিভিউ ({previewDevice === "desktop" ? "ডেস্কটপ" : "মোবাইল"})
+                    গ্রাহক ফ্রন্ট প্রিভিউ ({previewDevice === "desktop" ? "ডেস্কটপ" : "মোবাইল"})
                   </h4>
                   <p className="text-xs text-slate-400">
-                    গ্রাহক আপনার শপে এই ৩টি প্যাকেজ পাশাপাশি যেভাবে দেখতে পাবে।
+                    গ্রাহক আপনার শপে এই ৩টি প্যাকেজ স্বচ্ছ হিসাব সহ যেভাবে দেখতে পাবে।
                   </p>
                 </div>
 
                 <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-                  A/B Tested 3-Tier Layout
+                  Decision Architecture
                 </span>
               </div>
 
@@ -633,7 +1037,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                 {/* Product mini header */}
                 <div className="flex items-center gap-3 mb-4 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
                   <img
-                    src={currentProduct?.image}
+                    src={productImage}
                     alt=""
                     className="w-12 h-12 object-cover rounded-lg border border-slate-100"
                   />
@@ -659,7 +1063,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                   <div className="bg-white p-4 rounded-2xl border border-slate-200 text-center space-y-2 flex flex-col justify-between shadow-2xs relative">
                     <div className="space-y-1">
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                        স্টার্টার প্যাক
+                        স্টার্টার ট্রায়াল
                       </span>
                       <h6 className="font-black text-slate-900 text-sm">
                         {tier1Qty}টি পিস
@@ -668,16 +1072,19 @@ export const PsychologicalMarketingStrategies: React.FC<
                         <span className="text-xl font-black text-slate-900">
                           ৳{tier1Price.toLocaleString()}
                         </span>
+                        <span className="block text-[10px] text-slate-500">
+                          (৳{tier1PerPiece.toLocaleString()} /পিস)
+                        </span>
                       </div>
                       <p className="text-[10px] text-slate-500 pt-1">
-                        সাধারণ ট্রায়াল অর্ডারের জন্য উপযুক্ত।
+                        কোয়ালিটি যাচাই করার জন্য স্ট্যান্ডার্ড বিকল্প।
                       </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => addToast("সিঙ্গেল প্যাক টেস্ট ক্লিক!", "info")}
-                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors mt-3"
+                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors mt-3 cursor-pointer"
                     >
                       সিঙ্গেল কিনুন
                     </button>
@@ -703,6 +1110,9 @@ export const PsychologicalMarketingStrategies: React.FC<
                         <span className="text-2xl font-black text-indigo-700">
                           ৳{tier2Price.toLocaleString()}
                         </span>
+                        <span className="block text-[10px] text-indigo-600 font-bold">
+                          (৳{tier2PerPiece.toLocaleString()} /পিস)
+                        </span>
                       </div>
                       <div className="text-[10px] font-bold text-emerald-700 bg-emerald-50 py-0.5 px-2 rounded-full inline-block">
                         সাশ্রয় ৳{tier2Savings.toLocaleString()} ({tier2Discount}% অফ)
@@ -712,7 +1122,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                     <button
                       type="button"
                       onClick={() => addToast("মোস্ট পপুলার ডাবল প্যাক টেস্ট ক্লিক!", "success")}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-colors mt-3 flex items-center justify-center gap-1"
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-colors mt-3 flex items-center justify-center gap-1 cursor-pointer"
                     >
                       ডাবল প্যাক নিন →
                     </button>
@@ -734,6 +1144,9 @@ export const PsychologicalMarketingStrategies: React.FC<
                         <span className="text-xl font-black text-purple-900">
                           ৳{tier3Price.toLocaleString()}
                         </span>
+                        <span className="block text-[10px] text-purple-700 font-bold">
+                          (মাত্র ৳{tier3PerPiece.toLocaleString()} /পিস)
+                        </span>
                       </div>
                       <div className="text-[10px] font-bold text-purple-700 bg-purple-50 py-0.5 px-2 rounded-full inline-block">
                         সাশ্রয় ৳{tier3Savings.toLocaleString()} ({tier3Discount}% অফ)
@@ -746,7 +1159,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                     <button
                       type="button"
                       onClick={() => addToast("মেগা ট্রায়াড প্যাক টেস্ট ক্লিক!", "success")}
-                      className="w-full py-2 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition-colors mt-3"
+                      className="w-full py-2 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition-colors mt-3 cursor-pointer"
                     >
                       ৩-প্যাক মেগা অফার
                     </button>
@@ -758,12 +1171,12 @@ export const PsychologicalMarketingStrategies: React.FC<
               <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  গ্রাহক ফ্রন্টে এটি প্রদর্শিত হলে এভারেজ অর্ডার সাইজ (AOV) ৩৫% বেড়ে যায়।
+                  প্রতি ইউনিটের স্বচ্ছ ব্রেকডাউন থাকায় গ্রাহকের গড় অর্ডার ভ্যালু (AOV) ৩৫% বেড়ে যায়।
                 </span>
                 <button
                   type="button"
                   onClick={handleDeployTriadCampaign}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" /> স্টোরফ্রন্টে ৩-টিয়ার সক্রিয় করুন
                 </button>
@@ -781,14 +1194,14 @@ export const PsychologicalMarketingStrategies: React.FC<
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-black text-rose-950 text-sm">
-                  মনস্তাত্ত্বিক মূলনীতি: পারসেপচুয়াল কন্ট্রাস্ট ও ডিকয় কম্প্যারিজন (Contrast Effect)
+                  কৌশল ২: কন্ট্রাস্ট ইফেক্ট (স্বচ্ছ বাজার দর বনাম আমাদের মান ও শর্তাবলী)
                 </span>
                 <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-full">
-                  High-Impact Heuristic
+                  স্বচ্ছ তুলনামূলক ম্যাট্রিক্স
                 </span>
               </div>
               <p className="text-xs text-rose-900/80 leading-relaxed max-w-3xl">
-                কোনো পণ্য একা দেখলে দাম বেশি মনে হতে পারে, কিন্তু যখনই তার পাশে একটি চড়া মার্কেট প্রাইস বা অন্য কোনো অলটারনেটিভের ঘাটতি তুলে ধরা হয়, অবচেতন মনে আপনার অফারটি <strong>সবচেয়ে লাভজনক সিদ্ধান্ত</strong> হিসেবে স্বীকৃতি পায়।
+                কোনো বিভ্রান্তি নয়; সাধারণ মার্কেট বা অনির্ভরযোগ্য সোর্সগুলোর উচ্চ মূল্য ও ওয়ারেন্টিহীন ঝুঁকির বিপরীতে আমাদের ন্যায্য মূল্য ও <strong>১০০% অফিসিয়াল ওয়ারেন্টি</strong> সাইড-বাই-সাইড তুলে ধরা হয়, যা গ্রাহককে আত্মবিশ্বাসী সিদ্ধান্ত নিতে সাহায্য করে।
               </p>
             </div>
 
@@ -817,7 +1230,7 @@ export const PsychologicalMarketingStrategies: React.FC<
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-slate-100 rounded-2xl border border-slate-300">
                   <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                    বাজার দর / চড়া ডিকয় প্রাইস
+                    সাধারণ বাজার দর / চড়া ডিকয়
                   </label>
                   <div className="flex items-center gap-1">
                     <span className="font-black text-slate-700 text-sm">৳</span>
@@ -878,12 +1291,25 @@ export const PsychologicalMarketingStrategies: React.FC<
               {/* Benefit Bullet 2 */}
               <div>
                 <label className="text-[10px] text-slate-500 font-bold block mb-1">
-                  আমাদের প্রধান সুবিধা ২
+                  আমাদের প্রধান সুবিধা ২ (ওপেন-বক্স চেক)
                 </label>
                 <input
                   type="text"
                   value={contrastBenefit2}
                   onChange={(e) => setContrastBenefit2(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                />
+              </div>
+
+              {/* Benefit Bullet 3 */}
+              <div>
+                <label className="text-[10px] text-slate-500 font-bold block mb-1">
+                  আমাদের প্রধান সুবিধা ৩ (রিটার্ন গ্যারান্টি)
+                </label>
+                <input
+                  type="text"
+                  value={contrastBenefit3}
+                  onChange={(e) => setContrastBenefit3(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold"
                 />
               </div>
@@ -910,11 +1336,11 @@ export const PsychologicalMarketingStrategies: React.FC<
                   <button
                     type="button"
                     onClick={() => {
-                      const text = `⚡ বাজারে যা ৳${contrastCompetitorPrice.toLocaleString()} দিয়ে কিনতে হয়, আজ আমাদের কাছে পাচ্ছেন মাত্র ৳${ourContrastPrice.toLocaleString()} মূল্যে! পুরো ৳${contrastSavings.toLocaleString()} সাশ্রয় (${contrastPercent}% ডিসকাউন্ট)। সাথে ১০০% অরিজিনাল গ্যারান্টি ও ফ্রি হোম ডেলিভারি! কোড: CONTRAST50`;
+                      const text = `⚡ বাজারে যা ৳${contrastCompetitorPrice.toLocaleString()} দিয়ে কিনতে হয়, আজ আমাদের কাছে পাচ্ছেন মাত্র ৳${ourContrastPrice.toLocaleString()} মূল্যে! পুরো ৳${contrastSavings.toLocaleString()} সাশ্রয় (${contrastPercent}% ডিসকাউন্ট)। সাথে ১০০% অরিজিনাল গ্যারান্টি ও ওপেন-বক্স ক্যাশ অন ডেলিভারি! কোড: CONTRAST50`;
                       navigator.clipboard.writeText(text);
                       addToast("কন্ট্রাস্ট ক্যাপশন কপি করা হয়েছে!", "success");
                     }}
-                    className="p-1 hover:text-rose-400 text-slate-400"
+                    className="p-1 hover:text-rose-400 text-slate-400 cursor-pointer"
                     title="কপি করুন"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -1000,7 +1426,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <img
-                          src={currentProduct?.image}
+                          src={productImage}
                           alt=""
                           className="w-10 h-10 object-cover rounded-lg border border-rose-400/40"
                         />
@@ -1042,7 +1468,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                     <button
                       type="button"
                       onClick={() => addToast("কন্ট্রাস্ট অফার গ্রহণ টেস্ট ক্লিক!", "success")}
-                      className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5"
+                      className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Zap className="w-3.5 h-3.5" /> সাশ্রয়ী মূল্যে অর্ডার করুন →
                     </button>
@@ -1059,7 +1485,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                 <button
                   type="button"
                   onClick={handleDeployContrastCampaign}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" /> স্টোরে কন্ট্রাস্ট ব্যানার পুশ করুন
                 </button>
@@ -1077,14 +1503,14 @@ export const PsychologicalMarketingStrategies: React.FC<
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-black text-amber-950 text-sm">
-                  মনস্তাত্ত্বিক মূলনীতি: প্রাইস অ্যাঙ্করিং ও ফ্রেইমিং হিউরিস্টিক (Anchoring Bias)
+                  কৌশল ৩: প্রাইস অ্যাঙ্করিং ও স্বচ্ছ মাইক্রো-কস্ট ফ্রেইমিং (Anchoring Bias)
                 </span>
                 <span className="px-2 py-0.5 bg-amber-600 text-white text-[10px] font-bold rounded-full">
-                  Classic Behavioral Bias
+                  স্বচ্ছ রেফারেন্স ও যৌক্তিক হিসাব
                 </span>
               </div>
               <p className="text-xs text-amber-900/80 leading-relaxed max-w-3xl">
-                গ্রাহক যখন প্রথম কোনো বড় সংখ্যা (MRP বা Was Price) দেখে, তার মন সেই সংখ্যাটিকে পণ্যের আসল মূল্য হিসেবে রেজিস্টার করে। এরপরে যখন ডিসকাউন্টেড প্রাইস ও <strong>দৈনিক ক্ষুদ্র খরচের হিসাব ("প্রতিদিন মাত্র ৳{dailyAmortizedCost}")</strong> দেখানো হয়, তখন পণ্যটি কেনা অবধারিত লাভজনক মনে হয়।
+                কোনো বিভ্রান্তিকর মূল্য নয়, পণ্যের আসল রেফারেন্স মূল্য (MSRP) নোঙর হিসেবে উপস্থাপন করে ছাড়ের যৌক্তিক কারণ ব্যাখ্যা করা এবং বড় মোট খরচকে দৈনন্দিন অভ্যাসে (যেমন: <strong>প্রতিদিন মাত্র ৳{dailyAmortizedCost} — এক কাপ চায়ের খরচে</strong>) রূপান্তর করে গ্রাহককে নির্ভার রাখা হয়।
               </p>
             </div>
 
@@ -1182,6 +1608,19 @@ export const PsychologicalMarketingStrategies: React.FC<
                 />
               </div>
 
+              {/* Transparency Reason */}
+              <div>
+                <label className="text-[10px] text-slate-500 font-bold block mb-1">
+                  ছাড়ের স্বচ্ছ যৌক্তিক কারণ (Transparency Fact)
+                </label>
+                <input
+                  type="text"
+                  value={anchorTransparencyReason}
+                  onChange={(e) => setAnchorTransparencyReason(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                />
+              </div>
+
               {/* Anchoring Metrics Box */}
               <div className="grid grid-cols-2 gap-2 text-center text-xs">
                 <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
@@ -1211,7 +1650,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                       navigator.clipboard.writeText(text);
                       addToast("অ্যাঙ্করিং টেক্সট কপি করা হয়েছে!", "success");
                     }}
-                    className="p-1 hover:text-amber-400 text-slate-400"
+                    className="p-1 hover:text-amber-400 text-slate-400 cursor-pointer"
                     title="কপি করুন"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -1262,7 +1701,7 @@ export const PsychologicalMarketingStrategies: React.FC<
 
                   <div className="flex items-center gap-4">
                     <img
-                      src={currentProduct?.image}
+                      src={productImage}
                       alt=""
                       className="w-20 h-20 object-cover rounded-xl border border-slate-200 shadow-2xs"
                     />
@@ -1271,7 +1710,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                         {currentProduct?.name}
                       </h5>
                       <p className="text-[11px] text-slate-500">
-                        অফিসিয়াল ওয়ারেন্টি ও অরিজিনাল কোয়ালিটি নিশ্চয়তা
+                        {anchorTransparencyReason}
                       </p>
 
                       {/* Anchoring Strike-Through & Big Price */}
@@ -1318,7 +1757,7 @@ export const PsychologicalMarketingStrategies: React.FC<
                   <button
                     type="button"
                     onClick={() => addToast("অ্যাঙ্করিং অফার টেস্ট অর্ডার ক্লিক!", "success")}
-                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Zap className="w-3.5 h-3.5" /> সাশ্রয়ী মূল্যে এখনই সংগ্রহ করুন →
                   </button>
@@ -1334,11 +1773,178 @@ export const PsychologicalMarketingStrategies: React.FC<
                 <button
                   type="button"
                   onClick={handleDeployAnchoringCampaign}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" /> স্টোরে অ্যাঙ্করিং পপ-আপ সক্রিয় করুন
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ALL SYSTEM ITEMS PICKER MODAL (Max Level) */}
+      {isItemPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-fuchsia-600/50 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-left text-white animate-fadeIn">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-900/90">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-fuchsia-600/20 border border-fuchsia-500/30 rounded-2xl text-fuchsia-300">
+                  <Package className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg text-white">
+                    সিস্টেমের সমস্ত পণ্য ব্রাউজ ও নির্বাচন করুন
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    যে কোনো পণ্য সিলেক্ট করুন—রাউন্ড অফ থ্রি, কন্ট্রাস্ট ইফেক্ট এবং অ্যাঙ্করিং বায়াস স্বয়ংক্রিয়ভাবে সেই পণ্যের দাম ও ডাটা অনুযায়ী কনফিগার হবে।
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsItemPickerOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex flex-col sm:flex-row gap-3 items-center justify-between">
+              {/* Search input */}
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="পণ্যের নাম, বাংলা নাম, SKU বা ব্র্যান্ড লিখুন..."
+                  value={itemSearchQuery}
+                  onChange={(e) => setItemSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                />
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryFilter("all")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                    selectedCategoryFilter === "all"
+                      ? "bg-fuchsia-600 text-white shadow-xs"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  }`}
+                >
+                  সব ক্যাটাগরি ({products.length})
+                </button>
+                {availableCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                      selectedCategoryFilter === cat
+                        ? "bg-fuchsia-600 text-white shadow-xs"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Grid */}
+            <div className="p-4 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredProducts.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-slate-400 space-y-2">
+                  <Package className="w-10 h-10 mx-auto text-slate-500 opacity-60" />
+                  <p className="text-sm font-bold">কোনো পণ্য পাওয়া যায়নি</p>
+                  <p className="text-xs text-slate-500">অনুসন্ধান বা ক্যাটাগরি ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।</p>
+                </div>
+              ) : (
+                filteredProducts.map((p) => {
+                  const isCurrent = p.id === selectedProductId;
+                  const price = p.discountPrice || p.sellingPrice;
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleSelectProduct(p)}
+                      className={`p-3 rounded-2xl border transition-all flex items-center gap-3 cursor-pointer relative overflow-hidden ${
+                        isCurrent
+                          ? "bg-fuchsia-950/60 border-fuchsia-500 ring-2 ring-fuchsia-500/40 shadow-lg"
+                          : "bg-slate-800/80 border-slate-700/80 hover:border-fuchsia-500/60 hover:bg-slate-800"
+                      }`}
+                    >
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
+                        <img
+                          src={p.mainImage || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80"}
+                          alt={p.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80";
+                          }}
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">
+                            {p.categoryName || "General"}
+                          </span>
+                          {p.sku && (
+                            <span className="text-[9px] font-mono text-slate-500">
+                              · {p.sku}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-extrabold text-white text-xs line-clamp-1 mt-0.5">
+                          {p.name}
+                        </h4>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-sm font-black text-emerald-400 font-mono">
+                            ৳{price.toLocaleString()}
+                          </span>
+                          {p.discountPrice && p.discountPrice < p.sellingPrice && (
+                            <span className="text-[10px] text-slate-400 line-through font-mono">
+                              ৳{p.sellingPrice.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isCurrent ? (
+                          <span className="px-2.5 py-1 bg-fuchsia-600 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-sm">
+                            <CheckCircle className="w-3 h-3" /> সিলেক্টেড
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 bg-slate-700 hover:bg-fuchsia-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg transition"
+                          >
+                            সিলেক্ট করুন
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400">
+              <span>মোট {filteredProducts.length}টি পণ্য প্রদর্শিত হচ্ছে</span>
+              <button
+                type="button"
+                onClick={() => setIsItemPickerOpen(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition cursor-pointer"
+              >
+                বন্ধ করুন
+              </button>
             </div>
           </div>
         </div>

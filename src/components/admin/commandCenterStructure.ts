@@ -324,11 +324,11 @@ export const COMMAND_CENTER_CATEGORIES: CommandCenterCategory[] = [
         features: [
           {
             id: "marketing",
-            name: "Marketing, Campaigns & Psychology",
-            description: "Hero sliders, popups, Neuro-Marketing (Round of Three, Contrast Effect, Anchoring Bias), SMS/WhatsApp broadcast & UTM tracking",
+            name: "সাইকোলজি ইন্টেলিজেন্স ল্যাব ও মার্কেটিং",
+            description: "গ্রাহককে স্বচ্ছ তথ্য দিয়ে সিদ্ধান্ত নিতে সাহায্য করার ৩টি ব্যবহারযোগ্য ক্যাম্পেইন কৌশল (রাউন্ড অফ থ্রি, কন্ট্রাস্ট ইফেক্ট, অ্যাঙ্করিং বায়াস), হিরো ব্যানার ও ব্রডকাস্ট",
             icon: Megaphone,
             module: "CMS",
-            tag: "Neuro-Marketing",
+            tag: "Max Level",
             isPopular: true,
           },
         ],

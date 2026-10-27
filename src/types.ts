@@ -394,6 +394,47 @@ export interface Advertisement {
   createdAt?: string;
 }
 
+export interface PsychologicalCampaign {
+  id: string;
+  strategy: "round-of-three" | "contrast-effect" | "anchoring-bias";
+  title: string;
+  badge?: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  basePrice: number;
+  triadConfig?: {
+    tier1Qty: number;
+    tier1Price: number;
+    tier2Qty: number;
+    tier2Price: number;
+    tier2Savings: number;
+    tier2Discount: number;
+    tier3Qty: number;
+    tier3Price: number;
+    tier3Savings: number;
+    tier3Discount: number;
+  };
+  contrastConfig?: {
+    competitorPrice: number;
+    ourPrice: number;
+    savings: number;
+    savingsPercent: number;
+    ourHighlight: string;
+    competitorNote: string;
+  };
+  anchorConfig?: {
+    anchorPrice: number;
+    sellingPrice: number;
+    savings: number;
+    savingsPercent: number;
+    dailyCost: number;
+    hookText: string;
+  };
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface SecurityLabel {
   id: string;
   title: string;

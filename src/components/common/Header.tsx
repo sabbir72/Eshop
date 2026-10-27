@@ -29,6 +29,8 @@ import {
   Home as HomeIcon,
   Smartphone,
   Crown,
+  HelpCircle,
+  Headphones,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -314,7 +316,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => {
                 setMode("storefront");
-                setStoreView("membership");
+                setStoreView("faq");
               }}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-black transition cursor-pointer"
             >
@@ -322,8 +324,20 @@ export const Header: React.FC<HeaderProps> = ({
               <span>
                 {currentUser?.membership?.status === "active"
                   ? `${currentUser.membership.tier} VIP Member`
-                  : "👑 ৩টি ক্যাটাগরির মেম্বারশিপ কার্ড ও বিশেষ ছাড়"}
+                  : "👑 ৩টি ক্যাটাগরির মেম্বারশিপ কার্ড ও ক্লাব"}
               </span>
+            </button>
+
+            {/* Customer Care Direct Link */}
+            <button
+              onClick={() => {
+                setMode("storefront");
+                setStoreView("faq");
+              }}
+              className="hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-800 text-[10.5px] text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              <Headphones className="w-3 h-3 text-indigo-400" />
+              <span>{language === "BN" ? "কাস্টমার কেয়ার" : "Customer Care"}</span>
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -364,7 +378,7 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Main Brand & Search Bar Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+      <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <button
           onClick={() => {
@@ -730,7 +744,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Contains ONLY: All Categories, Hot Offers, New Arrivals, Best Sellers, Gift Boxes */}
       {mode === "storefront" && (
         <nav className="bg-slate-900 text-white border-t border-slate-800 text-xs font-extrabold sticky top-0 z-30 shadow-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
             <div className="flex items-center space-x-2 py-2">
               {/* All Categories Mega Menu */}
               <CategoryMegaMenu
@@ -1050,7 +1064,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* VIP Membership Club */}
             <button
               onClick={() => {
-                setStoreView("membership");
+                setStoreView("faq");
                 setMobileMenuOpen(false);
               }}
               className="text-left py-2.5 border-b border-slate-100 flex items-center justify-between text-amber-600 font-extrabold"
@@ -1061,6 +1075,23 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2 py-0.5 rounded-full">
                 ৩ টিয়ার
+              </span>
+            </button>
+
+            {/* Customer Care & Help Center */}
+            <button
+              onClick={() => {
+                setStoreView("faq");
+                setMobileMenuOpen(false);
+              }}
+              className="text-left py-2.5 border-b border-slate-100 flex items-center justify-between text-indigo-700 font-extrabold"
+            >
+              <div className="flex items-center gap-2">
+                <Headphones className="w-4 h-4 text-indigo-600" />
+                <span>{language === "BN" ? "কাস্টমার কেয়ার ও কার্ড সার্ভিস" : "Customer Care & Card Service"}</span>
+              </div>
+              <span className="text-[10px] bg-indigo-50 text-indigo-700 font-black px-2 py-0.5 rounded-full border border-indigo-200">
+                ২৪/৭
               </span>
             </button>
 

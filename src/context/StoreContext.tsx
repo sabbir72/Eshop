@@ -39,6 +39,7 @@ import {
   PriceCompromiseOffer,
   MembershipTier,
   UserMembership,
+  PsychologicalCampaign,
 } from "../types";
 import { evaluateCouponDiscount, DiscountValidationResult } from "../utils/discountEngine";
 import {
@@ -73,6 +74,7 @@ import {
   initialMembershipPlans,
   initialMembershipCardOrders,
   initialPriceCompromiseOffers,
+  initialPsychologicalCampaigns,
 } from "../data/mockData";
 
 export type ViewMode = "storefront" | "admin";
@@ -182,6 +184,7 @@ interface StoreContextType {
   brands: Brand[];
   warehouses: Warehouse[];
   users: User[];
+  customers?: User[];
   orders: Order[];
   coupons: Coupon[];
   reviews: Review[];
@@ -319,6 +322,13 @@ interface StoreContextType {
   deleteAdvertisement: (id: string) => void;
   trackAdImpression: (id: string) => void;
   trackAdClick: (id: string) => void;
+
+  // Psychological Marketing Strategies Campaigns
+  psychologicalCampaigns: PsychologicalCampaign[];
+  addPsychologicalCampaign: (campaign: Omit<PsychologicalCampaign, "id" | "createdAt">) => void;
+  updatePsychologicalCampaign: (id: string, updates: Partial<PsychologicalCampaign>) => void;
+  togglePsychologicalCampaignStatus: (id: string) => void;
+  deletePsychologicalCampaign: (id: string) => void;
 
   // Membership & Physical Card Delivery State
   membershipPlans: MembershipPlan[];
@@ -550,6 +560,67 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return changed ? next : prev;
     });
   }, []);
+
+  // Psychological Marketing Strategies Campaigns State
+  const [psychologicalCampaigns, setPsychologicalCampaigns] = useState<PsychologicalCampaign[]>(() => {
+    try {
+      const saved = localStorage.getItem("smartshop_psychological_campaigns");
+      return saved ? JSON.parse(saved) : initialPsychologicalCampaigns;
+    } catch {
+      return initialPsychologicalCampaigns;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("smartshop_psychological_campaigns", JSON.stringify(psychologicalCampaigns));
+    } catch {
+      // ignore
+    }
+  }, [psychologicalCampaigns]);
+
+  const addPsychologicalCampaign = (campaignData: Omit<PsychologicalCampaign, "id" | "createdAt">) => {
+    const newCamp: PsychologicalCampaign = {
+      ...campaignData,
+      id: `psy-${campaignData.strategy.slice(0, 5)}-${Date.now()}`,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+    setPsychologicalCampaigns((prev) => [newCamp, ...prev]);
+    recordAuditLog(`Created Psychological Campaign "${newCamp.title}" (${newCamp.strategy})`, "CMS");
+    addToast("সাইকোলজি অফার ক্যাম্পেইন সফলভাবে তৈরি ও সংরক্ষিত হয়েছে!", "success");
+  };
+
+  const updatePsychologicalCampaign = (id: string, updates: Partial<PsychologicalCampaign>) => {
+    setPsychologicalCampaigns((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
+    );
+    recordAuditLog(`Updated Psychological Campaign "${id}"`, "CMS");
+    addToast("ক্যাম্পেইন সফলভাবে আপডেট করা হয়েছে!", "success");
+  };
+
+  const togglePsychologicalCampaignStatus = (id: string) => {
+    setPsychologicalCampaigns((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const nextActive = !c.isActive;
+          recordAuditLog(`Toggled Campaign "${c.title}" to ${nextActive ? "Active" : "Inactive"}`, "CMS");
+          addToast(
+            `ক্যাম্পেইন '${c.title}' ${nextActive ? "সক্রিয় করা হয়েছে (ফ্রন্টে শো করবে)" : "নিষ্ক্রিয় করা হয়েছে (ফ্রন্টে শো করবে না)"}`,
+            nextActive ? "success" : "info"
+          );
+          return { ...c, isActive: nextActive };
+        }
+        return c;
+      })
+    );
+  };
+
+  const deletePsychologicalCampaign = (id: string) => {
+    const target = psychologicalCampaigns.find((c) => c.id === id);
+    setPsychologicalCampaigns((prev) => prev.filter((c) => c.id !== id));
+    recordAuditLog(`Deleted Psychological Campaign "${target?.title || id}"`, "CMS");
+    addToast("ক্যাম্পেইনটি সফলভাবে ডিলিট করা হয়েছে!", "info");
+  };
 
   // Membership & Physical Card Delivery State
   const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>(() => {
@@ -1981,6 +2052,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         brands,
         warehouses,
         users,
+        customers: users,
         orders,
         coupons,
         reviews,
@@ -2085,6 +2157,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteAdvertisement,
         trackAdImpression,
         trackAdClick,
+        psychologicalCampaigns,
+        addPsychologicalCampaign,
+        updatePsychologicalCampaign,
+        togglePsychologicalCampaignStatus,
+        deletePsychologicalCampaign,
         membershipPlans,
         membershipCardOrders,
         priceCompromiseOffers,

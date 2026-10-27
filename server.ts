@@ -2886,15 +2886,18 @@ async function startServer() {
     (process.env.NODE_ENV === "production" || Boolean(process.env.K_SERVICE)) &&
     Boolean(resolvedIndexHtml);
 
+  let vite: any = null;
+
   // Vite Middleware for Development / Static serving for Production
   if (!isProduction) {
     try {
       const { createServer: createViteServer } = await import("vite");
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
+      vite = await createViteServer({
+        server: { middlewareMode: true, hmr: false },
         appType: "spa",
       });
       app.use(vite.middlewares);
+      console.log("[Smart E-Commerce] Vite development middleware active on port " + PORT);
     } catch (viteErr) {
       console.warn("[Vite Middleware Warning]:", viteErr);
       if (resolvedDistDir && fs.existsSync(resolvedDistDir)) {
@@ -2902,20 +2905,21 @@ async function startServer() {
       }
     }
   } else {
-    app.use(express.static(resolvedDistDir));
+    if (resolvedDistDir && fs.existsSync(resolvedDistDir)) {
+      app.use(express.static(resolvedDistDir));
+    }
   }
 
-  // Safe SPA fallback handler (never throws ENOENT)
-  app.get("*", (req, res, next) => {
+  // Safe SPA fallback handler
+  app.get("*", async (req, res, next) => {
     if (req.path.startsWith("/api")) {
       return next();
     }
 
-    // 1. Try built production index.html if found
+    // 1. In production mode or when dist exists, serve built production index.html
     if (resolvedIndexHtml && fs.existsSync(resolvedIndexHtml)) {
       return res.sendFile(resolvedIndexHtml, (err) => {
         if (err) {
-          console.warn("[SendFile Warning - Trying fallback]:", err.message);
           const rootIndex = path.join(process.cwd(), "index.html");
           if (fs.existsSync(rootIndex)) {
             res.sendFile(rootIndex, () => {});
@@ -2926,17 +2930,26 @@ async function startServer() {
       });
     }
 
-    // 2. Try root index.html
-    const rootIndex = path.join(process.cwd(), "index.html");
-    if (fs.existsSync(rootIndex)) {
-      return res.sendFile(rootIndex, (err) => {
-        if (err) {
-          res.status(200).send("<!DOCTYPE html><html><head><meta http-equiv='refresh' content='2'></head><body><h1>Loading Application...</h1></body></html>");
+    // 2. In dev mode without prebuilt dist, use Vite's index.html transform
+    if (!isProduction && vite) {
+      try {
+        const rootIndex = path.join(process.cwd(), "index.html");
+        if (fs.existsSync(rootIndex)) {
+          let template = fs.readFileSync(rootIndex, "utf-8");
+          template = await vite.transformIndexHtml(req.originalUrl, template);
+          return res.status(200).set({ "Content-Type": "text/html" }).end(template);
         }
-      });
+      } catch (e: any) {
+        console.error("[Vite Transform Error]:", e);
+      }
     }
 
-    // 3. Fallback loading page
+    // 3. Root index fallback
+    const rootIndex = path.join(process.cwd(), "index.html");
+    if (fs.existsSync(rootIndex)) {
+      return res.sendFile(rootIndex, () => {});
+    }
+
     res.status(200).send("<!DOCTYPE html><html><head><meta http-equiv='refresh' content='2'></head><body><h1>Loading Application...</h1></body></html>");
   });
 

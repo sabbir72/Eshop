@@ -139,7 +139,7 @@ export const Footer: React.FC = () => {
       {SHOW_SECURITY_TRUST_SECTION && <SecurityTrustSection securityLabels={securityLabels} />}
 
       {/* Main Footer Navigation Links */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center gap-2.5">
             {settings.logoUrl ? (
@@ -265,6 +265,22 @@ export const Footer: React.FC = () => {
         <div>
           <h4 className="text-white font-bold text-sm mb-4">{t("customer_care", language)}</h4>
           <ul className="space-y-2 text-xs">
+            <li>
+              <button
+                onClick={() => setStoreView("faq")}
+                className="hover:text-amber-400 text-amber-300 font-bold transition-colors flex items-center gap-1.5"
+              >
+                <span>{language === "BN" ? "৩টি মেম্বারশিপ ও ফিজিক্যাল কার্ড ক্লাব" : "VIP Membership & Card Club"}</span>
+                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono px-1.5 py-0.2 rounded">
+                  VIP
+                </span>
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setStoreView("faq")} className="hover:text-indigo-400 transition-colors">
+                {language === "BN" ? "কাস্টমার কেয়ার ও সাপোর্ট" : t("help_faq", language)}
+              </button>
+            </li>
             <li>
               <button onClick={() => setStoreView("profile")} className="hover:text-indigo-400 transition-colors">
                 {t("my_account", language)}
